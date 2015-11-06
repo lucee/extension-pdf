@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Export-Package: org.lucee.extension.pdf.tag
+Bundle-ManifestVersion: 2
+Require-Bundle: bcprov.jdk14;bundle-version=1.36.0,
+ lowagie.itext;bundle-version=2.1.7,
+ flying.saucer.core;bundle-version=9.0.8,
+ flying.saucer.pdf;bundle-version=9.0.8,
+ org.apache.pdfbox;bundle-version=1.8.9,
+ org.apache.pdfbox.fontbox;bundle-version=1.8.9,
+ org.apache.pdfbox.jempbox;bundle-version=1.8.9,
+ icepdf.core;bundle-version=3.1.0.3
