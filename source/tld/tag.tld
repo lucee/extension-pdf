@@ -292,7 +292,7 @@
 	<!-- DocumentItem -->
 	<tag>
 		<name>documentitem</name>
-		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">lucee.runtime.tag.DocumentItem</tag-class>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.DocumentItem</tag-class>
 		<body-content>free</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>
 		<script>
@@ -340,7 +340,7 @@ Determines if the contents of the cfdocumentitem tag body has to be evaluated at
 	<!-- DocumentSection -->
 	<tag>
 		<name>documentsection</name>
-		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">lucee.runtime.tag.DocumentSection</tag-class>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.DocumentSection</tag-class>
 		<body-content>free</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>
 		<script>
@@ -446,7 +446,7 @@ Determines if the contents of the cfdocumentitem tag body has to be evaluated at
 	<!-- PDF -->
 	<tag>
 		<name>pdf</name>
-		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">lucee.runtime.tag.PDF</tag-class>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.PDF</tag-class>
 		<body-content>free</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>
 		<script>
@@ -751,7 +751,7 @@ Manipulates existing PDF documents. The following list describes some of the tas
 	<!-- PDFParam -->
 	<tag>
 		<name>PDFParam</name>
-		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">lucee.runtime.tag.PDFParam</tag-class>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.PDFParam</tag-class>
 		<tte-class>lucee.transformer.cfml.evaluator.impl.PDFParam</tte-class>
 		<body-content>empty</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>

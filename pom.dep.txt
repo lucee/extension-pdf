@@ -1,0 +1,55 @@
+<!-- 
+  Bundle-SymbolicName: bcprov.jdk14
+  Bundle-Version: 1.36.0
+  source: lucee
+-->
+      <dependency>
+         <groupId>bcprov</groupId>
+         <artifactId>jdk14</artifactId>
+         <type>jar</type>
+         <version>1.36.0</version>
+      </dependency>
+
+<!-- 
+  Bundle-SymbolicName: lowagie.itext
+  Bundle-Version: 2.1.7 
+-->
+      <dependency>
+         <groupId>lowagie</groupId>
+         <artifactId>itext</artifactId>
+         <type>jar</type>
+         <version>2.1.2.1</version>
+      </dependency>
+
+
+<!--
+  Bundle-SymbolicName: org.apache.pdfbox
+  Bundle-Version: 1.8.9
+-->
+  <dependency>
+    <groupId>org.apache.pdfbox</groupId>
+    <artifactId>pdfbox</artifactId>
+    <version>1.8.9</version>
+  </dependency>
+
+
+<!--
+  Bundle-SymbolicName: org.apache.pdfbox.fontbox
+  Bundle-Version: 1.8.9
+-->
+  <dependency>
+    <groupId>org.apache.pdfbox</groupId>
+    <artifactId>fontbox</artifactId>
+    <version>1.8.9</version>
+  </dependency>
+
+
+<!--
+  Bundle-SymbolicName: org.apache.pdfbox.jempbox
+  Bundle-Version: 1.8.9
+-->
+  <dependency>
+    <groupId>org.apache.pdfbox</groupId>
+    <artifactId>jempbox</artifactId>
+    <version>1.8.9</version>
+  </dependency>
