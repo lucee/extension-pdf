@@ -79,7 +79,8 @@ version: "${bundleversion}${build.number}"
 id: "${id}"
 name: "${label}"
 description: "${description}"
-lucee-core-version: "5.0.0.107”
+lucee-core-version: "${luceeCoreVersion}”
+release-type: ${releaseType}
 start-bundles: false
 </echo>
 

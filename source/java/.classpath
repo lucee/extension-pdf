@@ -12,10 +12,11 @@
 	<classpathentry kind="lib" path="libs/core-3.1.0.3.jar"/>
 	<classpathentry kind="lib" path="libs/fontbox-1.8.9.jar"/>
 	<classpathentry kind="lib" path="libs/jempbox-1.8.9.jar"/>
-	<classpathentry kind="lib" path="libs/flying-saucer-pdf-9-0-8-0001L.jar"/>
 	<classpathentry kind="lib" path="libs/bouncycastle-mail-1-38-0.jar"/>
 	<classpathentry kind="lib" path="libs/bouncycastle-prov-1-38-0.jar"/>
 	<classpathentry kind="lib" path="libs/bouncycastle-tsp-1-38-0.jar"/>
-	<classpathentry kind="lib" path="libs/lowagie-itext-2-1-7-0002L.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.xml-1.0.0.0.jar"/>
+	<classpathentry kind="lib" path="libs/flying-saucer-pdf-9-0-8-0003L.jar"/>
+	<classpathentry kind="lib" path="libs/lowagie-itext-2-1-7-0004L.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

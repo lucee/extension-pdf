@@ -45,6 +45,7 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.net.proxy.ProxyData;
 
 import org.lucee.extension.pdf.util.ClassUtil;
+import org.lucee.xml.XMLUtility;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -442,7 +443,7 @@ resolver.addFont (
 
 
 	private static Document toXML(InputSource is) throws SAXException, IOException {
-		Document xml = CFMLEngineFactory.getInstance().getXMLUtil().parse(is,null,true);
+		Document xml = XMLUtility.parse(is,null,true);
 		// TODO if(base!=null)URLResolver.getInstance().transform(xml, base);
 		return xml;
 	}
