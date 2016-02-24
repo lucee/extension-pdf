@@ -23,6 +23,9 @@ package org.lucee.extension.pdf.tag;
 import java.awt.Dimension;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -35,10 +38,11 @@ import javax.servlet.jsp.JspException;
 import lucee.Info;
 import lucee.commons.io.res.Resource;
 
-import org.lucee.extension.pdf.xhtmlrenderer.PDFDocument;
-import org.lucee.extension.pdf.xhtmlrenderer.PDFPageMark;
+import org.lucee.extension.pdf.PDFDocument;
+import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
+import org.lucee.extension.pdf.xhtmlrenderer.FSPDFDocument;
 
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
@@ -118,7 +122,7 @@ public final class Document extends BodyTagImpl {
 	private PDFDocument getDocument() {
 		//SerialNumber sn = pageContext.getConfig().getSerialNumber();
 		if(_document==null){
-			_document=new PDFDocument();
+			_document=PDFDocument.newInstance();
 		}
 		return _document;
 	}
@@ -203,7 +207,7 @@ public final class Document extends BodyTagImpl {
 	 */
 	public void setFilename(String filename) throws PageException {
 		this.filename = engine.getResourceUtil().toResourceNotExisting(pageContext, filename);
-		pageContext.getConfig().getSecurityManager().checkFileLocation(this.filename);
+		// pageContext.getConfig().getSecurityManager().checkFileLocation(this.filename);
 	}
 
 	/**
@@ -492,8 +496,8 @@ public final class Document extends BodyTagImpl {
 		try {
 			_doEndTag();
 		}
-		catch (Exception e) {
-			throw engine.getCastUtil().toPageException(e);
+		catch (Throwable t) {
+			throw engine.getCastUtil().toPageException(t);
 		}	
 		return EVAL_PAGE;
 	}
@@ -527,7 +531,8 @@ public final class Document extends BodyTagImpl {
 	    	
 	    	OutputStream os= null;
 	    	try {
-	    		os= filename.getOutputStream();
+	    		if(filename instanceof File) os=new FileOutputStream(filename.getAbsolutePath());
+	    		else os= filename.getOutputStream();
 				render(os,doBookmarks,doHtmlBookmarks);
 			} 
 	    	finally {
@@ -640,7 +645,7 @@ public final class Document extends BodyTagImpl {
 			PdfReader reader = new PdfReader(pdf);
 			com.lowagie.text.Document document = new com.lowagie.text.Document(reader.getPageSize(1));
 			Info info = CFMLEngineFactory.getInstance().getInfo();
-			document.addCreator("Lucee "+info.getVersion().toString());
+			document.addCreator("Lucee PDF Extension");
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			PdfCopy copy = new PdfCopy(document,baos);
 			//PdfWriter writer = PdfWriter.getInstance(document, pdfOut);

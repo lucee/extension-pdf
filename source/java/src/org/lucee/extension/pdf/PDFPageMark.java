@@ -16,7 +16,7 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  * 
  **/
-package org.lucee.extension.pdf.xhtmlrenderer;
+package org.lucee.extension.pdf;
 
 public class PDFPageMark {
 

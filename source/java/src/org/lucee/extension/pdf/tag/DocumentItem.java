@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import javax.servlet.jsp.tagext.Tag;
 
-import org.lucee.extension.pdf.xhtmlrenderer.PDFPageMark;
+import org.lucee.extension.pdf.PDFPageMark;
 
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;

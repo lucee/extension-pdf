@@ -22,8 +22,8 @@ package org.lucee.extension.pdf.tag;
 
 import javax.servlet.jsp.tagext.Tag;
 
-import org.lucee.extension.pdf.xhtmlrenderer.PDFDocument;
-import org.lucee.extension.pdf.xhtmlrenderer.PDFPageMark;
+import org.lucee.extension.pdf.PDFPageMark;
+import org.lucee.extension.pdf.xhtmlrenderer.FSPDFDocument;
 
 import lucee.commons.io.res.Resource;
 import lucee.runtime.exp.PageException;
@@ -31,7 +31,7 @@ import lucee.runtime.exp.PageException;
 public final class DocumentSection extends BodyTagImpl {
 
 	
-	private PDFDocument _document; 
+	private FSPDFDocument _document; 
 	
 
 
@@ -39,9 +39,9 @@ public final class DocumentSection extends BodyTagImpl {
 		this._document=null;
 	}
 	
-	private PDFDocument getPDFDocument() {
+	private FSPDFDocument getPDFDocument() {
 		//SerialNumber sn = pageContext.getConfig().getSerialNumber();
-		if(_document==null)_document=new PDFDocument();
+		if(_document==null)_document=new FSPDFDocument();
 		return _document;
 	}
 	

@@ -54,4 +54,14 @@ public class ClassUtil {
 		}
 	}
 
+	public static String GetDirectoryFromPath(PageContext pc, String path) throws PageException {
+		
+		try {
+			BIF bif = CFMLEngineFactory.getInstance().getClassUtil().loadBIF(pc, "lucee.runtime.functions.system.GetDirectoryFromPath");
+			return (String)bif.invoke(pc, new Object[]{path});
+		} 
+		catch (Exception e) {
+			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
+		}
+	}
 }
