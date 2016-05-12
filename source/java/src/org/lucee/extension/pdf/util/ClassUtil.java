@@ -35,7 +35,7 @@ public class ClassUtil {
 
 	public static void setClosed(Object cfmlWriter, boolean closed) throws PageException, RuntimeException { 
 		try {
-			Method method = cfmlWriter.getClass().getMethod("getRootOut", new Class[]{boolean.class});
+			Method method = cfmlWriter.getClass().getMethod("setClosed", new Class[]{boolean.class});
 			method.invoke(cfmlWriter, new Object[]{closed});
 		} 
 		catch (Exception e) {
