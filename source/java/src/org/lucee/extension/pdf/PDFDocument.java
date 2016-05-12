@@ -551,7 +551,6 @@ public abstract class PDFDocument {
 						String href = base.getAttribute("href");
 						if(!Util.isEmpty(href)) {
 							try {
-								System.out.println("base:"+href);
 								return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(href);
 							}
 							catch (MalformedURLException e) {}

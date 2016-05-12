@@ -121,8 +121,6 @@ public final class PD4MLPDFDocument extends PDFDocument {
     	if(!Util.isEmpty(body,true)) {
     		// optimize html
     		URL base = getBase(pc);
-    		System.err.println("body:"+base);
-    		
     		try {
     			body=beautifyHTML(new InputSource(new StringReader(body)),base);
 			}catch (Throwable t) {}
@@ -205,8 +203,6 @@ public final class PD4MLPDFDocument extends PDFDocument {
 	private static String beautifyHTML(InputSource is,URL base) throws PageException, SAXException, IOException {
 		Document xml = toXML(is);
 		patchPD4MLProblems(xml);
-		
-		System.err.println("base:"+base);
 		if(base!=null)URLResolver.getInstance().transform(xml, base);
 		String html = toHTML(xml);
 		return html;
@@ -228,9 +224,6 @@ public final class PD4MLPDFDocument extends PDFDocument {
 		// bug in pd4ml-> html badse definition create a call
 		if(!Util.isEmpty(userAgent) && (userAgent.startsWith("Java")))return null;
 
-		System.err.println("agent1:"+userAgent);
-		System.err.println("agent2:"+this.userAgent);
-		
 		String url = getRequestURL(pc.getHttpServletRequest(), false);
 		return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(url,-1,true);
 	}
