@@ -79,7 +79,7 @@ version: "${bundleversion}${build.number}"
 id: "${id}"
 name: "${label}"
 description: "${description}"
-lucee-core-version: "${luceeCoreVersion}”
+lucee-core-version: "${luceeCoreVersion}"
 release-type: ${releaseType}
 start-bundles: false
 </echo>
@@ -125,10 +125,10 @@ start-bundles: false
 
 
     <!-- copy the tlds necessary -->
-    <loadfile property="content1" srcFile="${tld}/tag.tld" />
+    <loadfile property="content1" srcFile="${tld}/tag.tldx" />
     <replace haystack="${content1}" needle="{bundle-name}" repl="${bundlename}" property="content2"/>
     <replace haystack="${content2}" needle="{bundle-version}" repl="${bundleversion}${build.number}" property="content3"/>
-    <echo message="${content3}" file="${dist}/extension/tlds/pdftag.tld"/>
+    <echo message="${content3}" file="${dist}/extension/tlds/pdftag.tldx"/>
 
 
     <!-- copy the flds necessary -->
