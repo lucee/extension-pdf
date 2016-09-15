@@ -1,1 +1,11 @@
 /dist
+temp
+**/.DS_Store
+**/.svn/
+/*.project
+va specific
+*.class
+target
+target/*
+*.DS_Store
+/cache
