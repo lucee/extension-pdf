@@ -752,7 +752,6 @@ Manipulates existing PDF documents. The following list describes some of the tas
 	<tag>
 		<name>PDFParam</name>
 		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.PDFParam</tag-class>
-		<tte-class>lucee.transformer.cfml.evaluator.impl.PDFParam</tte-class>
 		<body-content>empty</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>
 		<script>

@@ -141,7 +141,9 @@ public abstract class PDFDocument {
 	protected boolean bookmark; 
 	protected boolean htmlBookmark;
 	protected final CFMLEngine engine;
-	
+
+	public static int PD4ML=1;
+	public static int FS=2;
 	
 	
 	public PDFDocument(){
@@ -149,9 +151,9 @@ public abstract class PDFDocument {
 		userAgent= "Lucee PDF Extension";
 		
 	}
-	
-	public static PDFDocument newInstance(){
-		//return new FSPDFDocument();
+
+	public static PDFDocument newInstance(int type){
+		if(FS==type)return new FSPDFDocument();
 		return new PD4MLPDFDocument();
 	}
 	

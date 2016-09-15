@@ -48,6 +48,8 @@ import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.exp.PageException;
+import lucee.runtime.ext.function.BIF;
+import lucee.runtime.listener.ApplicationContext;
 import lucee.runtime.type.Struct;
 
 import com.lowagie.text.DocumentException;
@@ -89,6 +91,7 @@ public final class Document extends BodyTagImpl {
 
 
 	private ArrayList<PDFDocument> documents=new ArrayList<PDFDocument>();
+	private int type=0;
 	
 	public Document() {
 		this._document=null;
@@ -120,9 +123,28 @@ public final class Document extends BodyTagImpl {
 	}
 	
 	private PDFDocument getDocument() {
-		//SerialNumber sn = pageContext.getConfig().getSerialNumber();
+		if(type==0) {
+			try {
+				BIF bif=CFMLEngineFactory.getInstance().getClassUtil()
+						.loadBIF(pageContext, "lucee.runtime.functions.system.GetApplicationSettings");
+				Struct res = (Struct) bif.invoke(pageContext, new Object[]{Boolean.TRUE});
+				type=PDFDocument.PD4ML;
+				Object o = res.get("pdf",null);
+				if(o instanceof Struct) {
+					o=((Struct)o).get("type",null);
+					if(o instanceof String) {
+						if(((String)o).equalsIgnoreCase("fs"))
+							type=PDFDocument.FS;
+					}
+				}
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
 		if(_document==null){
-			_document=PDFDocument.newInstance();
+			_document=PDFDocument.newInstance(type);
 		}
 		return _document;
 	}
