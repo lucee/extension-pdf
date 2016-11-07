@@ -1200,8 +1200,12 @@ optional
 		return (!encrypted || (permissions&permission)>0)?"Allowed":"Not Allowed";
 	}
 	
-
 	private PDFStruct toPDFDocument(Object source,String password, Resource directory) throws PageException {
+		return toPDFDocument(source, password, directory,true);
+	}
+		
+	private PDFStruct toPDFDocument(Object source,String password, Resource directory, boolean eval) throws PageException {
+		
 		
 		if(source instanceof PDFStruct) 
 			return (PDFStruct)source;
@@ -1211,15 +1215,25 @@ optional
 		if(source instanceof Resource){ 
 			return new PDFStruct((Resource) source,password);
 		}
-		if(source instanceof String){
+		if(source instanceof String) {
+			String str=(String)source;
+			
+			// could be a variable name
+			Object obj=null;
+			try {
+				obj = pageContext.getVariable(str);
+			}
+			catch(PageException pe){}
+			if(obj!=null) return toPDFDocument(obj, password, directory,false);
+			
 			if(directory!=null) {
-				Resource res = directory.getRealResource((String)source);
+				Resource res = directory.getRealResource(str);
 				if(!res.isFile()){
-					Resource res2 = engine.getResourceUtil().toResourceNotExisting(pageContext, (String)source);
+					Resource res2 = engine.getResourceUtil().toResourceNotExisting(pageContext, str);
 					if(res2.isFile())
 						res=res2;
 					else 
-						throw engine.getExceptionUtil().createApplicationException("file or directory "+res+" not exist");
+						throw engine.getExceptionUtil().createApplicationException("variable, file or directory "+res+" not exist");
 				}
 				return new PDFStruct(res,password);	
 			}
