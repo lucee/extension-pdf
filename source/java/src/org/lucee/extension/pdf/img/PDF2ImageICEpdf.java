@@ -59,7 +59,8 @@ public class PDF2ImageICEpdf extends PDF2Image {
 		Document document = new Document();
         try {
 			document.setByteArray(input, 0, input.length, null);
-		} catch (Throwable t) {
+		} catch(Throwable t) {
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(t);
 		}
 		return document;

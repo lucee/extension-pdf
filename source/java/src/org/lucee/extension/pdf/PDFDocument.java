@@ -312,6 +312,7 @@ public abstract class PDFDocument {
 			return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(getDirectoryFromPath(getRequestURL(pc.getHttpServletRequest(), false)));
 		}
 		catch(Throwable t){
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			return null;
 		}
 	}

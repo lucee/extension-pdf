@@ -518,7 +518,8 @@ public final class Document extends BodyTagImpl {
 		try {
 			_doEndTag();
 		}
-		catch (Throwable t) {
+		catch(Throwable t) {
+			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 			throw engine.getCastUtil().toPageException(t);
 		}	
 		return EVAL_PAGE;
@@ -577,7 +578,7 @@ public final class Document extends BodyTagImpl {
 		    	render(os,doBookmarks,doHtmlBookmarks);
 		    } 
 		    finally {
-		    	try{if(os!=null)os.flush();}catch(Throwable t){}
+		    	try{if(os!=null)os.flush();}catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
 		    	Util.closeEL(os);
 		        ClassUtil.setClosed(ClassUtil.getRootOut(pageContext),true);
 		    }

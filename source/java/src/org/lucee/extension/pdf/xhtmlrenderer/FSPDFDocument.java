@@ -168,7 +168,7 @@ resolver.addFont (
     			//URL base = localUrl?new URL("file://"+srcfile):getBase();
     			render(pc,renderer, is,os,base);
 			} 
-    		catch (Throwable t) {}
+    		catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
     		finally {
     			Util.closeEL(is);
     		}

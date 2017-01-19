@@ -1013,6 +1013,7 @@ public class PDF extends BodyTagImpl  {
 					
 				}
 				catch(Throwable t) {
+				if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 					if(isListing && !stopOnError)continue;
 					throw engine.getCastUtil().toPageException(t);
 				}

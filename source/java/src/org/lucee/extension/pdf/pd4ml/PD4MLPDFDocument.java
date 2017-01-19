@@ -123,7 +123,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
     		URL base = getBase(pc);
     		try {
     			body=beautifyHTML(new InputSource(new StringReader(body)),base);
-			}catch (Throwable t) {}
+			}catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
 			
     		pd4ml.render(body, os,base);
 			
@@ -155,7 +155,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
     			//URL base = localUrl?new URL("file://"+srcfile):getBase();
     			render(pd4ml, is,os,base);
 			} 
-    		catch (Throwable t) {}
+    		catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
     		finally {
     			io.closeSilent(is);
     		}
@@ -242,7 +242,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 					InputSource input = new InputSource(io.getReader(is,charset));
 					body=beautifyHTML(input,base);
 				} 
-				catch (Throwable t) {}
+				catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
 				//else if(body==null)body =IOUtil.toString(is,strCharset); 
 				pd4ml.render(body, os,base);
 			}

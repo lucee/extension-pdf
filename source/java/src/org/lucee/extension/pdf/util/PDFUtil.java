@@ -161,6 +161,7 @@ public class PDFUtil {
 					reader = docs[i].getPdfReader();
 				}
 				catch(Throwable t) {
+					if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 					if(!stopOnError)continue;
 					throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(t);
 				}
