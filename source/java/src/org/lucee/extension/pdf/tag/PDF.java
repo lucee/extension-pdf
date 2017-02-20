@@ -24,6 +24,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -42,16 +43,28 @@ import lucee.commons.io.res.filter.ResourceFilter;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.exp.PageException;
+import lucee.runtime.ext.function.BIF;
 import lucee.runtime.type.Array;
 import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
+import lucee.runtime.util.Cast;
+import lucee.runtime.util.ClassUtil;
+import lucee.runtime.util.Strings;
 
 import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
 import com.lowagie.text.Image;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
+import com.lowagie.text.pdf.ColumnText;
 import com.lowagie.text.pdf.PdfContentByte;
 import com.lowagie.text.pdf.PdfGState;
 import com.lowagie.text.pdf.PdfImportedPage;
+import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.PdfRectangle;
 import com.lowagie.text.pdf.PdfStamper;
 import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.SimpleBookmark;
@@ -71,6 +84,9 @@ public class PDF extends BodyTagImpl  {
 	private static final int ACTION_WRITE = 10;
 	private static final int ACTION_EXTRACT_TEXT = 11;
 
+	private static final int ACTION_ADD_HEADER = 12;
+	private static final int ACTION_ADD_FOOTER = 13;
+
 	
 	private static final String FORMAT_JPG ="jpg";
 	private static final String FORMAT_TIFF = "tiff";
@@ -89,6 +105,11 @@ public class PDF extends BodyTagImpl  {
 	private static final int TYPE_STRING = 1;
 	private static final int TYPE_XML = 2;
     
+	private static final int NUMBERFORMAT_LOWERCASEROMAN=1;
+	private static final int NUMBERFORMAT_NUMERIC=2;
+	private static final int NUMBERFORMAT_UPPERCASEROMAN=3;
+	
+	
 	
 	//private static final PDF_FILTER = CFMLEngineFactory.getInstance().getResourceUtil().getExtensionResourceFilter("pdf", false);
 	private static final int UNDEFINED = Integer.MIN_VALUE;
@@ -134,7 +155,14 @@ public class PDF extends BodyTagImpl  {
 	private ResourceFilter filter=null;
 	private String imagePrefix=null;
 	private int type=TYPE_XML;
-	
+	private String text;
+	private int numberformat = NUMBERFORMAT_NUMERIC;
+	private int align=Element.ALIGN_CENTER;
+	private float leftmargin=1;
+	private float rightmargin=1;
+	private float topmargin=0.5f;
+	private float bottommargin=0.5f;
+	private Font font=null;
 	
 	@Override
 	public void release() {
@@ -178,6 +206,14 @@ public class PDF extends BodyTagImpl  {
 		filter=null;
 		imagePrefix=null;
 		type=TYPE_XML;
+		text=null;
+		numberformat=NUMBERFORMAT_NUMERIC;
+		align=Element.ALIGN_CENTER;
+		leftmargin=1;
+		rightmargin=1;
+		topmargin=0.5f;
+		bottommargin=0.5f;
+		font=null;
 	}
 	
 	
@@ -188,8 +224,65 @@ public class PDF extends BodyTagImpl  {
 	public void setImageprefix(String imagePrefix) {
 		this.imagePrefix = imagePrefix;
 	}
+	
+	public void setText(String text) {
+		this.text = text;
+	}
+	
+	public void setFont(Struct font) throws PageException {
+		this.font = toFont(font);
+	}
 
 
+
+	public void setNumberformat(String numberformat) throws PageException {
+		if(Util.isEmpty(numberformat, true)) return;
+		numberformat=numberformat.trim().toLowerCase();
+		
+		if("numeric".equals(numberformat))				this.numberformat=NUMBERFORMAT_NUMERIC;
+		else if("number".equals(numberformat))			this.numberformat=NUMBERFORMAT_NUMERIC;
+		else if("lowercase-roman".equals(numberformat))	this.numberformat=NUMBERFORMAT_LOWERCASEROMAN;
+		else if("lowercaseroman".equals(numberformat))	this.numberformat=NUMBERFORMAT_LOWERCASEROMAN;
+		else if("uppercase-roman".equals(numberformat))	this.numberformat=NUMBERFORMAT_UPPERCASEROMAN;
+		else if("uppercaseroman".equals(numberformat))	this.numberformat=NUMBERFORMAT_UPPERCASEROMAN;
+		
+		else throw engine.getExceptionUtil().createApplicationException("invalid nuberformat definition ["+numberformat+
+				"], valid numberformat definitions are " +
+				"[numeric,lowercaseroman,uppercaseroman]");
+		
+	}
+	
+	public void setAlign(String align) throws PageException {
+		if(Util.isEmpty(align, true)) return;
+		align=align.trim().toLowerCase();
+
+		if("center".equals(align))				this.align=Element.ALIGN_CENTER;
+		else if("left".equals(align))			this.align=Element.ALIGN_LEFT;
+		else if("right".equals(align))			this.align=Element.ALIGN_RIGHT;
+		//else if("justified".equals(align))		this.align=Element.ALIGN_JUSTIFIED;
+		//else if("justify".equals(align))		this.align=Element.ALIGN_JUSTIFIED;
+		
+		else throw engine.getExceptionUtil().createApplicationException(
+				"invalid align value ["+align+"], valid align values are [center,left,right]");
+		
+	}
+	
+
+	public void setLeftmargin(double leftmargin) throws PageException {
+		this.leftmargin=(float)leftmargin;
+	}
+	
+	public void setRightmargin(double rightmargin) throws PageException {
+		this.rightmargin=(float)rightmargin;
+	}
+	
+	public void setTopmargin(double topmargin) throws PageException {
+		this.topmargin=(float)topmargin;
+	}
+	
+	public void setBottommargin(double bottommargin) throws PageException {
+		this.bottommargin=(float)bottommargin;
+	}
 
 	/**
 	 * @param action the action to set
@@ -224,12 +317,14 @@ public class PDF extends BodyTagImpl  {
 		else if("set_info".equals(strAction))				action=ACTION_SET_INFO;
 		else if("thumbnail".equals(strAction))				action=ACTION_THUMBNAIL;
 		else if("write".equals(strAction))					action=ACTION_WRITE;
-		else if("extracttext".equals(strAction))					action=ACTION_EXTRACT_TEXT;
-		else if("extract-text".equals(strAction))					action=ACTION_EXTRACT_TEXT;
-		else if("extract_text".equals(strAction))					action=ACTION_EXTRACT_TEXT;
+		else if("extracttext".equals(strAction))			action=ACTION_EXTRACT_TEXT;
+		else if("extract-text".equals(strAction))			action=ACTION_EXTRACT_TEXT;
+		else if("extract_text".equals(strAction))			action=ACTION_EXTRACT_TEXT;
+		else if("addheader".equals(strAction))				action=ACTION_ADD_HEADER;
+		else if("addfooter".equals(strAction))				action=ACTION_ADD_FOOTER;
 		
 		else throw engine.getExceptionUtil().createApplicationException("invalid action definition ["+strAction+"], valid actions definitions are " +
-				"[addWatermark,deletePages,getInfo,merge,protect,read,removeWatermark,setInfo,thumbnail,write]");
+				"[addheader,addfooter,addWatermark,deletePages,getInfo,merge,protect,read,removeWatermark,setInfo,thumbnail,write]");
 		
 	}
 	
@@ -573,6 +668,8 @@ public class PDF extends BodyTagImpl  {
 		try {
 
 			if(ACTION_ADD_WATERMARK==action)			doActionAddWatermark();
+			else if(ACTION_ADD_HEADER==action)			doActionAddHeaderFooter(true);
+			else if(ACTION_ADD_FOOTER==action)			doActionAddHeaderFooter(false);
 			else if(ACTION_REMOVE_WATERMARK==action)	doActionRemoveWatermark();
 			else if(ACTION_READ==action)				doActionRead();
 			else if(ACTION_WRITE==action)				doActionWrite();
@@ -630,12 +727,196 @@ public class PDF extends BodyTagImpl  {
 				if(destination!=null)engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream)os).toByteArray()), destination,true);// MUST overwrite
 			}
 		}
-		
-/*	
-		// flatten = "yes|no"
-	    // must saveOption = "linear|incremental|full"
-*/
 	}
+
+	
+	private void doActionAddHeaderFooter(boolean isHeader) throws PageException, IOException, DocumentException {
+		required("pdf", "write", "source", source);
+		//required("pdf", "write", "destination", destination);
+		
+		/* optinal
+		- pages
+		*/
+		/*
+isBase64 = "yes|no"
+showonprint = "yes|no"> 
+opacity = "header opacity"
+image = "image file name to be used as the header"
+ 
+		*/
+		PDFStruct doc = toPDFDocument(source, password, null);
+		PdfReader reader = doc.getPdfReader();
+		BIF bif=null;
+		if(NUMBERFORMAT_NUMERIC!=numberformat) { 
+			ClassUtil classUtil = engine.getClassUtil();
+			try {
+				bif = classUtil.loadBIF(pageContext, "lucee.runtime.functions.displayFormatting.NumberFormat");
+			}
+			catch (Exception e) {e.printStackTrace();
+				throw engine.getCastUtil().toPageException(e);
+			}
+		}
+		// output stream
+		boolean destIsSource = destination!=null && doc.getResource()!=null && destination.equals(doc.getResource());
+		OutputStream os=null;
+		if(!Util.isEmpty(name) || destIsSource){
+			os=new ByteArrayOutputStream();
+		}
+		else if(destination!=null) {
+			os=destination.getOutputStream();
+		}
+		PdfStamper stamper=null;
+		try {
+			if(destination!=null && destination.exists() && !overwrite)
+				throw engine.getExceptionUtil().createApplicationException("destination file ["+destination+"] already exists");
+			
+			int len=reader.getNumberOfPages();
+			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages,len);
+			stamper = new PdfStamper(reader, destination.getOutputStream());
+			if(font==null) font=getDefaultFont();
+	        // , new Font(FontFamily.HELVETICA, 14)
+	        for (int p=1; p<=len; p++) {
+	        	if(pageSet!=null && !pageSet.contains(p)) continue;
+	        	
+	        	Phrase header = text(text,p,len,numberformat,bif,font);
+	        	// vertical orientation
+	        	float y ;
+	        	
+	        	if(isHeader) {
+	        		y=reader.getPageSize(p).getTop(header.getFont().getCalculatedSize()+(topmargin-3));
+	        	}
+	        	else {
+	        		y=reader.getPageSize(p).getBottom((bottommargin+2));
+	        		/*System.out.println("y:"+y);
+	        		System.out.println("bottom:"+reader.getPageSize(p).getBottom());
+	        		System.out.println("margin:"+bottommargin);
+	        		System.out.println("font:"+header.getFont().getSize());
+	        		System.out.println("CalculatedStyle:"+header.getFont().getCalculatedStyle());
+	        		System.out.println("CalculatedSize:"+header.getFont().getCalculatedSize());*/
+	        	}
+	        	//float yh = reader.getPageSize(p).getTop(topmargin);
+	    	    //float yf = reader.getPageSize(p).getBottom(bottommargin);
+	        	System.out.println("++++++++++++");
+	        	System.out.println(y);
+	        	System.out.println(reader.getPageSize(p).getTop());
+	        	// horizontal orientation
+	        	
+	        	
+	        	float x = reader.getPageSize(p).getWidth() / 2;
+	            if(Element.ALIGN_LEFT==align) {
+	            	x=leftmargin;
+	            }
+	            else if(Element.ALIGN_RIGHT==align) {
+	            	x=reader.getPageSize(p).getWidth()-rightmargin;
+	            }
+	            else {
+	            	x=reader.getPageSize(p).getWidth()/2;
+	            }
+	            ColumnText.showTextAligned(
+		                stamper.getOverContent(p), align,
+		                header, x, y, 0);
+	            
+	        }
+		}
+		finally {
+			try{if(stamper!=null)stamper.close();}catch(IOException ioe){};
+			Util.closeEL(os);
+			if(os instanceof ByteArrayOutputStream) {
+				if(destination!=null)engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream)os).toByteArray()), destination,true);// MUST overwrite
+				if(!Util.isEmpty(name)){
+					pageContext.setVariable(name,new PDFStruct(((ByteArrayOutputStream)os).toByteArray(),password));
+				}
+			}
+		}
+		
+		
+		
+		//PdfReader pr = doc.getPdfReader();
+		// output
+		/*boolean destIsSource = doc.getResource()!=null && destination.equals(doc.getResource());
+		
+		OutputStream os=null;
+		if(destIsSource){
+			os=new ByteArrayOutputStream();
+		}
+		else if(destination!=null) {
+			os=destination.getOutputStream();
+		}
+		
+		try {	
+			PDFUtil.concat(new PDFStruct[]{doc}, os, true, true, true,version);
+		}
+		finally {
+			Util.closeEL(os);
+			if(os instanceof ByteArrayOutputStream) {
+				if(destination!=null)engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream)os).toByteArray()), destination,true);// MUST overwrite
+			}
+		}*/
+	}
+
+
+	// TODO add current page label|_LASTPAGELABEL: add last page label| 
+	//: add current page number: add last page 
+	private Phrase text(String text, int page, int lastPage, int numberformat, BIF bif, Font font) throws PageException {
+		String strPage;
+		String strLastPage;
+		
+		// number Format
+		if(NUMBERFORMAT_NUMERIC==numberformat) {
+			strPage=page+"";
+			strLastPage=lastPage+"";
+		}
+		else {
+			strPage=(String)bif.invoke(pageContext, new Object[]{page+"","roman"});
+			strLastPage=(String)bif.invoke(pageContext, new Object[]{lastPage+"","roman"});
+			if(NUMBERFORMAT_LOWERCASEROMAN==numberformat) {
+				strPage=strPage.toLowerCase();
+				strLastPage=strLastPage.toLowerCase();
+			}
+		}
+		
+		// replace placeholdrs
+		Strings util = engine.getStringUtil();
+		text=util.replace(text, "_PAGENUMBER", strPage, false, true);
+		text=util.replace(text, "_LASTPAGENUMBER", strLastPage, false, true);
+		
+		// supress whitespace
+		text=suppressWhiteSpace(text);
+		System.out.println("++"+font.getFamilyname()+":"+font.getSize());
+		Phrase p = new Phrase(text,font);
+		return p;
+	}
+
+
+
+	private static String suppressWhiteSpace(String str) {
+        int len=str.length();
+        StringBuilder sb=new StringBuilder(len);
+        //boolean wasWS=false;
+        
+        char c;
+        char buffer=0;
+        for(int i=0;i<len;i++) {
+            c=str.charAt(i);
+            if(c=='\n' || c=='\r')		buffer='\n';
+            else if(Character.isWhitespace(c))	{
+            	if(buffer==0)buffer=c;
+            }
+            else {
+            	if(buffer!=0){
+            		sb.append(buffer);
+            		buffer=0;
+            	}
+            	sb.append(c);
+            }
+            //sb.append(c);
+        }
+        if(buffer!=0)sb.append(buffer);
+        
+        return sb.toString();
+    }
+	
+	
 
 
 
@@ -706,10 +987,7 @@ public class PDF extends BodyTagImpl  {
 		// copy From
 		else {
 			byte[] barr;
-			try{
-				
-				
-				
+			try {
 				Resource res = copyFrom instanceof String?
 						engine.getResourceUtil().toResourceExisting(pageContext, (String)copyFrom):
 						engine.getCastUtil().toResource(copyFrom);
@@ -741,12 +1019,12 @@ public class PDF extends BodyTagImpl  {
 		doc.setPages(pages);
 		PdfReader reader = doc.getPdfReader();
 		reader.consolidateNamedDestinations();
-		boolean destIsSource = destination!=null && doc.getResource()!=null && destination.equals(doc.getResource());
 		java.util.List bookmarks = SimpleBookmark.getBookmark(reader);
 	    ArrayList master = new ArrayList();	
 		if(bookmarks!=null)master.addAll(bookmarks);
 	    
 		// output
+		boolean destIsSource = destination!=null && doc.getResource()!=null && destination.equals(doc.getResource());
 		OutputStream os=null;
 		if(!Util.isEmpty(name) || destIsSource){
 			os=new ByteArrayOutputStream();
@@ -800,6 +1078,7 @@ public class PDF extends BodyTagImpl  {
 			}
 		}
 	}
+	
 	
 	private void doActionRemoveWatermark() throws PageException, IOException, DocumentException {
 		required("pdf", "removeWatermark", "source", source);
@@ -1277,7 +1556,55 @@ optional
 			params=new ArrayList<PDFParamBean>();
 		params.add(param);
 	}
+
+	private Font toFont(Struct sct) throws PageException {
+		Cast caster = engine.getCastUtil();
+		Font f=getDefaultFont();
+		// size
+		float size=caster.toFloatValue(sct.get("size",null),0);
+		if(size>0)f.setSize(size);
+		
+		// family
+		Set fonts = FontFactory.getRegisteredFonts();
+		String family=caster.toString(sct.get("family",null),null);
+		if(!Util.isEmpty(family)) {
+			String lc=family.toLowerCase();
+			if(!fonts.contains(lc)) {
+				StringBuilder sb=new StringBuilder();
+				Iterator it=fonts.iterator();
+				while(it.hasNext()) {
+					if(sb.length()>0) sb.append(", ");
+					sb.append(it.next());
+				}
+				throw engine.getExceptionUtil().createApplicationException("font family ["+family+"] is not available, available font families are ["+sb+"]");
+			}
+			f.setFamily(lc);
+		}
+		
+		int style = 0;
+		// bold
+		boolean bold=caster.toBooleanValue(sct.get("bold",null),false);
+		if(bold) style|=Font.BOLD;
+		// italic
+		boolean italic=caster.toBooleanValue(sct.get("italic",null),false);
+		if(italic) style|=Font.ITALIC;
+		// underline
+		boolean underline=caster.toBooleanValue(sct.get("underline",null),false);
+		if(underline) style|=Font.UNDERLINE;
+		// strike
+		boolean strike=caster.toBooleanValue(sct.get("strike",null),false);
+		if(strike) style|=Font.STRIKETHRU;
+		if(style!=0) f.setStyle(style);
+		
+		return f;
+	}
+
 	
+    private static Font getDefaultFont() {
+    	Font font = new Font(Font.COURIER);
+		font.setSize(10);
+    	return font;
+	}
 	
 	
 

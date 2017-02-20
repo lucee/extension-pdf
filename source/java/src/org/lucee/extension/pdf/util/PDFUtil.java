@@ -225,22 +225,29 @@ public class PDFUtil {
 		return removePages==(pages!=null && pages.contains(page));
 	}
 
-	public static Set parsePageDefinition(String strPages) throws PageException {
+	public static Set<Integer> parsePageDefinition(String strPages,int lastPageNumber) throws PageException {
 		if(Util.isEmpty(strPages)) return null;
 		HashSet<Integer> set=new HashSet<Integer>();
-		parsePageDefinition(set, strPages);
+		parsePageDefinition(set, strPages,lastPageNumber);
 		return set;
 	}
-	public static void parsePageDefinition(Set<Integer> pages, String strPages) throws PageException {
+	public static void parsePageDefinition(Set<Integer> pages, String strPages,int lastPageNumber) throws PageException {
 		if(Util.isEmpty(strPages)) return;
+		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		String[] arr = CFMLEngineFactory.getInstance().getListUtil().toStringArrayTrim(CFMLEngineFactory.getInstance().getListUtil().toArrayRemoveEmpty(strPages, ","));
 		int index,from,to;
+		String strFrom,strTo;
 		for(int i=0;i<arr.length;i++){
 			index=arr[i].indexOf('-');
-			if(index==-1)pages.add(CFMLEngineFactory.getInstance().getCastUtil().toInteger(arr[i].trim()));
+			if(index==-1)pages.add(engine.getCastUtil().toInteger(arr[i].trim()));
 			else {
-				from=CFMLEngineFactory.getInstance().getCastUtil().toIntValue(arr[i].substring(0,index).trim());
-				to=CFMLEngineFactory.getInstance().getCastUtil().toIntValue(arr[i].substring(index+1).trim());
+				strFrom=arr[i].substring(0,index).trim();
+				strTo=arr[i].substring(index+1).trim();
+				if(i==0 && Util.isEmpty(strFrom,true)) from=1;
+				else from=engine.getCastUtil().toIntValue(strFrom);
+				if(i==(arr.length-1) && Util.isEmpty(strTo,true)) to=lastPageNumber;
+				else to=engine.getCastUtil().toIntValue(strTo);
+				
 				for(int y=from;y<=to;y++){
 					pages.add(Integer.valueOf(y));
 				}

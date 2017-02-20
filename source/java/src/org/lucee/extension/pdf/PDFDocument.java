@@ -34,6 +34,8 @@ import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
+import lucee.runtime.ext.function.BIF;
+import lucee.runtime.type.Struct;
 
 import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
@@ -616,5 +618,26 @@ public abstract class PDFDocument {
         else if(node instanceof CharacterData) {
         	sb.append(CFMLEngineFactory.getInstance().getHTMLUtil().escapeHTML(node.getNodeValue()));
 		}
+	}
+    
+    public static int getType(PageContext pc) {
+		int type=PDFDocument.PD4ML;
+		try {
+			BIF bif=CFMLEngineFactory.getInstance().getClassUtil()
+					.loadBIF(pc, "lucee.runtime.functions.system.GetApplicationSettings");
+			Struct res = (Struct) bif.invoke(pc, new Object[]{Boolean.TRUE});
+			Object o = res.get("pdf",null);
+			if(o instanceof Struct) {
+				o=((Struct)o).get("type",null);
+				if(o instanceof String) {
+					if(((String)o).equalsIgnoreCase("fs"))
+						type=PDFDocument.FS;
+				}
+			}
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		return type;
 	}
 }

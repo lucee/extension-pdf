@@ -317,7 +317,7 @@ public class PDFStruct extends StructSupport implements Struct {
 		if(Util.isEmpty(strPages))return;
 		if(pages==null)
 			pages=new HashSet<Integer>();
-		PDFUtil.parsePageDefinition(pages,strPages);
+		PDFUtil.parsePageDefinition(pages,strPages,-1);
 	}
 
 	public Set<Integer> getPages() {

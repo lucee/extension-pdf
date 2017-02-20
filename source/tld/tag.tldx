@@ -745,6 +745,86 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<rtexprvalue>true</rtexprvalue>
 			<description>Version of the PDF used to write the document</description>
 		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>text</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>text for header or footer, you can add he following place holders within the text:
+- _PAGELABEL: add current page label
+- _LASTPAGELABEL: add last page label
+- _PAGENUMBER: add current page number
+- _LASTPAGENUMBER: add last page number </description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>numberformat</name>
+			<default>NUMERIC</default>
+			<values>NUMERIC,LOWERCASEROMAN,UPPERCASEROMAN</values>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>
+				Specify the numbering format for PDF pages in the header/footer.
+				possible values are:
+				- LOWERCASEROMAN
+				- UPPERCASEROMAN
+				- NUMERIC
+			</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>align</name>
+			<required>false</required>
+			<default>center</default>
+			<values>left,right,center</values>
+			<rtexprvalue>true</rtexprvalue>
+			<description>
+				Aligns the header and footer in PDF:
+				- left
+				- right
+				- center
+			</description>
+		</attribute>
+		<attribute>
+			<type>numeric</type>
+			<name>leftmargin</name>
+			<default>1</default>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>left margin of the text in header/footer</description>
+		</attribute>
+		<attribute>
+			<type>numeric</type>
+			<name>rightmargin</name>
+			<default>1</default>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>right margin of the text in header/footer</description>
+		</attribute>
+		<attribute>
+			<type>numeric</type>
+			<name>topmargin</name>
+			<default>0.5</default>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>top margin of the text in header</description>
+		</attribute>
+		<attribute>
+			<type>numeric</type>
+			<name>bottommargin</name>
+			<default>0.5</default>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>bottom margin of the text in footer</description>
+		</attribute>
+		<!---<attribute>
+			<type>struct</type>
+			<name>font</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Used to define the font used with header/footer. You can pass a struct that looks like this:
+			{family:'Arial',size:12,bold:true,italic:true,underline:true,strike:true}</description>
+		</attribute>--->
 	</tag>
 
 

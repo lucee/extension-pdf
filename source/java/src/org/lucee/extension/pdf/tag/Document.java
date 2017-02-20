@@ -47,6 +47,7 @@ import org.lucee.extension.pdf.xhtmlrenderer.FSPDFDocument;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
+import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.ext.function.BIF;
 import lucee.runtime.listener.ApplicationContext;
@@ -123,34 +124,13 @@ public final class Document extends BodyTagImpl {
 	}
 	
 	private PDFDocument getDocument() {
-		if(type==0) {
-			try {
-				BIF bif=CFMLEngineFactory.getInstance().getClassUtil()
-						.loadBIF(pageContext, "lucee.runtime.functions.system.GetApplicationSettings");
-				Struct res = (Struct) bif.invoke(pageContext, new Object[]{Boolean.TRUE});
-				type=PDFDocument.PD4ML;
-				Object o = res.get("pdf",null);
-				if(o instanceof Struct) {
-					o=((Struct)o).get("type",null);
-					if(o instanceof String) {
-						if(((String)o).equalsIgnoreCase("fs"))
-							type=PDFDocument.FS;
-					}
-				}
-			}
-			catch(Exception e) {
-				e.printStackTrace();
-			}
-		}
-		
+		if(type==0) type=PDFDocument.getType(pageContext);
 		if(_document==null){
 			_document=PDFDocument.newInstance(type);
 		}
 		return _document;
 	}
 	
-	
-
 	/** set the value proxyserver
 	*  Host name or IP address of a proxy server.
 	* @param proxyserver value to set
