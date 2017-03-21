@@ -21,6 +21,7 @@ package org.lucee.extension.pdf.pd4ml;
 
 import java.awt.Dimension;
 import java.awt.Insets;
+import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -143,15 +144,15 @@ public class PDFByReflection {
 	}
 	
 	public void render(InputStreamReader reader, OutputStream os) throws PageException {
-		//setEvaluationFooter();
-		
-		
 		invoke(pd4ml, "render", 
 				new Object[]{reader,os}, 
 				new Class[]{reader.getClass(),OutputStream.class});
-		
-		//invoke(pd4ml,"render",reader,os,OutputStream.class);
-		
+	}
+
+	public BufferedImage[] renderAsImages(URL url, int width, int height) throws PageException { 
+		return (BufferedImage[])invoke(pd4ml, "renderAsImages", 
+				new Object[]{url,width,height}, 
+				new Class[]{URL.class,int.class,int.class});
 	}
 
 	public void render(String str, OutputStream os,URL base) throws PageException {
@@ -191,9 +192,9 @@ public class PDFByReflection {
 		return pd4mlMark;
 	}
 	
-	private void invoke(Object o,String methodName, Object[] args, Class[] argClasses) throws PageException {
+	private Object invoke(Object o,String methodName, Object[] args, Class[] argClasses) throws PageException {
 		try {
-			o.getClass().getMethod(methodName, argClasses).invoke(o, args);
+			return o.getClass().getMethod(methodName, argClasses).invoke(o, args);
 		} 
 		catch (Exception e) {
 			throw caster.toPageException(e);

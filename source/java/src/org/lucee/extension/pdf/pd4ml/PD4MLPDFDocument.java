@@ -33,6 +33,7 @@ import java.net.URL;
 
 import lucee.commons.io.res.ContentType;
 import lucee.commons.io.res.Resource;import lucee.commons.net.http.HTTPResponse;
+import lucee.commons.net.http.Header;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
@@ -50,6 +51,8 @@ import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.xml.XMLUtility;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -121,10 +124,10 @@ public final class PD4MLPDFDocument extends PDFDocument {
     	if(!Util.isEmpty(body,true)) {
     		// optimize html
     		URL base = getBase(pc);
+    		
     		try {
     			body=beautifyHTML(new InputSource(new StringReader(body)),base);
-			}catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
-			
+			}catch(Exception e) {}
     		pd4ml.render(body, os,base);
 			
     	}
@@ -164,8 +167,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
     	else if(src!=null) {
     		if(charset==null)charset=engine.getCastUtil().toCharset("iso-8859-1");
     		URL url = engine.getHTTPUtil().toURL(src);
-    		System.err.println("src:"+url);
-			
+    		
 			// set Proxy
 			if(Util.isEmpty(proxyserver) && config.isProxyEnableFor(url.getHost())) {
 				ProxyData pd = config.getProxyData();
@@ -174,7 +176,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 				proxyuser=pd==null?null:pd.getUsername();
 				proxypassword=pd==null?null:pd.getPassword();
 			}
-			System.err.println("xxxxxxxxxxxxxxxxxxxxx:"+url);
+			
 			HTTPResponse method = engine.getHTTPUtil().get(url, authUser, authPassword, -1,null, userAgent,
 					proxyserver, proxyport, proxyuser, proxypassword,null);
 				
@@ -202,17 +204,58 @@ public final class PD4MLPDFDocument extends PDFDocument {
 
 	private static String beautifyHTML(InputSource is,URL base) throws PageException, SAXException, IOException {
 		Document xml = toXML(is);
-		patchPD4MLProblems(xml);
+		patchPD4MLProblems(xml,base);
 		if(base!=null)URLResolver.getInstance().transform(xml, base);
 		String html = toHTML(xml);
 		return html;
 	}
 
-	private static void patchPD4MLProblems(Document xml) {
+	private static void patchPD4MLProblems(Document xml, URL base) {
 		Element b = XMLUtility.getChildWithName("body", xml.getDocumentElement());
 		if(!b.hasChildNodes()){
 			b.appendChild(xml.createTextNode(" "));
 		}
+		inlineExternalImages(CFMLEngineFactory.getInstance(),xml.getDocumentElement(),base.getHost()+":"+base.getPort());
+	}
+
+
+	private static void inlineExternalImages(CFMLEngine engine, Node n, String hostPort) {
+		if(n.getNodeName().equalsIgnoreCase("img") && n instanceof Element) {
+			Element e=(Element)n;
+			String src=e.getAttribute("src");
+			try {
+				if(src.startsWith("http://") || src.startsWith("https://")) {
+					URL url=new URL(src);
+					if(!(url.getHost()+":"+url.getPort()).equalsIgnoreCase(hostPort)) {
+						e.setAttribute("src", toBase64(url,engine));
+					}
+				}
+			}
+			catch (MalformedURLException mue) {}
+		}
+		else {
+			NodeList children = n.getChildNodes();
+			int len = children.getLength();
+			for(int i=0;i<len;i++) {
+				inlineExternalImages(engine,children.item(i), hostPort);
+			}
+		}
+	}
+
+
+	private static String toBase64(URL url, CFMLEngine engine) {
+		try {
+			if(!url.getFile().endsWith(".jpg")) return url.toExternalForm();
+			
+			HTTPResponse rsp = engine.getHTTPUtil().get(url, null, null,-1, null, null, null,-1, null, null,null);
+			if(!"image/jpeg".equals(rsp.getContentType().toString())) return url.toExternalForm();
+			String b64=engine.getCastUtil().toBase64(rsp.getContentAsByteArray());
+			return "data:image/jpeg;base64,"+b64;
+		}
+		catch (Exception e) {
+			return url.toExternalForm();
+		}
+		
 	}
 
 
