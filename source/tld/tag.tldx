@@ -817,14 +817,14 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<rtexprvalue>true</rtexprvalue>
 			<description>bottom margin of the text in footer</description>
 		</attribute>
-		<!---<attribute>
+		<!--<attribute>
 			<type>struct</type>
 			<name>font</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 			<description>Used to define the font used with header/footer. You can pass a struct that looks like this:
 			{family:'Arial',size:12,bold:true,italic:true,underline:true,strike:true}</description>
-		</attribute>--->
+		</attribute>-->
 	</tag>
 
 
