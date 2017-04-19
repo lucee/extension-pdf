@@ -42,15 +42,11 @@ import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
-import org.lucee.extension.pdf.xhtmlrenderer.FSPDFDocument;
 
-import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
-import lucee.runtime.ext.function.BIF;
-import lucee.runtime.listener.ApplicationContext;
 import lucee.runtime.type.Struct;
 
 import com.lowagie.text.DocumentException;
@@ -123,7 +119,7 @@ public final class Document extends BodyTagImpl {
 		
 	}
 	
-	private PDFDocument getDocument() {
+	public PDFDocument getDocument() {
 		if(type==0) type=PDFDocument.getType(pageContext);
 		if(_document==null){
 			_document=PDFDocument.newInstance(type);
@@ -681,14 +677,15 @@ public final class Document extends BodyTagImpl {
 
 	private Dimension getDimension() throws PageException {
 		// page size custom
+		Dimension dim = pagetype;
 		if(isCustom(pagetype)) {
 			if(pageheight==0 || pagewidth==0)
 				throw engine.getExceptionUtil().createApplicationException("when attribute pagetype has value [custom], the attributes [pageheight, pagewidth] must have a positive numeric value");
-			pagetype=new Dimension(PDFDocument.toPoint(pagewidth,unitFactor),PDFDocument.toPoint(pageheight,unitFactor));
+			dim=new Dimension(PDFDocument.toPoint(pagewidth,unitFactor),PDFDocument.toPoint(pageheight,unitFactor));
 		}
 		// page orientation
-		if(isLandscape)pagetype=new Dimension(pagetype.height, pagetype.width);
-		return pagetype;
+		if(isLandscape)dim=new Dimension(dim.height, dim.width);
+		return dim;
 	}
 	
 
