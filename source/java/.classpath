@@ -15,8 +15,8 @@
 	<classpathentry kind="lib" path="libs/bouncycastle-prov-1-38-0.jar"/>
 	<classpathentry kind="lib" path="libs/bouncycastle-tsp-1-38-0.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.xml-1.0.0.0.jar"/>
-	<classpathentry kind="lib" path="libs/lowagie-itext-2-1-7-0004L.jar"/>
 	<classpathentry kind="lib" path="libs/flying-saucer-core-9-0-8.jar"/>
 	<classpathentry kind="lib" path="libs/flying-saucer-pdf-9-0-8-0003L.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.itext-2.1.7.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

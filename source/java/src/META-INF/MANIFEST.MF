@@ -4,7 +4,7 @@ Bundle-ManifestVersion: 2
 Require-Bundle: bouncycastle.mail;bundle-version=1.38.0,
  bouncycastle.prov;bundle-version=1.38.0,
  bouncycastle.tsp;bundle-version=1.38.0,
- lowagie.itext;bundle-version=2.1.7.0004L,
+ org.lucee.itext;bundle-version=2.1.7,
  flying.saucer.core;bundle-version=9.0.8,
  flying.saucer.pdf;bundle-version=9.0.8.0003L,
  org.apache.pdfbox.fontbox;bundle-version=1.8.9,
