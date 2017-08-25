@@ -19,28 +19,22 @@
  **/
 package org.lucee.extension.pdf.tag;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import org.apache.pdfbox.exceptions.CryptographyException;
-import org.apache.pdfbox.exceptions.InvalidPasswordException;
-import org.lucee.extension.pdf.PDFStruct;
-import org.lucee.extension.pdf.util.PDFUtil;
-
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.Image;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.ColumnText;
+import com.lowagie.text.pdf.PdfContentByte;
+import com.lowagie.text.pdf.PdfGState;
+import com.lowagie.text.pdf.PdfImportedPage;
+import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.PdfStamper;
+import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.SimpleBookmark;
 import lucee.commons.io.res.Resource;
 import lucee.commons.io.res.filter.ResourceFilter;
-import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.ext.function.BIF;
@@ -50,24 +44,25 @@ import lucee.runtime.type.Struct;
 import lucee.runtime.util.Cast;
 import lucee.runtime.util.ClassUtil;
 import lucee.runtime.util.Strings;
+import org.apache.pdfbox.exceptions.CryptographyException;
+import org.apache.pdfbox.exceptions.InvalidPasswordException;
+import org.lucee.extension.pdf.PDFStruct;
+import org.lucee.extension.pdf.util.PDFUtil;
 
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.Image;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.Rectangle;
-import com.lowagie.text.pdf.ColumnText;
-import com.lowagie.text.pdf.PdfContentByte;
-import com.lowagie.text.pdf.PdfGState;
-import com.lowagie.text.pdf.PdfImportedPage;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.PdfRectangle;
-import com.lowagie.text.pdf.PdfStamper;
-import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.SimpleBookmark;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class PDF extends BodyTagImpl {
 
@@ -1347,6 +1342,7 @@ public class PDF extends BodyTagImpl {
 				docs.add(toPDFDocument(source, password, null));
 
 		}
+
 		boolean destIsSource = false;
 
 		// params
@@ -1355,6 +1351,7 @@ public class PDF extends BodyTagImpl {
 				throw engine.getExceptionUtil().createApplicationException("defined attribute directory does not exist");
 			throw engine.getExceptionUtil().createApplicationException("defined attribute directory is not a directory");
 		}
+
 		if(params != null) {
 			Iterator it = params.iterator();
 			PDFParamBean param;
@@ -1368,23 +1365,31 @@ public class PDF extends BodyTagImpl {
 			isListing = true;
 			Resource[] children = filter != null ? directory.listResources(filter) : directory.listResources();
 
-			if(ascending) {
-				for (int i = children.length - 1; i >= 0; i--) {
-					if(destination != null && children[i].equals(destination))
-						destIsSource = true;
-					docs.add(doc = toPDFDocument(children[i], password, null));
-					doc.setPages(pages);
-				}
+			if (order == ORDER_NAME){
+				Arrays.sort(children, new Comparator<Resource>() {
+					@Override
+					public int compare(Resource o1, Resource o2) {
+						int c = o1.getName().compareTo(o2.getName());
+						return ascending ? c : -c;
+					}
+				});
 			}
-			else {
-				for (int i = 0; i < children.length; i++) {
-					if(destination != null && children[i].equals(destination))
-						destIsSource = true;
-					docs.add(doc = toPDFDocument(children[i], password, null));
-					doc.setPages(pages);
-				}
+			else if (order == ORDER_TIME){
+				Arrays.sort(children, new Comparator<Resource>() {
+					@Override
+					public int compare(Resource o1, Resource o2) {
+						int c = Long.compare(o1.lastModified(), o2.lastModified());
+						return ascending ? c : -c;
+					}
+				});
 			}
 
+			for (int i = 0; i < children.length; i++) {
+				if(destination != null && children[i].equals(destination))
+					destIsSource = true;
+				docs.add(doc = toPDFDocument(children[i], password, null));
+				doc.setPages(pages);
+			}
 		}
 
 		int doclen = docs.size();
@@ -1407,7 +1412,14 @@ public class PDF extends BodyTagImpl {
 		try {
 			if(!isListing)
 				stopOnError = true;
-			PDFUtil.concat((PDFStruct[])docs.toArray(new PDFStruct[docs.size()]), os, keepBookmark, false, stopOnError, version);
+
+			PDFUtil.concat(
+					(PDFStruct[])docs.toArray(new PDFStruct[docs.size()])
+					, os
+					, keepBookmark
+					, false, stopOnError
+					, version
+			);
 			/*
 			 * boolean init=false; for(int d=0;d<doclen;d++) { doc=(PDFDocument) docs.get(d); pages=doc.getPages(); try { pr=doc.getPdfReader();
 			 * print.out(pr.getCatalog().getKeys());
