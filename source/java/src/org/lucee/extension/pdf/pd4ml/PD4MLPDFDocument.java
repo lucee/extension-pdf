@@ -32,7 +32,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import lucee.commons.io.res.ContentType;
-import lucee.commons.io.res.Resource;import lucee.commons.net.http.HTTPResponse;
+import lucee.commons.io.res.Resource;
+import lucee.commons.net.http.HTTPResponse;
 import lucee.commons.net.http.Header;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
@@ -58,23 +59,21 @@ import org.xml.sax.SAXException;
 
 public final class PD4MLPDFDocument extends PDFDocument {
 
-	private int mimetype=MIMETYPE_TEXT_HTML;
-	private String strMimetype=null;
-	
-	
+	private int mimetype = MIMETYPE_TEXT_HTML;
+	private String strMimetype = null;
+
 	private Cast caster;
 	private Excepton exp;
 	private IO io;
 
-	public PD4MLPDFDocument(){
+	public PD4MLPDFDocument() {
 		super();
 		caster = engine.getCastUtil();
 		exp = engine.getExceptionUtil();
-		io=engine.getIOUtil();
+		io = engine.getIOUtil();
 	}
 
-
-	public byte[] render(Dimension dimension,double unitFactor, PageContext pc,boolean generateOutlines) throws PageException, IOException {
+	public byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generateOutlines) throws PageException, IOException {
 		ConfigWeb config = pc.getConfig();
 		PDFByReflection pd4ml = new PDFByReflection(config);
 		pd4ml.generateOutlines(generateOutlines);
@@ -82,35 +81,40 @@ public final class PD4MLPDFDocument extends PDFDocument {
 		pd4ml.interpolateImages(true);
 		// MUSTMUST DO NOT ENABLE, why this was disabled
 		pd4ml.adjustHtmlWidth();
-		
-		//check size
-		int mTop = 	toPoint(margintop,unitFactor);
-		int mLeft = toPoint(marginleft,unitFactor);
-		int mBottom=toPoint(marginbottom,unitFactor);
-		int mRight=toPoint(marginright,unitFactor);
-		if((mLeft+mRight)>dimension.getWidth())
-			throw exp.createApplicationException("current document width ("+caster.toString(dimension.getWidth())+" point) is smaller that specified horizontal margin  ("+caster.toString(mLeft+mRight)+" point).",
-					"1 in = "+Math.round(1*UNIT_FACTOR_IN)+" point and 1 cm = "+Math.round(1*UNIT_FACTOR_CM)+" point");
-		if((mTop+mBottom)>dimension.getHeight())
-			throw exp.createApplicationException("current document height ("+caster.toString(dimension.getHeight())+" point) is smaller that specified vertical margin  ("+caster.toString(mTop+mBottom)+" point).",
-					"1 in = "+Math.round(1*UNIT_FACTOR_IN)+" point and 1 cm = "+Math.round(1*UNIT_FACTOR_CM)+" point");
-		
+
+		// check size
+		int mTop = toPoint(margintop, unitFactor);
+		int mLeft = toPoint(marginleft, unitFactor);
+		int mBottom = toPoint(marginbottom, unitFactor);
+		int mRight = toPoint(marginright, unitFactor);
+		if((mLeft + mRight) > dimension.getWidth())
+			throw exp.createApplicationException(
+					"current document width (" + caster.toString(dimension.getWidth()) + " point) is smaller that specified horizontal margin  ("
+							+ caster.toString(mLeft + mRight) + " point).",
+					"1 in = " + Math.round(1 * UNIT_FACTOR_IN) + " point and 1 cm = " + Math.round(1 * UNIT_FACTOR_CM) + " point");
+		if((mTop + mBottom) > dimension.getHeight())
+			throw exp.createApplicationException(
+					"current document height (" + caster.toString(dimension.getHeight()) + " point) is smaller that specified vertical margin  ("
+							+ caster.toString(mTop + mBottom) + " point).",
+					"1 in = " + Math.round(1 * UNIT_FACTOR_IN) + " point and 1 cm = " + Math.round(1 * UNIT_FACTOR_CM) + " point");
+
 		// Size
-		pd4ml.setPageInsets(new Insets(mTop,mLeft,mBottom,mRight));
+		pd4ml.setPageInsets(new Insets(mTop, mLeft, mBottom, mRight));
 		pd4ml.setPageSize(dimension);
-		
+
 		// header
-		if(header!=null) pd4ml.setPageHeader(header);
+		if(header != null)
+			pd4ml.setPageHeader(header);
 		// footer
-		if(footer!=null) pd4ml.setPageFooter(footer);
-		
+		if(footer != null)
+			pd4ml.setPageFooter(footer);
+
 		// content
-		ByteArrayOutputStream baos=new ByteArrayOutputStream();
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
-			content(pd4ml,pc,baos);
-			
-		}
-		finally {
+			content(pd4ml, pc, baos);
+
+		} finally {
 			io.closeSilent(baos);
 		}
 		return baos.toByteArray();
@@ -119,203 +123,210 @@ public final class PD4MLPDFDocument extends PDFDocument {
 	private void content(PDFByReflection pd4ml, PageContext pc, OutputStream os) throws PageException, IOException {
 		ConfigWeb config = pc.getConfig();
 		pd4ml.useTTF("java:fonts", fontembed);
-		
+
 		// body
-    	if(!Util.isEmpty(body,true)) {
-    		// optimize html
-    		URL base = getBase(pc);
-    		
-    		try {
-    			body=beautifyHTML(new InputSource(new StringReader(body)),base);
-			}catch(Exception e) {}
-    		pd4ml.render(body, os,base);
-			
-    	}
-    	// srcfile
-    	else if(srcfile!=null) {
-    		if(charset==null)charset= pc.getResourceCharset();
-    		
+		if(!Util.isEmpty(body, true)) {
+			// optimize html
+			URL base = getBase(pc);
+
+			try {
+				body = beautifyHTML(new InputSource(new StringReader(body)), base);
+			}
+			catch (Exception e) {
+			}
+			pd4ml.render(body, os, base);
+
+		}
+		// srcfile
+		else if(srcfile != null) {
+			if(charset == null)
+				charset = pc.getResourceCharset();
+
 			// mimetype
 			if(Util.isEmpty(strMimetype)) {
-				String mt = engine.getResourceUtil().getMimeType(srcfile,null);
-				if(mt!=null) setMimetype(mt);
+				String mt = engine.getResourceUtil().getMimeType(srcfile, null);
+				if(mt != null)
+					setMimetype(mt);
 			}
 			InputStream is = srcfile.getInputStream();
-    		try {
-    			
-    			URL base = new URL("file://"+srcfile);
-    			if(!localUrl){
-    				//PageContext pc = Thread LocalPageContext.get();
-    				
-	    				String abs = srcfile.getAbsolutePath();
-	    				String contract = ClassUtil.ContractPath(pc, abs);
-		    			if(!abs.equals(contract)) {
-		    				base=engine.getHTTPUtil().toURL(getDomain(pc.getHttpServletRequest())+contract);
-		    			}
+			try {
 
-    			}
-    			
-    			//URL base = localUrl?new URL("file://"+srcfile):getBase();
-    			render(pd4ml, is,os,base);
-			} 
-    		catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
-    		finally {
-    			io.closeSilent(is);
-    		}
-    	}
-    	// src
-    	else if(src!=null) {
-    		if(charset==null)charset=engine.getCastUtil().toCharset("iso-8859-1");
-    		URL url = engine.getHTTPUtil().toURL(src);
-    		
+				URL base = new URL("file://" + srcfile);
+				if(!localUrl) {
+					// PageContext pc = Thread LocalPageContext.get();
+
+					String abs = srcfile.getAbsolutePath();
+					String contract = ClassUtil.ContractPath(pc, abs);
+					if(!abs.equals(contract)) {
+						base = engine.getHTTPUtil().toURL(getDomain(pc.getHttpServletRequest()) + contract);
+					}
+
+				}
+
+				// URL base = localUrl?new URL("file://"+srcfile):getBase();
+				render(pd4ml, is, os, base);
+			}
+			catch (Throwable t) {
+				if(t instanceof ThreadDeath)
+					throw (ThreadDeath)t;
+			} finally {
+				io.closeSilent(is);
+			}
+		}
+		// src
+		else if(src != null) {
+			if(charset == null)
+				charset = engine.getCastUtil().toCharset("iso-8859-1");
+			URL url = engine.getHTTPUtil().toURL(src);
+
 			// set Proxy
 			if(Util.isEmpty(proxyserver) && config.isProxyEnableFor(url.getHost())) {
 				ProxyData pd = config.getProxyData();
-				proxyserver=pd==null?null:pd.getServer();
-				proxyport=pd==null?0:pd.getPort();
-				proxyuser=pd==null?null:pd.getUsername();
-				proxypassword=pd==null?null:pd.getPassword();
+				proxyserver = pd == null ? null : pd.getServer();
+				proxyport = pd == null ? 0 : pd.getPort();
+				proxyuser = pd == null ? null : pd.getUsername();
+				proxypassword = pd == null ? null : pd.getPassword();
 			}
-			
-			HTTPResponse method = engine.getHTTPUtil().get(url, authUser, authPassword, -1,null, userAgent,
-					proxyserver, proxyport, proxyuser, proxypassword,null);
-				
-			
+
+			HTTPResponse method = engine.getHTTPUtil().get(url, authUser, authPassword, -1, null, userAgent, proxyserver, proxyport, proxyuser, proxypassword,
+					null);
+
 			// mimetype
 			if(Util.isEmpty(strMimetype)) {
 				ContentType ct = method.getContentType();
-				if(ct!=null)
+				if(ct != null)
 					setMimetype(ct.toString());
-				
+
 			}
 			InputStream is = new ByteArrayInputStream(method.getContentAsByteArray());
 			try {
-				
-				render(pd4ml, is, os,url);
-			}
-			finally {
+
+				render(pd4ml, is, os, url);
+			} finally {
 				io.closeSilent(is);
 			}
-    	}
-    	else {
-    		pd4ml.render("<html><body> </body></html>", os,null);
-    	}
+		}
+		else {
+			pd4ml.render("<html><body> </body></html>", os, null);
+		}
 	}
 
-	private static String beautifyHTML(InputSource is,URL base) throws PageException, SAXException, IOException {
+	private static String beautifyHTML(InputSource is, URL base) throws PageException, SAXException, IOException {
 		Document xml = toXML(is);
-		patchPD4MLProblems(xml,base);
-		if(base!=null)URLResolver.getInstance().transform(xml, base);
+		patchPD4MLProblems(xml, base);
+		if(base != null)
+			URLResolver.getInstance().transform(xml, base);
 		String html = toHTML(xml);
 		return html;
 	}
 
 	private static void patchPD4MLProblems(Document xml, URL base) {
 		Element b = XMLUtility.getChildWithName("body", xml.getDocumentElement());
-		if(!b.hasChildNodes()){
+		if(!b.hasChildNodes()) {
 			b.appendChild(xml.createTextNode(" "));
 		}
-		inlineExternalImages(CFMLEngineFactory.getInstance(),xml.getDocumentElement(),base.getHost()+":"+base.getPort());
+		inlineExternalImages(CFMLEngineFactory.getInstance(), xml.getDocumentElement(), base.getHost() + ":" + base.getPort());
 	}
-
 
 	private static void inlineExternalImages(CFMLEngine engine, Node n, String hostPort) {
 		if(n.getNodeName().equalsIgnoreCase("img") && n instanceof Element) {
-			Element e=(Element)n;
-			String src=e.getAttribute("src");
+			Element e = (Element)n;
+			String src = e.getAttribute("src");
 			try {
 				if(src.startsWith("http://") || src.startsWith("https://")) {
-					URL url=new URL(src);
-					if(!(url.getHost()+":"+url.getPort()).equalsIgnoreCase(hostPort)) {
-						e.setAttribute("src", toBase64(url,engine));
+					URL url = new URL(src);
+					if(!(url.getHost() + ":" + url.getPort()).equalsIgnoreCase(hostPort)) {
+						e.setAttribute("src", toBase64(url, engine));
 					}
 				}
 			}
-			catch (MalformedURLException mue) {}
+			catch (MalformedURLException mue) {
+			}
 		}
 		else {
 			NodeList children = n.getChildNodes();
 			int len = children.getLength();
-			for(int i=0;i<len;i++) {
-				inlineExternalImages(engine,children.item(i), hostPort);
+			for (int i = 0; i < len; i++) {
+				inlineExternalImages(engine, children.item(i), hostPort);
 			}
 		}
 	}
 
-
 	private static String toBase64(URL url, CFMLEngine engine) {
 		try {
-			if(!url.getFile().endsWith(".jpg")) return url.toExternalForm();
-			
-			HTTPResponse rsp = engine.getHTTPUtil().get(url, null, null,-1, null, null, null,-1, null, null,null);
-			if(!"image/jpeg".equals(rsp.getContentType().toString())) return url.toExternalForm();
-			String b64=engine.getCastUtil().toBase64(rsp.getContentAsByteArray());
-			return "data:image/jpeg;base64,"+b64;
+			if(!url.getFile().endsWith(".jpg"))
+				return url.toExternalForm();
+
+			HTTPResponse rsp = engine.getHTTPUtil().get(url, null, null, -1, null, null, null, -1, null, null, null);
+			if(!"image/jpeg".equals(rsp.getContentType().toString()))
+				return url.toExternalForm();
+			String b64 = engine.getCastUtil().toBase64(rsp.getContentAsByteArray());
+			return "data:image/jpeg;base64," + b64;
 		}
 		catch (Exception e) {
 			return url.toExternalForm();
 		}
-		
-	}
 
+	}
 
 	private URL getBase(PageContext pc) throws MalformedURLException, PageException, RuntimeException {
-		//PageContext pc = Thread LocalPageContext.get();
-		if(pc==null)return null;
-		
+		// PageContext pc = Thread LocalPageContext.get();
+		if(pc == null)
+			return null;
+
 		String userAgent = pc.getHttpServletRequest().getHeader("User-Agent");
 		// bug in pd4ml-> html badse definition create a call
-		if(!Util.isEmpty(userAgent) && (userAgent.startsWith("Java")))return null;
+		if(!Util.isEmpty(userAgent) && (userAgent.startsWith("Java")))
+			return null;
 
 		String url = getRequestURL(pc.getHttpServletRequest(), false);
-		return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(url,-1,true);
+		return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(url, -1, true);
 	}
-	
-	
 
-
-	private void render(PDFByReflection pd4ml, InputStream is,OutputStream os, URL base) throws IOException, PageException {
+	private void render(PDFByReflection pd4ml, InputStream is, OutputStream os, URL base) throws IOException, PageException {
 		try {
-			
+
 			// text/html
-			if(mimetype==MIMETYPE_TEXT_HTML) {
-				body="";
-				
+			if(mimetype == MIMETYPE_TEXT_HTML) {
+				body = "";
+
 				try {
-					InputSource input = new InputSource(io.getReader(is,charset));
-					body=beautifyHTML(input,base);
-				} 
-				catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
-				//else if(body==null)body =IOUtil.toString(is,strCharset); 
-				pd4ml.render(body, os,base);
+					InputSource input = new InputSource(io.getReader(is, charset));
+					body = beautifyHTML(input, base);
+				}
+				catch (Throwable t) {
+					if(t instanceof ThreadDeath)
+						throw (ThreadDeath)t;
+				}
+				// else if(body==null)body =IOUtil.toString(is,strCharset);
+				pd4ml.render(body, os, base);
 			}
 			// text
-			else if(mimetype==MIMETYPE_TEXT) {
-				body =io.toString(is,charset); 
-				body="<html><body><pre>"+engine.getHTMLUtil().escapeHTML(body)+"</pre></body></html>";
-				pd4ml.render(body, os,null);
+			else if(mimetype == MIMETYPE_TEXT) {
+				body = io.toString(is, charset);
+				body = "<html><body><pre>" + engine.getHTMLUtil().escapeHTML(body) + "</pre></body></html>";
+				pd4ml.render(body, os, null);
 			}
 			// image
-			else if(mimetype==MIMETYPE_IMAGE) {
-				Resource tmpDir= engine.getSystemUtil().getTempDirectory();
-				Resource tmp = tmpDir.getRealResource(this+"-"+Math.random());
-				io.copy(is, tmp,true);
-				body="<html><body><img src=\"file://"+tmp+"\"></body></html>";
+			else if(mimetype == MIMETYPE_IMAGE) {
+				Resource tmpDir = engine.getSystemUtil().getTempDirectory();
+				Resource tmp = tmpDir.getRealResource(this + "-" + Math.random());
+				io.copy(is, tmp, true);
+				body = "<html><body><img src=\"file://" + tmp + "\"></body></html>";
 				try {
-					pd4ml.render(body, os,null);
-				}
-				finally {
+					pd4ml.render(body, os, null);
+				} finally {
 					tmp.delete();
-				}	
+				}
 			}
 			// Application
-			else if(mimetype==MIMETYPE_APPLICATION && "application/pdf".equals(strMimetype)) {
-				io.copy(is, os,true,true);
+			else if(mimetype == MIMETYPE_APPLICATION && "application/pdf".equals(strMimetype)) {
+				io.copy(is, os, true, true);
 			}
-			else pd4ml.render(new InputStreamReader(is), os);
-		}
-		finally {
-			io.closeSilent(is,os);
+			else
+				pd4ml.render(new InputStreamReader(is), os);
+		} finally {
+			io.closeSilent(is, os);
 		}
 	}
 

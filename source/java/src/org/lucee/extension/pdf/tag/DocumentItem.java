@@ -40,63 +40,68 @@ public final class DocumentItem extends BodyTagImpl {
 	private String name;
 	private PDFPageMark body;
 	private boolean evalAtPrint;
-	
+
 	@Override
 	public void release() {
 		super.release();
-		this.body=null;
-		name=null;
+		this.body = null;
+		name = null;
 	}
 
 	/**
-	 * @param type the type to set
-	 * @throws ApplicationException 
+	 * @param type
+	 *            the type to set
+	 * @throws ApplicationException
 	 */
 	public void setType(String strType) throws PageException {
-		strType=Document.trimAndLower(strType);
-		if("pagebreak".equals(strType))		type=TYPE_PAGE_BREAK;
-		else if("header".equals(strType))	type=TYPE_HEADER;
-		else if("footer".equals(strType))	type=TYPE_FOOTER;
-		else if("bookmark".equals(strType))	type=TYPE_BOOKMARK;
-		else engine.getExceptionUtil().createApplicationException("invalid type ["+strType+"], valid types are [pagebreak,header,footer,bookmark]");
-		//else throw new ApplicationException("invalid type ["+strType+"], valid types are [pagebreak,header,footer]");
-		
+		strType = Document.trimAndLower(strType);
+		if("pagebreak".equals(strType))
+			type = TYPE_PAGE_BREAK;
+		else if("header".equals(strType))
+			type = TYPE_HEADER;
+		else if("footer".equals(strType))
+			type = TYPE_FOOTER;
+		else if("bookmark".equals(strType))
+			type = TYPE_BOOKMARK;
+		else
+			engine.getExceptionUtil().createApplicationException("invalid type [" + strType + "], valid types are [pagebreak,header,footer,bookmark]");
+		// else throw new ApplicationException("invalid type ["+strType+"], valid types are [pagebreak,header,footer]");
+
 	}
 
-	public void setEvalatprint(boolean evalAtPrint){
-		this.evalAtPrint=evalAtPrint;
+	public void setEvalatprint(boolean evalAtPrint) {
+		this.evalAtPrint = evalAtPrint;
 	}
 
-    @Override
-	public int doStartTag()	{
+	@Override
+	public int doStartTag() {
 		return EVAL_BODY_BUFFERED;
 	}
 
 	@Override
-	public void doInitBody()	{}
-	
+	public void doInitBody() {
+	}
+
 	@Override
-	public int doAfterBody()	{
-		if(TYPE_HEADER==type || TYPE_FOOTER==type) {
-			body=new PDFPageMark(-1,translate(bodyContent.getString()));
+	public int doAfterBody() {
+		if(TYPE_HEADER == type || TYPE_FOOTER == type) {
+			body = new PDFPageMark(-1, translate(bodyContent.getString()));
 		}
-		
+
 		return SKIP_BODY;
 	}
-	
-	private String translate(String html) {
-		
-		html=Util.replace(html.trim(), "{currentsectionpagenumber}", "${page}", false);
-		html=Util.replace(html, "{totalsectionpagecount}", "${total}", false);
-		
-		html=Util.replace(html.trim(), "{currentpagenumber}", "${page}", false);
-		html=Util.replace(html, "{totalpagecount}", "${total}", false);
-		
 
-	    //cfdoc.setEL("currentpagenumber", "{currentpagenumber}");
-	    //cfdoc.setEL("totalpagecount", "{totalpagecount}");
-	    
-		
+	private String translate(String html) {
+
+		html = Util.replace(html.trim(), "{currentsectionpagenumber}", "${page}", false);
+		html = Util.replace(html, "{totalsectionpagecount}", "${total}", false);
+
+		html = Util.replace(html.trim(), "{currentpagenumber}", "${page}", false);
+		html = Util.replace(html, "{totalpagecount}", "${total}", false);
+
+		// cfdoc.setEL("currentpagenumber", "{currentpagenumber}");
+		// cfdoc.setEL("totalpagecount", "{totalpagecount}");
+
 		return html;
 	}
 
@@ -107,56 +112,63 @@ public final class DocumentItem extends BodyTagImpl {
 		}
 		catch (IOException e) {
 			throw engine.getCastUtil().toPageException(e);
-		}	
+		}
 		return EVAL_PAGE;
 	}
+
 	private void _doEndTag() throws IOException, PageException {
-		if(TYPE_PAGE_BREAK==type) {
+		if(TYPE_PAGE_BREAK == type) {
 			pageContext.forceWrite("<pd4ml:page.break>");
 			return;
 		}
-		else if(TYPE_BOOKMARK==type) {
+		else if(TYPE_BOOKMARK == type) {
 			if(Util.isEmpty(name))
 				throw engine.getExceptionUtil().createApplicationException("attribute [name] is required when type is [bookmark]");
-			pageContext.forceWrite("<pd4ml:bookmark>"+name+"</pd4ml:bookmark>");
+			pageContext.forceWrite("<pd4ml:bookmark>" + name + "</pd4ml:bookmark>");
 		}
-		else if(body!=null) {
+		else if(body != null) {
 			provideDocumentItem();
 		}
-		
+
 	}
 
-	private void provideDocumentItem() 	{
+	private void provideDocumentItem() {
 		// get Document Tag
-		Tag parent=getParent();
-		while(parent!=null && !(parent instanceof Document) && !(parent instanceof DocumentSection)) {
-			parent=parent.getParent();
+		Tag parent = getParent();
+		while(parent != null && !(parent instanceof Document) && !(parent instanceof DocumentSection)) {
+			parent = parent.getParent();
 		}
 
 		if(parent instanceof Document) {
 			Document doc = (Document)parent;
-			if(TYPE_HEADER==type)doc.setHeader(body);
-			else if(TYPE_FOOTER==type)doc.setFooter(body);
-			return ;
+			if(TYPE_HEADER == type)
+				doc.setHeader(body);
+			else if(TYPE_FOOTER == type)
+				doc.setFooter(body);
+			return;
 		}
 		else if(parent instanceof DocumentSection) {
 			DocumentSection doc = (DocumentSection)parent;
-			if(TYPE_HEADER==type)doc.setHeader(body);
-			else if(TYPE_FOOTER==type)doc.setFooter(body);
-			return ;
+			if(TYPE_HEADER == type)
+				doc.setHeader(body);
+			else if(TYPE_FOOTER == type)
+				doc.setFooter(body);
+			return;
 		}
-	}
-	
-	/**
-	 * sets if has body or not
-	 * @param hasBody
-	 */
-	public void hasBody(boolean hasBody) {
-	    
 	}
 
 	/**
-	 * @param name the name to set
+	 * sets if has body or not
+	 * 
+	 * @param hasBody
+	 */
+	public void hasBody(boolean hasBody) {
+
+	}
+
+	/**
+	 * @param name
+	 *            the name to set
 	 */
 	public void setName(String name) {
 		this.name = name;

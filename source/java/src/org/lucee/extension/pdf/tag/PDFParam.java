@@ -25,67 +25,66 @@ import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.exp.PageException;
 
 /**
-* Required for cfhttp POST operations, cfhttpparam is used to specify the parameters necessary to 
-* 	 build a cfhttp POST.
-*
-*
-*
-**/
+ * Required for cfhttp POST operations, cfhttpparam is used to specify the parameters necessary to build a cfhttp POST.
+ *
+ *
+ *
+ **/
 public final class PDFParam extends TagImpl {
-	
-	PDFParamBean param=new PDFParamBean();
 
+	PDFParamBean param = new PDFParamBean();
 
 	/**
-	 * @param pages the pages to set
+	 * @param pages
+	 *            the pages to set
 	 */
 	public void setPages(String pages) {
 		param.setPages(pages);
 	}
 
 	/**
-	 * @param password the password to set
+	 * @param password
+	 *            the password to set
 	 */
 	public void setPassword(String password) {
 		param.setPassword(password);
 	}
 
 	/**
-	 * @param source the source to set
+	 * @param source
+	 *            the source to set
 	 */
 	public void setSource(Object source) {
 		param.setSource(source);
 	}
-	
-	
+
 	@Override
-	public int doStartTag() throws PageException	{
-        
-        
+	public int doStartTag() throws PageException {
+
 		// get HTTP Tag
-		Tag parent=getParent();
-		while(parent!=null && !(parent instanceof PDF)) {
-			parent=parent.getParent();
+		Tag parent = getParent();
+		while(parent != null && !(parent instanceof PDF)) {
+			parent = parent.getParent();
 		}
-		
+
 		if(parent instanceof PDF) {
 			PDF pdf = (PDF)parent;
 			pdf.setParam(param);
 		}
 		else {
-			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("Wrong Context, tag PDFParam must be inside a PDF tag");	
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("Wrong Context, tag PDFParam must be inside a PDF tag");
 		}
 		return SKIP_BODY;
 	}
 
 	@Override
-	public int doEndTag()	{
+	public int doEndTag() {
 		return EVAL_PAGE;
 	}
 
 	@Override
-	public void release()	{
+	public void release() {
 		super.release();
-		param=new PDFParamBean();
+		param = new PDFParamBean();
 	}
 }
