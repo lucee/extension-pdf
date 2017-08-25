@@ -27,16 +27,16 @@ import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.exp.PageException;
 
 public abstract class PDF2Image {
-	
-	
-	protected static Resource createDestinationResource(Resource dir,String prefix,int page,String format, boolean overwrite) throws PageException {
-		Resource res = dir.getRealResource(prefix+"_page_"+page+"."+format);
+
+	protected static Resource createDestinationResource(Resource dir, String prefix, int page, String format, boolean overwrite) throws PageException {
+		Resource res = dir.getRealResource(prefix + "_page_" + page + "." + format);
 		if(res.exists()) {
-			if(!overwrite)throw CFMLEngineFactory.getInstance().getExceptionUtil()
-				.createApplicationException("can't overwrite existing image ["+res+"], attribute [overwrite] is false");
+			if(!overwrite)
+				throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException(
+						"can't overwrite existing image [" + res + "], attribute [overwrite] is false");
 		}
 		return res;
 	}
 
-	public abstract BufferedImage toImage(byte[] input,int page) throws IOException, PageException;
+	public abstract BufferedImage toImage(byte[] input, int page) throws IOException, PageException;
 }

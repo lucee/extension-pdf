@@ -16,8 +16,8 @@ public class ClassUtil {
 	public static OutputStream getResponseStream(PageContext pc) throws PageException, RuntimeException {
 		try {
 			Method method = pc.getClass().getMethod("getResponseStream", EMPTY_CLASS);
-			return (OutputStream) method.invoke(pc, EMPTY_OBJ);
-		} 
+			return (OutputStream)method.invoke(pc, EMPTY_OBJ);
+		}
 		catch (Exception e) {
 			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
 		}
@@ -27,39 +27,39 @@ public class ClassUtil {
 		try {
 			Method method = pc.getClass().getMethod("getRootOut", EMPTY_CLASS);
 			return method.invoke(pc, EMPTY_OBJ);
-		} 
+		}
 		catch (Exception e) {
 			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
 		}
 	}
 
-	public static void setClosed(Object cfmlWriter, boolean closed) throws PageException, RuntimeException { 
+	public static void setClosed(Object cfmlWriter, boolean closed) throws PageException, RuntimeException {
 		try {
-			Method method = cfmlWriter.getClass().getMethod("setClosed", new Class[]{boolean.class});
-			method.invoke(cfmlWriter, new Object[]{closed});
-		} 
+			Method method = cfmlWriter.getClass().getMethod("setClosed", new Class[] { boolean.class });
+			method.invoke(cfmlWriter, new Object[] { closed });
+		}
 		catch (Exception e) {
 			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
 		}
 	}
 
 	public static String ContractPath(PageContext pc, String abs) throws PageException {
-		
+
 		try {
 			BIF bif = CFMLEngineFactory.getInstance().getClassUtil().loadBIF(pc, "lucee.runtime.functions.system.ContractPath");
-			return (String)bif.invoke(pc, new Object[]{abs});
-		} 
+			return (String)bif.invoke(pc, new Object[] { abs });
+		}
 		catch (Exception e) {
 			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
 		}
 	}
 
 	public static String GetDirectoryFromPath(PageContext pc, String path) throws PageException {
-		
+
 		try {
 			BIF bif = CFMLEngineFactory.getInstance().getClassUtil().loadBIF(pc, "lucee.runtime.functions.system.GetDirectoryFromPath");
-			return (String)bif.invoke(pc, new Object[]{path});
-		} 
+			return (String)bif.invoke(pc, new Object[] { path });
+		}
 		catch (Exception e) {
 			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
 		}

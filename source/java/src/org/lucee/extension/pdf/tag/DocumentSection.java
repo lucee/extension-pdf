@@ -19,7 +19,6 @@
  **/
 package org.lucee.extension.pdf.tag;
 
-
 import javax.servlet.jsp.tagext.Tag;
 
 import org.lucee.extension.pdf.PDFDocument;
@@ -30,102 +29,108 @@ import lucee.runtime.exp.PageException;
 
 public final class DocumentSection extends BodyTagImpl {
 
-	
-	private PDFDocument _document; 
-	
-
+	private PDFDocument _document;
 
 	public DocumentSection() {
-		this._document=null;
+		this._document = null;
 	}
-	
+
 	private PDFDocument getPDFDocument() {
-		if(_document==null) _document=PDFDocument.newInstance(PDFDocument.getType(pageContext));
+		if(_document == null)
+			_document = PDFDocument.newInstance(PDFDocument.getType(pageContext));
 		return _document;
 	}
-	
+
 	@Override
 	public void release() {
 		super.release();
-		_document=null;
+		_document = null;
 	}
-	
-	
 
-	/** set the value proxyserver
-	*  Host name or IP address of a proxy server.
-	* @param proxyserver value to set
-	**/
-	public void setProxyserver(String proxyserver)	{
+	/**
+	 * set the value proxyserver Host name or IP address of a proxy server.
+	 * 
+	 * @param proxyserver
+	 *            value to set
+	 **/
+	public void setProxyserver(String proxyserver) {
 		getPDFDocument().setProxyserver(proxyserver);
 	}
-	
-	/** set the value proxyport
-	*  The port number on the proxy server from which the object is requested. Default is 80. When 
-	* 	used with resolveURL, the URLs of retrieved documents that specify a port number are automatically 
-	* 	resolved to preserve links in the retrieved document.
-	* @param proxyport value to set
-	**/
-	public void setProxyport(double proxyport)	{
+
+	/**
+	 * set the value proxyport The port number on the proxy server from which the object is requested. Default is 80. When used with resolveURL, the URLs of
+	 * retrieved documents that specify a port number are automatically resolved to preserve links in the retrieved document.
+	 * 
+	 * @param proxyport
+	 *            value to set
+	 **/
+	public void setProxyport(double proxyport) {
 		getPDFDocument().setProxyport((int)proxyport);
 	}
 
-	/** set the value username
-	*  When required by a proxy server, a valid username.
-	* @param proxyuser value to set
-	**/
-	public void setProxyuser(String proxyuser)	{
+	/**
+	 * set the value username When required by a proxy server, a valid username.
+	 * 
+	 * @param proxyuser
+	 *            value to set
+	 **/
+	public void setProxyuser(String proxyuser) {
 		getPDFDocument().setProxyuser(proxyuser);
 	}
 
-	/** set the value password
-	*  When required by a proxy server, a valid password.
-	* @param proxypassword value to set
-	**/
-	public void setProxypassword(String proxypassword)	{
+	/**
+	 * set the value password When required by a proxy server, a valid password.
+	 * 
+	 * @param proxypassword
+	 *            value to set
+	 **/
+	public void setProxypassword(String proxypassword) {
 		getPDFDocument().setProxypassword(proxypassword);
 	}
 
 	/**
-	 * @param marginbottom the marginbottom to set
+	 * @param marginbottom
+	 *            the marginbottom to set
 	 */
 	public void setMarginbottom(double marginbottom) {
 		getPDFDocument().setMarginbottom(marginbottom);
 	}
 
 	/**
-	 * @param marginleft the marginleft to set
+	 * @param marginleft
+	 *            the marginleft to set
 	 */
 	public void setMarginleft(double marginleft) {
 		getPDFDocument().setMarginleft(marginleft);
 	}
 
 	/**
-	 * @param marginright the marginright to set
+	 * @param marginright
+	 *            the marginright to set
 	 */
 	public void setMarginright(double marginright) {
 		getPDFDocument().setMarginright(marginright);
 	}
 
 	/**
-	 * @param margintop the margintop to set
+	 * @param margintop
+	 *            the margintop to set
 	 */
 	public void setMargintop(double margintop) {
 		getPDFDocument().setMargintop(margintop);
 	}
 
 	/**
-	 * @param src the src to set
-	 * @throws ApplicationException 
+	 * @param src
+	 *            the src to set
+	 * @throws ApplicationException
 	 */
 	public void setSrc(String src) throws PageException {
 		getPDFDocument().setSrc(src);
 	}
 
 	/**
-	 * @param srcfile the srcfile to set
-	 * @throws PageException 
-	 * @throws  
+	 * @param srcfile the srcfile to set @throws PageException @throws
 	 */
 	public void setSrcfile(String strSrcfile) throws PageException {
 		Resource srcfile = engine.getResourceUtil().toResourceExisting(pageContext, strSrcfile);
@@ -134,13 +139,13 @@ public final class DocumentSection extends BodyTagImpl {
 	}
 
 	/**
-	 * @param mimetype the mimetype to set
+	 * @param mimetype
+	 *            the mimetype to set
 	 */
 	public void setMimetype(String strMimetype) throws PageException {
 		getPDFDocument().setMimetype(strMimetype);
 		strMimetype = strMimetype.toLowerCase().trim();
 	}
-	
 
 	public void setHeader(PDFPageMark header) {
 		getPDFDocument().setHeader(header);
@@ -149,78 +154,83 @@ public final class DocumentSection extends BodyTagImpl {
 	public void setFooter(PDFPageMark footer) {
 		getPDFDocument().setFooter(footer);
 	}
-	
-	
+
 	/**
-	 * @param name the name to set
+	 * @param name
+	 *            the name to set
 	 */
 	public void setName(String name) {
 		getPDFDocument().setName(name);
 	}
 
 	/**
-	 * @param authUser the authUser to set
+	 * @param authUser
+	 *            the authUser to set
 	 */
 	public void setAuthuser(String authUser) {
 		getPDFDocument().setAuthUser(authUser);
 	}
 
 	/**
-	 * @param authPassword the authPassword to set
+	 * @param authPassword
+	 *            the authPassword to set
 	 */
 	public void setAuthpassword(String authPassword) {
 		getPDFDocument().setAuthPassword(authPassword);
 	}
 
 	/**
-	 * @param userAgent the userAgent to set
+	 * @param userAgent
+	 *            the userAgent to set
 	 */
 	public void setUseragent(String userAgent) {
 		getPDFDocument().setUserAgent(userAgent);
 	}
 
-    @Override
-	public int doStartTag()	{
+	@Override
+	public int doStartTag() {
 		return EVAL_BODY_BUFFERED;
 	}
 
 	@Override
-	public void doInitBody()	{
-		
+	public void doInitBody() {
+
 	}
-	
+
 	@Override
-	public int doAfterBody()	{
+	public int doAfterBody() {
 		getPDFDocument().setBody(bodyContent.getString());
 		return SKIP_BODY;
 	}
-	
+
 	@Override
 	public int doEndTag() {
 		Document doc = getDocument();
-		if(doc!=null)doc.addPDFDocument(getPDFDocument());
+		if(doc != null)
+			doc.addPDFDocument(getPDFDocument());
 		return EVAL_PAGE;
 	}
 
-	private Document getDocument()	{
+	private Document getDocument() {
 		// get Mail Tag
-		Tag parent=getParent();
-		while(parent!=null && !(parent instanceof Document)) {
-			parent=parent.getParent();
+		Tag parent = getParent();
+		while(parent != null && !(parent instanceof Document)) {
+			parent = parent.getParent();
 		}
-		
+
 		if(parent instanceof Document) {
-			return  (Document)parent;
+			return (Document)parent;
 		}
 		return null;
 	}
+
 	/**
 	 * sets if has body or not
+	 * 
 	 * @param hasBody
 	 */
 	public void hasBody(boolean hasBody) {
-	    
-	}
 
+	}
 
 }
