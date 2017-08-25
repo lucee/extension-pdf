@@ -22,14 +22,19 @@ package org.lucee.extension.pdf.pd4ml;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.Charset;
 
 import org.lucee.extension.pdf.PDFPageMark;
+import org.xhtmlrenderer.util.IOUtil;
 
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
@@ -63,10 +68,12 @@ public class PDFByReflection {
 				Resource temp = config.getConfigDir().getRealResource("temp");
 				Resource file1=temp.getRealResource("resource.lmdp");
 				Resource file2=temp.getRealResource("css.lmdp");
+				Resource file3=temp.getRealResource("fonts.lmdp");
 
-		        if(!file1.exists() || file1.length()==0 || !file2.exists() || file2.length()==0){
+		        if(!file1.exists() || file1.length()==0 || !file2.exists() || file2.length()==0 || !file3.exists() || file3.length()==0){
 		        	file1.delete();
 		        	file2.delete();
+		        	file3.delete();
 					// ss_css2.jar
 					
 					
@@ -75,18 +82,28 @@ public class PDFByReflection {
 
 		        	file1.createFile(true);
 		        	file2.createFile(true);
-		        	//print.out(new Info().getClass().getResource("/resource/lib/pd4ml.jar"));
+		        	file3.createFile(true);
 		        	InputStream jar1 = getClass().getResourceAsStream("/org/lucee/extension/pdf/res/pd4ml.jar");
 		        	io.copy(jar1, file1,true);
 		        	InputStream jar2 = getClass().getResourceAsStream("/org/lucee/extension/pdf/res/ss_css2.jar");
 		        	io.copy(jar2, file2,true);
-		        	
+		        	InputStream jar3 = getClass().getResourceAsStream("/org/lucee/extension/pdf/res/fonts.jar");
+		        	io.copy(jar3, file3,true);
+		        		
 		        }
-		        ClassLoader parent = getClass().getClassLoader();
-		        classLoader=new URLClassLoader(new URL[]{caster.toFile(file1).toURL(),caster.toFile(file2).toURL()},parent);
-		    	
-		    	//classLoader=new URLClassLoader(new URL[]{new Info().getClass().getResource("/resource/lib/pd4ml.jar")},this.getClass().getClassLoader());
-			}
+		        ClassLoader parent = CFMLEngineFactory.class.getClassLoader();
+		        
+		        // does the fonts.jar exists? if so we do not set any
+		        URL prop = parent.getResource("fonts/pd4fonts.properties");
+		        if(prop==null) prop=parent.getResource("/fonts/pd4fonts.properties");
+		        URL[] urls;
+		        if(prop==null) 
+		        	urls=new URL[]{caster.toFile(file1).toURL(),caster.toFile(file2).toURL(),caster.toFile(file3).toURL()};
+		        else
+		        	urls=new URL[]{caster.toFile(file1).toURL(),caster.toFile(file2).toURL()};
+		        	
+		        classLoader=new URLClassLoader(urls,parent);
+		    }
 			if(pd4mlClass==null)pd4mlClass=util.loadClass(classLoader,"org.zefer.pd4ml.PD4ML");
 			pd4ml=util.loadInstance(pd4mlClass);
 			
@@ -130,6 +147,20 @@ public class PDFByReflection {
 				new Object[]{pathToFontDirs,caster.toBoolean(embed)},
 				new Class[]{String.class,boolean.class});
 	}
+	
+	public boolean isPro() throws PageException {
+		return CFMLEngineFactory.getInstance().getCastUtil().toBooleanValue(
+				invoke(pd4ml,"isPro",
+						new Object[]{},
+						new Class[]{}));
+	}
+
+	public void overrideDocumentEncoding(String encoding) throws PageException {
+		invoke(pd4ml,"overrideDocumentEncoding",
+				new Object[]{encoding},
+				new Class[]{String.class});
+	}
+	
 	
 
 	public void setDefaultTTFs(String string, String string2, String string3) throws PageException {
