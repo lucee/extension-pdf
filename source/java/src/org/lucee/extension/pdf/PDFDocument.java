@@ -39,8 +39,8 @@ import lucee.runtime.type.Struct;
 
 import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
+import org.lucee.extension.pdf.util.XMLUtil;
 import org.lucee.extension.pdf.xhtmlrenderer.FSPDFDocument;
-import org.lucee.xml.XMLUtility;
 import org.w3c.dom.Attr;
 import org.w3c.dom.CharacterData;
 import org.w3c.dom.Document;
@@ -324,9 +324,7 @@ public abstract class PDFDocument {
 	public abstract byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException;
 
 	protected final static Document toXML(InputSource is) throws SAXException, IOException {
-		Document xml = XMLUtility.parse(is, null, true);
-		// TODO if(base!=null)URLResolver.getInstance().transform(xml, base);
-		return xml;
+		return XMLUtil.parseHTML(is);
 	}
 
 	protected final static URL getRequestURL(PageContext pc) {
@@ -580,7 +578,7 @@ public abstract class PDFDocument {
 
 	public static String toHTML(Node node) throws PageException {
 		if(Node.DOCUMENT_NODE == node.getNodeType())
-			return toHTML(XMLUtility.getRootElement(node));
+			return toHTML(XMLUtil.getRootElement(node));
 
 		StringBuilder sb = new StringBuilder();
 		toHTML(node, sb);

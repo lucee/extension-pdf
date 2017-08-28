@@ -7,7 +7,6 @@
 	<classpathentry kind="lib" path="libs/jsp-api-2.2.jar"/>
 	<classpathentry kind="lib" path="libs/org.apache.felix.framework-4.2.1.jar"/>
 	<classpathentry kind="lib" path="libs/core-3.1.0.3.jar"/>
-	<classpathentry kind="lib" path="libs/org.lucee.xml-1.0.0.0.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.itext-2.1.7.jar"/>
 	<classpathentry kind="lib" path="libs/lucee.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.flyingSaucerCore-9.0.9.jar"/>
@@ -18,5 +17,6 @@
 	<classpathentry kind="lib" path="libs/org.lucee.pdfbox-1.8.13.jar"/>
 	<classpathentry kind="lib" path="libs/org.apache.pdfbox.fontbox-1.8.13.jar"/>
 	<classpathentry kind="lib" path="libs/org.apache.pdfbox.jempbox-1.8.13.jar"/>
+	<classpathentry kind="lib" path="libs/tagsoup-1.2.1.0002L.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

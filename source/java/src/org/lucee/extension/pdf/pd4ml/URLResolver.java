@@ -22,7 +22,7 @@ package org.lucee.extension.pdf.pd4ml;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import org.lucee.xml.XMLUtility;
+import org.lucee.extension.pdf.util.XMLUtil;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -44,7 +44,7 @@ public final class URLResolver {
 	public void transform(Node node, URL url) throws MalformedURLException {
 		Element el;
 		if(node.getNodeType() == Node.DOCUMENT_NODE) {
-			transform(XMLUtility.getRootElement(node), url);
+			transform(XMLUtil.getRootElement(node), url);
 		}
 		else if(node.getNodeType() == Node.ELEMENT_NODE) {
 			el = (Element)node;

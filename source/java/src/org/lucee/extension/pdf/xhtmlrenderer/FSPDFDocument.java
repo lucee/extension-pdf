@@ -29,14 +29,8 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.Charset;
-
-import javax.servlet.http.HttpServletRequest;
-
 import lucee.commons.io.res.ContentType;
-import lucee.commons.io.res.Resource;
 import lucee.commons.net.http.HTTPResponse;
-import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
@@ -45,19 +39,13 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.net.proxy.ProxyData;
 
 import org.lucee.extension.pdf.PDFDocument;
-import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.util.ClassUtil;
-import org.lucee.xml.XMLUtility;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import com.lowagie.text.DocumentException;
-import com.lowagie.text.pdf.BaseFont;
 
 public final class FSPDFDocument extends PDFDocument {
 
@@ -107,7 +95,7 @@ public final class FSPDFDocument extends PDFDocument {
 		catch (Exception e) {
 			throw engine.getCastUtil().toPageException(e);
 		} finally {
-			Util.closeEL(baos);
+			engine.getIOUtil().closeSilent(baos);
 		}
 		return baos.toByteArray();
 	}

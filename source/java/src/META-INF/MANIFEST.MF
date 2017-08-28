@@ -13,4 +13,5 @@ Require-Bundle: bouncycastle.mail;bundle-version=1.38.0,
  icepdf.core;bundle-version=3.1.0.3,
  org.lucee.xml;bundle-version=1.0.0.0,
  org.lucee.xalan;bundle-version=2.7.2,
+ tagsoup;bundle-version=1.2.1.0002L,
  org.lucee.xml.xerces;bundle-version=2.11.0

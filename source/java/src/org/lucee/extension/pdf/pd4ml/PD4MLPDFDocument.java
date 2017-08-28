@@ -49,7 +49,7 @@ import lucee.runtime.util.IO;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.util.ClassUtil;
-import org.lucee.xml.XMLUtility;
+import org.lucee.extension.pdf.util.XMLUtil;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -221,7 +221,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 	}
 
 	private static void patchPD4MLProblems(Document xml, URL base) {
-		Element b = XMLUtility.getChildWithName("body", xml.getDocumentElement());
+		Element b = XMLUtil.getChildWithName("body", xml.getDocumentElement());
 		if(!b.hasChildNodes()) {
 			b.appendChild(xml.createTextNode(" "));
 		}
