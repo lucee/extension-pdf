@@ -75,7 +75,7 @@
 
     <echo file="${dist}/extension/META-INF/MANIFEST.MF">Manifest-Version: 1.0
 Built-Date: ${NOW}
-version: "${bundleversion}${build.number}"
+version: "${bundleversion}${build.number}${appendix}"
 id: "${id}"
 name: "${label}"
 description: "${description}"
@@ -113,9 +113,9 @@ start-bundles: false
  
     <!-- Put everything in ${build} into .jar file -->
     <jar 
-    	jarfile="${dist}/extension/jars/${filename}-${bundleversion}${build.number}.jar" basedir="${build}"  manifest="${src}/META-INF/MANIFEST.MF">
+    	jarfile="${dist}/extension/jars/${filename}-${bundleversion}${build.number}${appendix}.jar" basedir="${build}"  manifest="${src}/META-INF/MANIFEST.MF">
       <manifest>
-        <attribute name="Bundle-Version" value="${bundleversion}${build.number}"/>
+        <attribute name="Bundle-Version" value="${bundleversion}${build.number}${appendix}"/>
         <attribute name="Built-Date" value="${NOW}"/>
         <attribute name="Bundle-SymbolicName" value="${bundlename}"/>
 
@@ -127,14 +127,14 @@ start-bundles: false
     <!-- copy the tlds necessary -->
     <loadfile property="content1" srcFile="${tld}/tag.tldx" />
     <replace haystack="${content1}" needle="{bundle-name}" repl="${bundlename}" property="content2"/>
-    <replace haystack="${content2}" needle="{bundle-version}" repl="${bundleversion}${build.number}" property="content3"/>
+    <replace haystack="${content2}" needle="{bundle-version}" repl="${bundleversion}${build.number}${appendix}" property="content3"/>
     <echo message="${content3}" file="${dist}/extension/tlds/pdftag.tldx"/>
 
 
     <!-- copy the flds necessary -->
     <loadfile property="c1" srcFile="${fld}/function.fld" />
     <replace haystack="${c1}" needle="{bundle-name}" repl="${bundlename}" property="c2"/>
-    <replace haystack="${c2}" needle="{bundle-version}" repl="${bundleversion}${build.number}" property="c3"/>
+    <replace haystack="${c2}" needle="{bundle-version}" repl="${bundleversion}${build.number}${appendix}" property="c3"/>
     <echo message="${c3}" file="${dist}/extension/flds/pdffunction.fld"/>
 
 
@@ -167,7 +167,7 @@ start-bundles: false
 
 
     <!-- Zip everything  -->
-     <zip destfile="${dist}/${filename}-${bundleversion}${build.number}.lex">
+     <zip destfile="${dist}/${filename}-${bundleversion}${build.number}${appendix}.lex">
         <zipfileset dir="${dist}/extension"/>
     </zip>
 		
