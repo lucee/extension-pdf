@@ -47,6 +47,7 @@ import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Struct;
+import lucee.runtime.util.ResourceUtil;
 
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.pdf.PdfCopy;
@@ -76,6 +77,7 @@ public final class Document extends BodyTagImpl {
 	// TODO impl. tag Document backgroundvisible,fontembed,scale
 	private boolean backgroundvisible;
 	private int fontembed = PDFDocument.FONT_EMBED_YES;
+	private File fontdir = null;
 
 	private int permissions = 0;
 	private PDFDocument _document;
@@ -107,6 +109,7 @@ public final class Document extends BodyTagImpl {
 		_document = null;
 		backgroundvisible = false;
 		fontembed = PDFDocument.FONT_EMBED_YES;
+		fontdir = null;
 
 	}
 
@@ -490,21 +493,34 @@ public final class Document extends BodyTagImpl {
 	}
 
 	public void setFontembed(String fontembed) throws PageException {
+		if(engine.getStringUtil().isEmpty(fontembed,true)) return;
+		
+		fontembed = fontembed.trim();
 		Boolean fe = engine.getCastUtil().toBoolean(fontembed, null);
 		if(fe == null) {
-			fontembed = trimAndLower(fontembed);
-			if("selective".equals(fontembed))
+			if("selective".equalsIgnoreCase(fontembed))
 				this.fontembed = PDFDocument.FONT_EMBED_SELECCTIVE;
 			else
-				throw engine.getExceptionUtil().createAbortException(
-						"invalid value for fontembed [" + fontembed + "], valid values for fontembed are [yes,no,selective]");
-
+				throw engine.getExceptionUtil().createAbortException("invalid value for fontembed [" + fontembed + "], valid values for fontembed are [yes,no,selective]");
 		}
-		else if(fe.booleanValue())
+		else if(fe.booleanValue()) {
 			this.fontembed = PDFDocument.FONT_EMBED_YES;
-		else
+		}
+		else {
 			this.fontembed = PDFDocument.FONT_EMBED_NO;
+		}
 		getDocument().setFontembed(this.fontembed);
+	}
+	
+	public void setFontdirectory(String fontDirectory) throws PageException {
+		if(engine.getStringUtil().isEmpty(fontDirectory,true)) return;
+		fontDirectory=fontDirectory.trim();
+		
+		Resource tmp = engine.getResourceUtil().toResourceExisting(pageContext,fontDirectory);
+		if(!(tmp instanceof File)) throw engine.getExceptionUtil().createAbortException("["+tmp+"] need to be a local file.");
+		if(!tmp.isDirectory()) throw engine.getExceptionUtil().createAbortException("["+tmp+"] is not a directory.");
+		fontdir=(File) tmp;
+		getDocument().setFontDirectory(fontdir);
 	}
 
 	public void addPDFDocument(PDFDocument document) {

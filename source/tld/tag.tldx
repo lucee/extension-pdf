@@ -58,6 +58,13 @@
 		</attribute>
 		<attribute>
 			<type>string</type>
+			<name>fontdirectory</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>directory that contains addional font files (.ttf) and a pd4fonts.properties to describe them.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
 			<name>format</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>

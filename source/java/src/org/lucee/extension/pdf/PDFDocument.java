@@ -141,6 +141,7 @@ public abstract class PDFDocument {
 	protected boolean bookmark;
 	protected boolean htmlBookmark;
 	protected final CFMLEngine engine;
+	protected File fontDirectory;
 
 	public static int PD4ML = 1;
 	public static int FS = 2;
@@ -357,6 +358,9 @@ public abstract class PDFDocument {
 
 	public final void setFontembed(int fontembed) {
 		this.fontembed = fontembed != FONT_EMBED_NO;
+	}
+	public final void setFontDirectory(File fontdirectory) {
+		this.fontDirectory = fontdirectory;
 	}
 
 	/**
