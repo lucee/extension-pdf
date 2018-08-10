@@ -824,8 +824,6 @@ public class PDF extends BodyTagImpl {
 			else if(ACTION_THUMBNAIL == action)
 				doActionThumbnail();
 			else if(ACTION_EXTRACT_TEXT == action) {
-				if(true)
-					throw engine.getExceptionUtil().createApplicationException("not supported yet, see https://issues.jboss.org/browse/LUCEE-1559");
 				doActionExtractText();
 			}
 
@@ -1572,9 +1570,12 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "extractText", "name", name, true);
 
 		PDFStruct doc = toPDFDocument(source, password, null);
-		doc.setPages(pages);
+		PdfReader reader = doc.getPdfReader();
+		int len = reader.getNumberOfPages();
+		if(pages == null) pages = "1-"+len+"";
+		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		pageContext.setVariable(name, PDFUtil.extractText(doc, doc.getPages()));
+		pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet));
 		/*
 		 * <cfpdf required action="extracttext" <!---extract all the words in the PDF.---> source= "absolute or relative path of the PDF file|PDF document
 		 * variable| cfdocument variable" pages = "*" <!----page numbers from where the text needs to be extracted from the PDF document--->
