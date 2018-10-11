@@ -27,7 +27,7 @@ import org.lucee.extension.pdf.PDFPageMark;
 import lucee.commons.io.res.Resource;
 import lucee.runtime.exp.PageException;
 
-public final class DocumentSection extends BodyTagImpl {
+public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 
 	private PDFDocument _document;
 
@@ -35,9 +35,10 @@ public final class DocumentSection extends BodyTagImpl {
 		this._document = null;
 	}
 
-	private PDFDocument getPDFDocument() {
-		if(_document == null)
-			_document = PDFDocument.newInstance(PDFDocument.getType(pageContext));
+	public PDFDocument getPDFDocument() { 
+		if(_document == null) {
+			_document = PDFDocument.newInstance(getDocument().getApplicationSettings().getType());
+		}
 		return _document;
 	}
 
@@ -211,7 +212,7 @@ public final class DocumentSection extends BodyTagImpl {
 		return EVAL_PAGE;
 	}
 
-	private Document getDocument() {
+	public Document getDocument() {
 		// get Mail Tag
 		Tag parent = getParent();
 		while(parent != null && !(parent instanceof Document)) {

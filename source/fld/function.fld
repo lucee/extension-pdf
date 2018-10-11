@@ -21,6 +21,7 @@
 		<description>Verifies whether a PDF file is valid.</description>
 		<argument>
 			<name>path</name>
+			<alias>file,value</alias>
 			<type>string</type>
 			<required>Yes</required>
 		<description>Pathname to a PDF file. The pathname can be absolute or relative to the CFM page and must be enclosed in quotation marks.</description>

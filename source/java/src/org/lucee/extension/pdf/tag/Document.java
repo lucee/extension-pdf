@@ -37,6 +37,7 @@ import javax.servlet.jsp.JspException;
 import lucee.Info;
 import lucee.commons.io.res.Resource;
 
+import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.util.ClassUtil;
@@ -47,15 +48,24 @@ import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Struct;
+import lucee.runtime.util.Cast;
 import lucee.runtime.util.ResourceUtil;
 
+import com.lowagie.text.Chunk;
 import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.ColumnText;
 import com.lowagie.text.pdf.PdfCopy;
+import com.lowagie.text.pdf.PdfCopy.PageStamp;
+import com.lowagie.text.pdf.PdfDocument;
 import com.lowagie.text.pdf.PdfImportedPage;
 import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.PdfSmartCopy;
+import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.SimpleBookmark;
 
-public final class Document extends BodyTagImpl {
+public final class Document extends BodyTagImpl implements AbsDoc {
 
 	// private static final String STYLE_BG_INVISIBLE = "background-color: transparent; background-image: none;";
 
@@ -83,7 +93,7 @@ public final class Document extends BodyTagImpl {
 	private PDFDocument _document;
 
 	private ArrayList<PDFDocument> documents = new ArrayList<PDFDocument>();
-	private int type = 0;
+	private ApplicationSettings applicationSettings = null;
 
 	public Document() {
 		this._document = null;
@@ -110,16 +120,17 @@ public final class Document extends BodyTagImpl {
 		backgroundvisible = false;
 		fontembed = PDFDocument.FONT_EMBED_YES;
 		fontdir = null;
-
+		applicationSettings = null;
 	}
 
-	public PDFDocument getDocument() {
-		if(type == 0)
-			type = PDFDocument.getType(pageContext);
-		if(_document == null) {
-			_document = PDFDocument.newInstance(type);
-		}
+	public PDFDocument getPDFDocument() {
+		if(_document == null) _document = PDFDocument.newInstance(getApplicationSettings().getType());
 		return _document;
+	}
+
+	public ApplicationSettings getApplicationSettings() {
+		if(applicationSettings == null) applicationSettings = PDFDocument.getApplicationSettings(pageContext);
+		return applicationSettings;
 	}
 
 	/**
@@ -129,11 +140,11 @@ public final class Document extends BodyTagImpl {
 	 *            value to set
 	 **/
 	public void setProxyserver(String proxyserver) {
-		getDocument().setProxyserver(proxyserver);
+		getPDFDocument().setProxyserver(proxyserver);
 	}
 
 	public void setProxyhost(String proxyserver) {
-		getDocument().setProxyserver(proxyserver);
+		getPDFDocument().setProxyserver(proxyserver);
 	}
 
 	/**
@@ -144,7 +155,7 @@ public final class Document extends BodyTagImpl {
 	 *            value to set
 	 **/
 	public void setProxyport(double proxyport) {
-		getDocument().setProxyport((int)proxyport);
+		getPDFDocument().setProxyport((int)proxyport);
 	}
 
 	/**
@@ -154,7 +165,7 @@ public final class Document extends BodyTagImpl {
 	 *            value to set
 	 **/
 	public void setProxyuser(String proxyuser) {
-		getDocument().setProxyuser(proxyuser);
+		getPDFDocument().setProxyuser(proxyuser);
 	}
 
 	/**
@@ -164,7 +175,7 @@ public final class Document extends BodyTagImpl {
 	 *            value to set
 	 **/
 	public void setProxypassword(String proxypassword) {
-		getDocument().setProxypassword(proxypassword);
+		getPDFDocument().setProxypassword(proxypassword);
 	}
 
 	public void setSaveasname(String saveAsName) {
@@ -176,7 +187,7 @@ public final class Document extends BodyTagImpl {
 	 *            the authUser to set
 	 */
 	public void setAuthuser(String authUser) {
-		getDocument().setAuthUser(authUser);
+		getPDFDocument().setAuthUser(authUser);
 	}
 
 	/**
@@ -184,7 +195,7 @@ public final class Document extends BodyTagImpl {
 	 *            the authPassword to set
 	 */
 	public void setAuthpassword(String authPassword) {
-		getDocument().setAuthPassword(authPassword);
+		getPDFDocument().setAuthPassword(authPassword);
 	}
 
 	/**
@@ -192,7 +203,7 @@ public final class Document extends BodyTagImpl {
 	 *            the userAgent to set
 	 */
 	public void setUseragent(String userAgent) {
-		getDocument().setUserAgent(userAgent);
+		getPDFDocument().setUserAgent(userAgent);
 	}
 
 	/**
@@ -314,12 +325,31 @@ public final class Document extends BodyTagImpl {
 
 	}
 
-	/**
-	 * @param marginbottom
-	 *            the marginbottom to set
-	 */
+	public void setMargin(Object margin) throws PageException {
+		if(engine.getDecisionUtil().isNumeric(margin)) {
+			double nbr=engine.getCastUtil().toDoubleValue(margin);
+			getPDFDocument().setMargintop(nbr);
+			getPDFDocument().setMarginbottom(nbr);
+			getPDFDocument().setMarginleft(nbr);
+			getPDFDocument().setMarginright(nbr);
+		}
+		else {
+			Cast cast = engine.getCastUtil();
+			Struct sct=cast.toStruct(margin);
+
+			Object o = sct.get("top",null);
+			if(o!=null) getPDFDocument().setMargintop(cast.toDoubleValue(o));
+			o = sct.get("bottom",null);
+			if(o!=null) getPDFDocument().setMarginbottom(cast.toDoubleValue(o));
+			o = sct.get("left",null);
+			if(o!=null) getPDFDocument().setMarginleft(cast.toDoubleValue(o));
+			o = sct.get("right",null);
+			if(o!=null) getPDFDocument().setMarginright(cast.toDoubleValue(o));
+		}
+	}
+	
 	public void setMarginbottom(double marginbottom) {
-		getDocument().setMarginbottom(marginbottom);
+		getPDFDocument().setMarginbottom(marginbottom);
 	}
 
 	/**
@@ -327,7 +357,7 @@ public final class Document extends BodyTagImpl {
 	 *            the marginleft to set
 	 */
 	public void setMarginleft(double marginleft) {
-		getDocument().setMarginleft(marginleft);
+		getPDFDocument().setMarginleft(marginleft);
 	}
 
 	/**
@@ -335,7 +365,7 @@ public final class Document extends BodyTagImpl {
 	 *            the marginright to set
 	 */
 	public void setMarginright(double marginright) {
-		getDocument().setMarginright(marginright);
+		getPDFDocument().setMarginright(marginright);
 	}
 
 	/**
@@ -343,7 +373,7 @@ public final class Document extends BodyTagImpl {
 	 *            the margintop to set
 	 */
 	public void setMargintop(double margintop) {
-		getDocument().setMargintop(margintop);
+		getPDFDocument().setMargintop(margintop);
 	}
 
 	/**
@@ -351,11 +381,11 @@ public final class Document extends BodyTagImpl {
 	 *            the bookmark to set
 	 */
 	public void setBookmark(boolean bookmark) {
-		getDocument().setBookmark(bookmark);
+		getPDFDocument().setBookmark(bookmark);
 	}
 
 	public void setHtmlbookmark(boolean bookmark) {
-		getDocument().setHtmlBookmark(bookmark);
+		getPDFDocument().setHtmlBookmark(bookmark);
 	}
 
 	/**
@@ -363,7 +393,7 @@ public final class Document extends BodyTagImpl {
 	 *            the localUrl to set
 	 */
 	public void setLocalurl(boolean localUrl) {
-		getDocument().setLocalUrl(localUrl);
+		getPDFDocument().setLocalUrl(localUrl);
 	}
 
 	/**
@@ -373,14 +403,16 @@ public final class Document extends BodyTagImpl {
 	 */
 	public void setUnit(String strUnit) throws PageException {
 		strUnit = trimAndLower(strUnit);
-		if("in".equals(strUnit))
+		if("in".equals(strUnit) || "inch".equals(strUnit))
 			unitFactor = PDFDocument.UNIT_FACTOR_IN;
 		else if("cm".equals(strUnit))
 			unitFactor = PDFDocument.UNIT_FACTOR_CM;
-		else if("point".equals(strUnit))
+		else if("point".equals(strUnit) || "pt".equals(strUnit))
 			unitFactor = PDFDocument.UNIT_FACTOR_POINT;
+		else if("pixel".equals(strUnit) || "px".equals(strUnit))
+			unitFactor = PDFDocument.UNIT_FACTOR_PIXEL;
 		else
-			throw engine.getExceptionUtil().createApplicationException("invalid unit [" + strUnit + "], valid units are [cm,in,point]");
+			throw engine.getExceptionUtil().createApplicationException("invalid unit [" + strUnit + "], valid units are [cm,in,pt,px]");
 	}
 
 	/**
@@ -458,7 +490,7 @@ public final class Document extends BodyTagImpl {
 	 * @throws PageException
 	 */
 	public void setSrc(String src) throws PageException {
-		getDocument().setSrc(src);
+		getPDFDocument().setSrc(src);
 	}
 
 	/**
@@ -467,7 +499,7 @@ public final class Document extends BodyTagImpl {
 	public void setSrcfile(String strSrcfile) throws PageException {
 		Resource srcfile = engine.getResourceUtil().toResourceExisting(pageContext, strSrcfile);
 		pageContext.getConfig().getSecurityManager().checkFileLocation(srcfile);
-		getDocument().setSrcfile(srcfile);
+		getPDFDocument().setSrcfile(srcfile);
 	}
 
 	/**
@@ -476,16 +508,16 @@ public final class Document extends BodyTagImpl {
 	 * @throws PageException
 	 */
 	public void setMimetype(String strMimetype) throws PageException {
-		getDocument().setMimetype(strMimetype);
+		getPDFDocument().setMimetype(strMimetype);
 		strMimetype = strMimetype.toLowerCase().trim();
 	}
 
 	public void setHeader(PDFPageMark header) {
-		getDocument().setHeader(header);
+		getPDFDocument().setHeader(header);
 	}
 
 	public void setFooter(PDFPageMark footer) {
-		getDocument().setFooter(footer);
+		getPDFDocument().setFooter(footer);
 	}
 
 	public void setBackgroundvisible(boolean backgroundvisible) {
@@ -509,7 +541,7 @@ public final class Document extends BodyTagImpl {
 		else {
 			this.fontembed = PDFDocument.FONT_EMBED_NO;
 		}
-		getDocument().setFontembed(this.fontembed);
+		getPDFDocument().setFontembed(this.fontembed);
 	}
 	
 	public void setFontdirectory(String fontDirectory) throws PageException {
@@ -520,31 +552,31 @@ public final class Document extends BodyTagImpl {
 		if(!(tmp instanceof File)) throw engine.getExceptionUtil().createAbortException("["+tmp+"] need to be a local file.");
 		if(!tmp.isDirectory()) throw engine.getExceptionUtil().createAbortException("["+tmp+"] is not a directory.");
 		fontdir=(File) tmp;
-		getDocument().setFontDirectory(fontdir);
+		getPDFDocument().setFontDirectory(fontdir);
 	}
 
 	public void addPDFDocument(PDFDocument document) {
 		// set proxy settings
-		if(_document != null) {
-			if(_document.hasProxy()) {
-				document.setProxyserver(_document.getProxyserver());
-				document.setProxyport(_document.getProxyport());
-				document.setProxyuser(_document.getProxyuser());
-				document.setProxypassword(_document.getProxypassword());
-			}
-			document.setBookmark(_document.getBookmark());
-			document.setLocalUrl(_document.getLocalUrl());
+		
+		if(getPDFDocument().hasProxy()) {
+			document.setProxyserver(getPDFDocument().getProxyserver());
+			document.setProxyport(getPDFDocument().getProxyport());
+			document.setProxyuser(getPDFDocument().getProxyuser());
+			document.setProxypassword(getPDFDocument().getProxypassword());
 		}
-
+		document.setBookmark(getPDFDocument().getBookmark());
+		document.setLocalUrl(getPDFDocument().getLocalUrl());
+		document.setFontDirectory(getPDFDocument().getFontDirectory());
+		document.setFontembed(getPDFDocument().getFontembed()?PDFDocument.FONT_EMBED_YES:PDFDocument.FONT_EMBED_NO);
+		
 		documents.add(document);
 	}
 
 	@Override
 	public int doStartTag() throws PageException {
-		// SerialNumber sn = pageContext.getConfig().getSerialNumber();
-		// if(sn.getVersion()==SerialNumber.VERSION_COMMUNITY)
-		// throw new SecurityException("no access to this functionality with the "+sn.getStringVersion()+" version of Lucee");
-
+		if(fontdir==null)getPDFDocument().setFontDirectory(applicationSettings.getFontDirectory());
+		
+		
 		Struct cfdoc = engine.getCreationUtil().createStruct(); // TODO make a read only struct
 		cfdoc.setEL("currentpagenumber", "{currentpagenumber}");
 		cfdoc.setEL("totalpagecount", "{totalpagecount}");
@@ -563,7 +595,7 @@ public final class Document extends BodyTagImpl {
 
 	@Override
 	public int doAfterBody() {
-		getDocument().setBody(bodyContent.getString());
+		getPDFDocument().setBody(bodyContent.getString());
 
 		return SKIP_BODY;
 	}
@@ -573,15 +605,13 @@ public final class Document extends BodyTagImpl {
 		try {
 			_doEndTag();
 		}
-		catch (Throwable t) {
-			if(t instanceof ThreadDeath)
-				throw (ThreadDeath)t;
-			throw engine.getCastUtil().toPageException(t);
+		catch (Exception e) {
+			throw engine.getCastUtil().toPageException(e);
 		}
 		return EVAL_PAGE;
 	}
 
-	public void _doEndTag() throws JspException, IOException, DocumentException {
+	public void _doEndTag() throws Exception {
 		// set root header/footer to sections
 		boolean doBookmarks = false;
 		boolean doHtmlBookmarks = false;
@@ -652,31 +682,42 @@ public final class Document extends BodyTagImpl {
 
 	}
 
-	private void render(OutputStream os, boolean doBookmarks, boolean doHtmlBookmarks) throws IOException, PageException, DocumentException {
+	private void render(OutputStream os, boolean doBookmarks, boolean doHtmlBookmarks) throws Exception {
 		byte[] pdf = null;
+		
+		// only if there is no documentsection, we are interested in the content from document
+		if(documents.size()==0) {
+			documents.add(_document);
+		}
+		
+		
 		// merge multiple docs to 1
-		if(documents.size() > 1) {
+		//if(documents.size() > 0) 
+		{
 			PDFDocument[] pdfDocs = new PDFDocument[documents.size()];
 			PdfReader[] pdfReaders = new PdfReader[pdfDocs.length];
 			Iterator<PDFDocument> it = documents.iterator();
-			int index = 0;
+			int index = 0,pageOffset=0;
 			// generate pdf with pd4ml
 			while(it.hasNext()) {
 				pdfDocs[index] = it.next();
+				pdfDocs[index].setPageOffset(pageOffset);
 				pdfReaders[index] = new PdfReader(pdfDocs[index].render(getDimension(), unitFactor, pageContext, doHtmlBookmarks));
+				pageOffset+=pdfReaders[index].getNumberOfPages();
 				index++;
 			}
 
 			// collect together
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			com.lowagie.text.Document document = new com.lowagie.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
-			PdfCopy copy = new PdfCopy(document, baos);
+			PdfSmartCopy copy = new PdfSmartCopy(document, baos);
 			document.open();
 			String name;
 			ArrayList bookmarks = doBookmarks ? new ArrayList() : null;
 			try {
-				int size, totalPage = 0;
-				Map parent;
+				int size, totalPage = 0, pageNo=0;
+				Map<String,String> parent;
+				
 				for (int doc = 0; doc < pdfReaders.length; doc++) {
 					size = pdfReaders[doc].getNumberOfPages();
 
@@ -686,7 +727,7 @@ public final class Document extends BodyTagImpl {
 					if(doBookmarks) {
 						name = pdfDocs[doc].getName();
 						if(!Util.isEmpty(name)) {
-							// TODO bookmarks.add(parent=PDFUtil.generateGoToBookMark(name, totalPage+1));
+							bookmarks.add(parent=PDFUtil.generateGoToBookMark(name, totalPage+1));
 						}
 						else
 							parent = null;
@@ -696,20 +737,28 @@ public final class Document extends BodyTagImpl {
 							if(pageBM != null) {
 								if(totalPage > 0)
 									SimpleBookmark.shiftPageNumbers(pageBM, totalPage, null);
-								// TODO if(parent!=null)PDFUtil.setChildBookmarks(parent,pageBM);
-								// TODO else bookmarks.addAll(pageBM);
+								if(parent!=null)PDFUtil.setChildBookmarks(parent,pageBM);
+								else bookmarks.addAll(pageBM);
 							}
 						}
 					}
 
 					totalPage++;
 					for (int page = 1; page <= size; page++) {
+						pageNo++;
 						if(page > 1)
 							totalPage++;
 						ip = copy.getImportedPage(pdfReaders[doc], page);
-
-						// ip.getPdfDocument().setHeader(arg0);
-						// ip.getPdfDocument().setFooter(arg0);
+						
+						/*PageStamp stamp = copy.createPageStamp(ip);
+						Chunk chunk = new Chunk(String.format("Page %d", pageNo));
+				        if (page == 1)
+				            chunk.setLocalDestination("p" + pageNo);
+				        ColumnText.showTextAligned(stamp.getUnderContent(),
+				                Element.ALIGN_RIGHT, new Phrase(chunk),
+				                559, 810, 0);
+				        stamp.alterContents();*/
+						
 						copy.addPage(ip);
 					}
 				}
@@ -720,17 +769,16 @@ public final class Document extends BodyTagImpl {
 			}
 			pdf = baos.toByteArray();
 		}
-		else if(documents.size() == 1) {
-			pdf = (documents.get(0)).render(getDimension(), unitFactor, pageContext, doHtmlBookmarks);
-		}
-		else {
-			pdf = getDocument().render(getDimension(), unitFactor, pageContext, doHtmlBookmarks);
-		}
+		
+		
+		
+		
 
 		// permission/encryption
 		if(PDFDocument.ENC_NONE != encryption) {
 			PdfReader reader = new PdfReader(pdf);
 			com.lowagie.text.Document document = new com.lowagie.text.Document(reader.getPageSize(1));
+			
 			Info info = CFMLEngineFactory.getInstance().getInfo();
 			document.addCreator("Lucee PDF Extension");
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();

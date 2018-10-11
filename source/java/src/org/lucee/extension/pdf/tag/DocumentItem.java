@@ -23,6 +23,7 @@ import java.io.IOException;
 
 import javax.servlet.jsp.tagext.Tag;
 
+import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
 
 import lucee.loader.engine.CFMLEngineFactory;
@@ -40,6 +41,7 @@ public final class DocumentItem extends BodyTagImpl {
 	private String name;
 	private PDFPageMark body;
 	private boolean evalAtPrint;
+	private PDFDocument _document;
 
 	@Override
 	public void release() {
@@ -47,7 +49,7 @@ public final class DocumentItem extends BodyTagImpl {
 		this.body = null;
 		name = null;
 	}
-
+	
 	/**
 	 * @param type
 	 *            the type to set
@@ -92,17 +94,14 @@ public final class DocumentItem extends BodyTagImpl {
 	}
 
 	private String translate(String html) {
-
-		html = Util.replace(html.trim(), "{currentsectionpagenumber}", "${page}", false);
+		return getPDFDocument().handlePageNumbers(html);
+		/*html = Util.replace(html.trim(), "{currentsectionpagenumber}", "${page}", false);
 		html = Util.replace(html, "{totalsectionpagecount}", "${total}", false);
 
 		html = Util.replace(html.trim(), "{currentpagenumber}", "${page}", false);
 		html = Util.replace(html, "{totalpagecount}", "${total}", false);
-
-		// cfdoc.setEL("currentpagenumber", "{currentpagenumber}");
-		// cfdoc.setEL("totalpagecount", "{totalpagecount}");
-
-		return html;
+		
+		return html;*/
 	}
 
 	@Override
@@ -118,7 +117,7 @@ public final class DocumentItem extends BodyTagImpl {
 
 	private void _doEndTag() throws IOException, PageException {
 		if(TYPE_PAGE_BREAK == type) {
-			pageContext.forceWrite("<pd4ml:page.break>");
+			getPDFDocument().pageBreak(pageContext);
 			return;
 		}
 		else if(TYPE_BOOKMARK == type) {
@@ -172,5 +171,25 @@ public final class DocumentItem extends BodyTagImpl {
 	 */
 	public void setName(String name) {
 		this.name = name;
+	}
+	
+	private PDFDocument getPDFDocument() { 
+		if(_document == null) {
+			_document = getAbsDoc().getPDFDocument();
+		}
+		return _document;
+	}
+	
+	private AbsDoc getAbsDoc() {
+		// get Mail Tag
+		Tag parent = getParent();
+		while(parent != null && !(parent instanceof AbsDoc)) {
+			parent = parent.getParent();
+		}
+
+		if(parent instanceof AbsDoc) {
+			return (AbsDoc)parent;
+		}
+		return null;
 	}
 }

@@ -1,6 +1,8 @@
 package org.lucee.extension.pdf.util;
 
 import java.io.IOException;
+import java.io.StringReader;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 import javax.xml.transform.Transformer;
@@ -17,6 +19,9 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
+
+import lucee.loader.engine.CFMLEngineFactory;
+import lucee.runtime.exp.PageException;
 
 public class XMLUtil {
 	
@@ -82,4 +87,21 @@ public class XMLUtil {
             throw new SAXException(e);
         }
     }
+
+		// toString(node, omitXMLDecl, indent, publicId, systemId, encoding);
+	public static String toString(Node node, boolean omitXMLDecl, boolean indent,String publicId, String systemId, String encoding) throws PageException {
+		// FUTURE use interface from loader
+		try {
+			Class<?> clazz = CFMLEngineFactory.getInstance().getClassUtil().loadClass("lucee.runtime.text.xml.XMLCaster");
+			Method method = clazz.getMethod("toString", new Class[]{Node.class, boolean.class, boolean.class,String.class, String.class, String.class});
+			return (String)method.invoke(null, new Object[]{node, omitXMLDecl, indent, publicId, systemId, encoding});
+		}
+		catch(Exception e){
+			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
+		}
+	}
+
+	public static InputSource toInputSource(String str) {
+		return new InputSource(new StringReader(str));
+	}
 }

@@ -19,7 +19,10 @@
 package org.lucee.extension.pdf;
 
 import java.awt.Dimension;
+import java.awt.Font;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -39,6 +42,7 @@ import lucee.runtime.type.Struct;
 
 import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
+import org.lucee.extension.pdf.util.Margin;
 import org.lucee.extension.pdf.util.XMLUtil;
 import org.lucee.extension.pdf.xhtmlrenderer.FSPDFDocument;
 import org.w3c.dom.Attr;
@@ -96,9 +100,10 @@ public abstract class PDFDocument {
 	public static final int FONT_EMBED_SELECCTIVE = FONT_EMBED_YES;
 
 	// unit
-	public static final double UNIT_FACTOR_CM = 85d / 3d;// =28.333333333333333333333333333333333333333333;
-	public static final double UNIT_FACTOR_IN = UNIT_FACTOR_CM * 2.54;
-	public static final double UNIT_FACTOR_POINT = 1;
+	public static final double UNIT_FACTOR_CM = Margin.UNIT_FACTOR_CM;// 85d / 3d;// =28.333333333333333333333333333333333333333333;
+	public static final double UNIT_FACTOR_IN = Margin.UNIT_FACTOR_IN;// UNIT_FACTOR_CM * 2.54;
+	public static final double UNIT_FACTOR_POINT = Margin.UNIT_FACTOR_PT;// 1;
+	public static final double UNIT_FACTOR_PIXEL = Margin.UNIT_FACTOR_PX;// 1d/12d/16d;
 
 	// margin init
 	protected static final int MARGIN_INIT = 36;
@@ -142,6 +147,7 @@ public abstract class PDFDocument {
 	protected boolean htmlBookmark;
 	protected final CFMLEngine engine;
 	protected File fontDirectory;
+	private int pageOffset;
 
 	public static int PD4ML = 1;
 	public static int FS = 2;
@@ -322,12 +328,9 @@ public abstract class PDFDocument {
 		this.body = body;
 	}
 
-	public abstract byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException;
+	public abstract byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws Exception;
 
-	protected final static Document toXML(InputSource is) throws SAXException, IOException {
-		return XMLUtil.parseHTML(is);
-	}
-
+	
 	protected final static URL getRequestURL(PageContext pc) {
 		if(pc == null)
 			return null;
@@ -339,13 +342,6 @@ public abstract class PDFDocument {
 				throw (ThreadDeath)t;
 			return null;
 		}
-	}
-
-	public final static int toPoint(double value, double unitFactor) {
-		if(value < 0)
-			return MARGIN_INIT;
-		return (int)Math.round(value * unitFactor);
-		// return r;
 	}
 
 	public final PDFPageMark getHeader() {
@@ -500,6 +496,14 @@ public abstract class PDFDocument {
 		this.htmlBookmark = htmlBookmark;
 	}
 
+	public File getFontDirectory() {
+		return fontDirectory;
+	}
+
+	public boolean getFontembed() {
+		return fontembed;
+	}
+
 	protected final static String getRequestURL(HttpServletRequest req, boolean includeQueryString) {
 		StringBuffer sb = req.getRequestURL();
 		int maxpos = sb.indexOf("/", 8);
@@ -633,23 +637,93 @@ public abstract class PDFDocument {
 		}
 	}
 
-	public static int getType(PageContext pc) {
-		int type = PDFDocument.PD4ML;
+	public static ApplicationSettings getApplicationSettings(PageContext pc) {
+		
+		int type = PDFDocument.FS;
+		File fontDirectory=null;
 		try {
 			BIF bif = CFMLEngineFactory.getInstance().getClassUtil().loadBIF(pc, "lucee.runtime.functions.system.GetApplicationSettings");
-			Struct res = (Struct)bif.invoke(pc, new Object[] { Boolean.TRUE });
-			Object o = res.get("pdf", null);
+			Struct sct = (Struct)bif.invoke(pc, new Object[] { Boolean.TRUE });
+			Object o = sct.get("pdf", null);
 			if(o instanceof Struct) {
-				o = ((Struct)o).get("type", null);
+				Struct pdf=(Struct)o;
+				// type
+				o = pdf.get("type", null);
 				if(o instanceof String) {
-					if(((String)o).equalsIgnoreCase("fs"))
-						type = PDFDocument.FS;
+					String str=(String)o;
+					if(str.equalsIgnoreCase("fs") || str.equalsIgnoreCase("modern")) type = PDFDocument.FS;
+					if(str.equalsIgnoreCase("pd4ml") || str.equalsIgnoreCase("classic")) type = PDFDocument.PD4ML;
+				}
+				
+				// fontDirectory
+				o =pdf.get("fontDirectory", null);
+				if(o instanceof String) {
+					String str=(String)o;
+					Resource res = CFMLEngineFactory.getInstance().getResourceUtil().toResourceExisting(pc, str);
+					if(res.isDirectory() && res instanceof File) fontDirectory=(File) res;
 				}
 			}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		return type;
+		if(fontDirectory==null) {
+			Resource fonts = pc.getConfig().getConfigDir().getRealResource("fonts");
+			fonts.mkdirs();
+			if(fonts.isDirectory() && fonts instanceof File) fontDirectory=(File) fonts;
+		}
+		
+		return new ApplicationSettings(type, fontDirectory);
 	}
+	
+	protected void prepare(File fontDirectory, String propertyName) {
+		if(!fontDirectory.isDirectory()) return;
+		File fontProps = new File(fontDirectory,propertyName);
+		if(fontProps.isFile()) return;
+		
+		// create file content
+		StringBuilder sb=new StringBuilder("# generated by the Lucee PDF Extension based on the files in this directory");
+		File[] children = fontDirectory.listFiles();
+		String name;
+		for(File child:children) {
+			if(!child.getName().toLowerCase().endsWith(".ttf")) continue;
+			try {
+				name=Font.createFont(Font.TRUETYPE_FONT, child).getName();
+				sb.append(engine.getStringUtil().replace(name, " ", "\\ ", false, false))
+				.append('=')
+				.append(child.getName())
+				.append('\n');
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+		// create the file
+		try {
+			engine.getIOUtil().copy(new ByteArrayInputStream(sb.toString().trim().getBytes("UTF-8")), new FileOutputStream(fontProps), true, true);
+		}
+		catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public final static int toPoint(double value, double unitFactor) {
+		if(value < 0)
+			return MARGIN_INIT;
+		return (int)Math.round(value * unitFactor);
+		// return r;
+	}
+
+	public abstract void pageBreak(PageContext pc) throws IOException;
+
+	public abstract String handlePageNumbers(String html);
+
+	public void setPageOffset(int pageOffset) {
+		this.pageOffset=pageOffset;
+	}
+	public int getPageOffset() {
+		return pageOffset;
+	}
+
 }

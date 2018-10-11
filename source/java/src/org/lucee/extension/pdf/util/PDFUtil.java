@@ -314,12 +314,12 @@ public class PDFUtil {
 		document.close();
 	}
 
-	public static HashMap generateGoToBookMark(String title, int page) {
+	public static Map<String,String> generateGoToBookMark(String title, int page) {
 		return generateGoToBookMark(title, page, 0, 731);
 	}
 
-	public static HashMap generateGoToBookMark(String title, int page, int x, int y) {
-		HashMap map = new HashMap();
+	public static Map<String,String> generateGoToBookMark(String title, int page, int x, int y) {
+		Map<String,String> map = new HashMap<String,String>();
 		map.put("Title", title);
 		map.put("Action", "GoTo");
 		map.put("Page", page + " XYZ " + x + " " + y + " null");
