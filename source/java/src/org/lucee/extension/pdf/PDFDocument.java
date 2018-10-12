@@ -159,9 +159,8 @@ public abstract class PDFDocument {
 	}
 
 	public static PDFDocument newInstance(int type) {
-		if(FS == type)
-			return new FSPDFDocument();
-		return new PD4MLPDFDocument();
+		if(PD4ML == type)return new PD4MLPDFDocument();
+		return new FSPDFDocument();
 	}
 
 	public final void setHeader(PDFPageMark header) {
@@ -649,6 +648,9 @@ public abstract class PDFDocument {
 				Struct pdf=(Struct)o;
 				// type
 				o = pdf.get("type", null);
+				if(o==null)pdf.get("engine", null);
+				if(o==null)pdf.get("renderer", null);
+				
 				if(o instanceof String) {
 					String str=(String)o;
 					if(str.equalsIgnoreCase("fs") || str.equalsIgnoreCase("modern")) type = PDFDocument.FS;

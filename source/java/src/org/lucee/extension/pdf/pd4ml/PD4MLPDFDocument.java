@@ -52,6 +52,7 @@ import lucee.runtime.util.Cast;
 import lucee.runtime.util.Excepton;
 import lucee.runtime.util.IO;
 
+import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.XMLUtil;
@@ -371,6 +372,13 @@ Times\ New\ Roman\ Italic=timesi.ttf
 
 	@Override
 	public String handlePageNumbers(String html) {
+		PageContext pc = CFMLEngineFactory.getInstance().getThreadPageContext();
+		if(pc!=null) {
+			// some time after an update this jhappens, after a restart everything is fine, what exactly causing this is not clear
+			ApplicationSettings as = getApplicationSettings(pc);
+			if(as.getType()!=PDFDocument.PD4ML) throw new RuntimeException("please restart your Lucee server!");
+		}
+		
 		html = Util.replace(html.trim(), "{currentsectionpagenumber}", "${page}", false);
 		html = Util.replace(html, "{totalsectionpagecount}", "${total}", false);
 

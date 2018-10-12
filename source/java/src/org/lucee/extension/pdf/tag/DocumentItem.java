@@ -87,21 +87,10 @@ public final class DocumentItem extends BodyTagImpl {
 	@Override
 	public int doAfterBody() {
 		if(TYPE_HEADER == type || TYPE_FOOTER == type) {
-			body = new PDFPageMark(-1, translate(bodyContent.getString()));
+			body = new PDFPageMark(-1, getPDFDocument().handlePageNumbers(bodyContent.getString()));
 		}
 
 		return SKIP_BODY;
-	}
-
-	private String translate(String html) {
-		return getPDFDocument().handlePageNumbers(html);
-		/*html = Util.replace(html.trim(), "{currentsectionpagenumber}", "${page}", false);
-		html = Util.replace(html, "{totalsectionpagecount}", "${total}", false);
-
-		html = Util.replace(html.trim(), "{currentpagenumber}", "${page}", false);
-		html = Util.replace(html, "{totalpagecount}", "${total}", false);
-		
-		return html;*/
 	}
 
 	@Override
@@ -181,7 +170,6 @@ public final class DocumentItem extends BodyTagImpl {
 	}
 	
 	private AbsDoc getAbsDoc() {
-		// get Mail Tag
 		Tag parent = getParent();
 		while(parent != null && !(parent instanceof AbsDoc)) {
 			parent = parent.getParent();
