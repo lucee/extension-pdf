@@ -636,47 +636,7 @@ public abstract class PDFDocument {
 		}
 	}
 
-	public static ApplicationSettings getApplicationSettings(PageContext pc) {
-		
-		int type = PDFDocument.FS;
-		File fontDirectory=null;
-		try {
-			BIF bif = CFMLEngineFactory.getInstance().getClassUtil().loadBIF(pc, "lucee.runtime.functions.system.GetApplicationSettings");
-			Struct sct = (Struct)bif.invoke(pc, new Object[] { Boolean.TRUE });
-			Object o = sct.get("pdf", null);
-			if(o instanceof Struct) {
-				Struct pdf=(Struct)o;
-				// type
-				o = pdf.get("type", null);
-				if(o==null)pdf.get("engine", null);
-				if(o==null)pdf.get("renderer", null);
-				
-				if(o instanceof String) {
-					String str=(String)o;
-					if(str.equalsIgnoreCase("fs") || str.equalsIgnoreCase("modern")) type = PDFDocument.FS;
-					if(str.equalsIgnoreCase("pd4ml") || str.equalsIgnoreCase("classic")) type = PDFDocument.PD4ML;
-				}
-				
-				// fontDirectory
-				o =pdf.get("fontDirectory", null);
-				if(o instanceof String) {
-					String str=(String)o;
-					Resource res = CFMLEngineFactory.getInstance().getResourceUtil().toResourceExisting(pc, str);
-					if(res.isDirectory() && res instanceof File) fontDirectory=(File) res;
-				}
-			}
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		if(fontDirectory==null) {
-			Resource fonts = pc.getConfig().getConfigDir().getRealResource("fonts");
-			fonts.mkdirs();
-			if(fonts.isDirectory() && fonts instanceof File) fontDirectory=(File) fonts;
-		}
-		
-		return new ApplicationSettings(type, fontDirectory);
-	}
+
 	
 	protected void prepare(File fontDirectory, String propertyName) {
 		if(!fontDirectory.isDirectory()) return;

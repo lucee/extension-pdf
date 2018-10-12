@@ -129,7 +129,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	public ApplicationSettings getApplicationSettings() {
-		if(applicationSettings == null) applicationSettings = PDFDocument.getApplicationSettings(pageContext);
+		if(applicationSettings == null) applicationSettings = ApplicationSettings.getApplicationSettings(pageContext);
 		return applicationSettings;
 	}
 

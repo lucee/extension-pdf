@@ -375,7 +375,7 @@ Times\ New\ Roman\ Italic=timesi.ttf
 		PageContext pc = CFMLEngineFactory.getInstance().getThreadPageContext();
 		if(pc!=null) {
 			// some time after an update this jhappens, after a restart everything is fine, what exactly causing this is not clear
-			ApplicationSettings as = getApplicationSettings(pc);
+			ApplicationSettings as = ApplicationSettings.getApplicationSettings(pc);
 			if(as.getType()!=PDFDocument.PD4ML) throw new RuntimeException("please restart your Lucee server!");
 		}
 		
