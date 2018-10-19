@@ -57,8 +57,7 @@ public class FontsJarExtractor {
 	        	name=index==-1?fullname:fullname.substring(index+1);
 	        	trg=new File(target,name);
 	            if(!trg.exists() && (fullname.endsWith(".ttf") || fullname.endsWith(".otf"))) {
-	            	System.err.println(name);
-	        		if(!trg.exists())Util.copy(zis, new FileOutputStream(trg), false,true);
+	            	if(!trg.exists())Util.copy(zis, new FileOutputStream(trg), false,true);
 		            trg.setLastModified(entry.getTime());
 	        	}
 	            zis.closeEntry() ;
