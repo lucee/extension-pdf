@@ -59,371 +59,339 @@ import com.lowagie.text.pdf.BaseFont;
 
 public final class FSPDFDocument extends PDFDocument {
 
-	public FSPDFDocument() {
+    public FSPDFDocument() {}
+
+    public byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException, DocumentException {
+
+	ITextRenderer renderer = new ITextRenderer();
+
+	// prepare(fontDirectory, "fs.properties");
+
+	// fonts
+	ITextFontResolver resolver = renderer.getFontResolver();
+	resolver.addFontDirectory(fontDirectory.getCanonicalPath(), fontembed);
+
+	// margin
+	Margin margin = new Margin(unitFactor, margintop, marginbottom, marginleft, marginright);
+	if ((margin.getLeftAsPoint() + margin.getRightAsPoint()) > dimension.getWidth()) throw engine.getExceptionUtil().createApplicationException(
+		"current document width (" + engine.getCastUtil().toString(dimension.getWidth()) + " point) is smaller that specified horizontal margin  ("
+			+ engine.getCastUtil().toString(margin.getLeftAsPoint() + margin.getRightAsPoint()) + " point).",
+		"1 in = " + Math.round(1 * UNIT_FACTOR_IN) + " point and 1 cm = " + Math.round(1 * UNIT_FACTOR_CM) + " point");
+	if ((margin.getTopAsPoint() + margin.getBottomAsPoint()) > dimension.getHeight()) throw engine.getExceptionUtil().createApplicationException(
+		"current document height (" + engine.getCastUtil().toString(dimension.getHeight()) + " point) is smaller that specified vertical margin  ("
+			+ engine.getCastUtil().toString(margin.getTopAsPoint() + margin.getBottomAsPoint()) + " point).",
+		"1 in = " + Math.round(1 * UNIT_FACTOR_IN) + " point and 1 cm = " + Math.round(1 * UNIT_FACTOR_CM) + " point");
+
+	// Size
+	// TODO pd4ml.setPageInsets(new Insets(mTop,mLeft,mBottom,mRight));
+	// TODO pd4ml.setPageSize(dimension);
+
+	// content
+	ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	try {
+	    content(renderer, pc, baos, margin, dimension, getPageOffset());
+
 	}
+	catch (Exception e) {
+	    throw engine.getCastUtil().toPageException(e);
+	}
+	finally {
+	    engine.getIOUtil().closeSilent(baos);
+	}
+	return baos.toByteArray();
+    }
 
-	public byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException, DocumentException {
+    private void content(ITextRenderer renderer, PageContext pc, OutputStream os, Margin margin, Dimension dimension, int pageOffset)
+	    throws PageException, IOException, SAXException, DocumentException {
+	ConfigWeb config = pc.getConfig();
+	/*
+	 * css
+	 * 
+	 * @font-face { font-family: DejaVu Serif; src: url(fonts/DejaVuSerif.ttf); -fs-pdf-font-embed:
+	 * embed; -fs-pdf-font-encoding: Identity-H; }
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 * FontResolver resolver = renderer.getFontResolver(); resolver.addFont (
+	 * "C:\\WINNT\\Fonts\\ARIALUNI.TTF", BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED );
+	 * 
+	 */
 
-		ITextRenderer renderer = new ITextRenderer();
+	// body
+	Document doc;
+	if (!Util.isEmpty(body, true)) {
+	    /*
+	     * System.err.println("+++++++++++++++++++++++++++++++"); System.err.println(body);
+	     * System.err.println("+++++++++++++++++++++++++++++++");
+	     * System.err.println(XMLUtil.toString(parseHTML(XMLUtil.toInputSource(body),margin,dimension,
+	     * pageOffset,true), false,true, null, null, null));
+	     */
 
-		//prepare(fontDirectory, "fs.properties");
-		
-		// fonts
-		ITextFontResolver resolver = renderer.getFontResolver();
-		resolver.addFontDirectory(fontDirectory.getCanonicalPath(), fontembed);
-		
-		// margin
-		Margin margin=new Margin(
-			unitFactor,
-			margintop, 
-			marginbottom, 
-			marginleft, 
-			marginright
-		);
-		if((margin.getLeftAsPoint() + margin.getRightAsPoint()) > dimension.getWidth())
-			throw engine.getExceptionUtil().createApplicationException(
-					"current document width (" + engine.getCastUtil().toString(dimension.getWidth()) + " point) is smaller that specified horizontal margin  ("
-							+ engine.getCastUtil().toString(margin.getLeftAsPoint() + margin.getRightAsPoint()) + " point).",
-					"1 in = " + Math.round(1 * UNIT_FACTOR_IN) + " point and 1 cm = " + Math.round(1 * UNIT_FACTOR_CM) + " point");
-		if((margin.getTopAsPoint() + margin.getBottomAsPoint()) > dimension.getHeight())
-			throw engine.getExceptionUtil().createApplicationException(
-					"current document height (" + engine.getCastUtil().toString(dimension.getHeight()) + " point) is smaller that specified vertical margin  ("
-							+ engine.getCastUtil().toString(margin.getTopAsPoint() + margin.getBottomAsPoint()) + " point).",
-					"1 in = " + Math.round(1 * UNIT_FACTOR_IN) + " point and 1 cm = " + Math.round(1 * UNIT_FACTOR_CM) + " point");
+	    doc = parseHTML(XMLUtil.toInputSource(body), margin, dimension, pageOffset, true);
+	    createPDF(pc, renderer, doc, os, null);
 
-		// Size
-		// TODO pd4ml.setPageInsets(new Insets(mTop,mLeft,mBottom,mRight));
-		// TODO pd4ml.setPageSize(dimension);
+	}
+	// srcfile
+	else if (srcfile != null) {
+	    if (charset == null) charset = pc.getResourceCharset();
 
-		// content
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	    // mimetype
+	    if (mimeType == MIMETYPE_OTHER) {
+		ContentType ct = CFMLEngineFactory.getInstance().getResourceUtil().getContentType(srcfile);
+		setMimetype(CFMLEngineFactory.getInstance().getResourceUtil().getContentType(srcfile));
+	    }
+	    InputStream is = srcfile.getInputStream();
+	    try {
+
+		URL base = new URL("file://" + srcfile);
+		if (!localUrl) {
+		    String abs = srcfile.getAbsolutePath();
+		    String contract = ClassUtil.ContractPath(pc, abs);
+		    if (!abs.equals(contract)) {
+			base = engine.getHTTPUtil().toURL(getDomain(pc.getHttpServletRequest()) + contract);
+		    }
+		}
+
+		// URL base = localUrl?new URL("file://"+srcfile):getBase();
+		render(pc, renderer, is, os, base, margin, dimension, pageOffset);
+	    }
+	    catch (Throwable t) {
+		if (t instanceof ThreadDeath) throw (ThreadDeath) t;
+	    }
+	    finally {
+		Util.closeEL(is);
+	    }
+	}
+	// src
+	else if (src != null) {
+	    if (charset == null) charset = pc.getResourceCharset();
+	    URL url = engine.getHTTPUtil().toURL(src);
+
+	    // set Proxy
+	    if (Util.isEmpty(proxyserver) && config.isProxyEnableFor(url.getHost())) {
+		ProxyData pd = config.getProxyData();
+		proxyserver = pd == null ? null : pd.getServer();
+		proxyport = pd == null ? 0 : pd.getPort();
+		proxyuser = pd == null ? null : pd.getUsername();
+		proxypassword = pd == null ? null : pd.getPassword();
+	    }
+	    HTTPResponse method = engine.getHTTPUtil().get(url, authUser, authPassword, -1, null, userAgent, proxyserver, proxyport, proxyuser, proxypassword, null);
+
+	    // mimetype
+	    if (mimeType == MIMETYPE_OTHER) {
+		ContentType ct = method.getContentType();
+		if (ct != null) setMimetype(ct);
+	    }
+
+	    InputStream is = new ByteArrayInputStream(method.getContentAsByteArray());
+	    try {
+		render(pc, renderer, is, os, url, margin, dimension, pageOffset);
+	    }
+	    finally {
+		engine.getIOUtil().closeSilent(is);
+	    }
+	}
+	else {
+	    createPDF(renderer, "<html><body> </body></html>", os);
+	}
+    }
+
+    private void render(PageContext pc, ITextRenderer renderer, InputStream is, OutputStream os, URL base, Margin margin, Dimension dim, int pageOffset)
+	    throws PageException, IOException, SAXException, DocumentException {
+	try {
+
+	    // text/html
+	    if (mimeType == MIMETYPE_TEXT_HTML || mimeType == MIMETYPE_OTHER) {
+		InputSource input = new InputSource(engine.getIOUtil().getReader(is, charset));
+		Document doc = parseHTML(input, margin, dim, pageOffset, true);
+		createPDF(pc, renderer, doc, os, base);
+	    }
+	    // text
+	    else if (mimeType == MIMETYPE_TEXT) {
+		body = engine.getIOUtil().toString(is, charset);
+		body = "<html><body><pre>" + engine.getHTMLUtil().escapeHTML(body) + "</pre></body></html>";
+		createPDF(renderer, body, os);
+	    }
+	    // image
+	    else if (mimeType == MIMETYPE_IMAGE) {
+		File tmpDir = CFMLEngineFactory.getTempDirectory();
+		File tmp = new File(tmpDir, this + "-" + Math.random());
+		engine.getIOUtil().copy(is, new FileOutputStream(tmp), true, true);
+		body = "<html><body><img src=\"file://" + tmp + "\"></body></html>"; // TODO test this
 		try {
-			content(renderer, pc, baos,margin,dimension,getPageOffset());
+		    createPDF(renderer, body, os);
+		}
+		finally {
+		    tmp.delete();
+		}
+	    }
+	    // Application
+	    else if (mimeType == MIMETYPE_APPLICATION_PDF) {
+		engine.getIOUtil().copy(is, os, true, true);
+	    }
+	    else {
+		throw engine.getExceptionUtil().createApplicationException("this mime type is not supported!");
+	    }
+	}
+	finally {
+	    Util.closeEL(is, os);
+	}
+    }
 
-		}
-		catch (Exception e) {
-			throw engine.getCastUtil().toPageException(e);
-		} finally {
-			engine.getIOUtil().closeSilent(baos);
-		}
-		return baos.toByteArray();
+    private void createPDF(PageContext pc, ITextRenderer renderer, Document doc, OutputStream os, URL base) throws DocumentException, MalformedURLException {
+	if (base == null) base = searchBaseURL(doc);
+	if (base == null) base = getRequestURL(pc);
+	// if(base!=null) System.out.println("base:"+base.toExternalForm());
+	renderer.setDocument(doc, base == null ? null : base.toExternalForm());
+	renderer.layout();
+	renderer.createPDF(os);
+    }
+
+    private void createPDF(ITextRenderer renderer, String xhtml, OutputStream os) throws DocumentException {
+	renderer.setDocumentFromString(xhtml);
+	renderer.layout();
+	renderer.createPDF(os);
+    }
+
+    @Override
+    public void pageBreak(PageContext pc) throws IOException {
+	pc.forceWrite("<p class=\"pagebreak\"/>");
+    }
+
+    private Document parseHTML(InputSource is, Margin margin, Dimension dimension, int pageOffset, boolean addHF) throws IOException, SAXException, PageException {
+	Document doc = XMLUtil.parseHTML(is);
+
+	Element head = tag(doc, "head");
+	Element body = tag(doc, "body");
+
+	// no body
+	if (body == null) {
+	    body = doc.createElement("body");
+	    doc.getDocumentElement().appendChild(body);
+	}
+	// no head
+	if (head == null) {
+	    head = doc.createElement("head");
+	    doc.getDocumentElement().insertBefore(head, body);
 	}
 
-	private void content(ITextRenderer renderer, PageContext pc, OutputStream os, Margin margin, Dimension dimension,int pageOffset) throws PageException, IOException, SAXException, DocumentException {
-		ConfigWeb config = pc.getConfig();
-		/*
-		 * css
-		 * 
-		 * @font-face { font-family: DejaVu Serif; src: url(fonts/DejaVuSerif.ttf); -fs-pdf-font-embed: embed; -fs-pdf-font-encoding: Identity-H; }
-		 * 
-		 * 
-		 * 
-		 * 
-		 * 
-		 * FontResolver resolver = renderer.getFontResolver(); resolver.addFont ( "C:\\WINNT\\Fonts\\ARIALUNI.TTF", BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED
-		 * );
-		 * 
-		 */
-		
-		// body
-		Document doc;
-		if(!Util.isEmpty(body, true)) {
-			/*System.err.println("+++++++++++++++++++++++++++++++");
-			System.err.println(body);
-			System.err.println("+++++++++++++++++++++++++++++++");
-			System.err.println(XMLUtil.toString(parseHTML(XMLUtil.toInputSource(body),margin,dimension,pageOffset,true),
-					false,true,
-					null,
-					null,
-					null));*/
-			
-			
-			doc = parseHTML(XMLUtil.toInputSource(body),margin,dimension,pageOffset,true);
-			createPDF(pc, renderer, doc, os, null);
+	PDFPageMark h = getHeader();
+	PDFPageMark f = getFooter();
 
+	// we have header or body
+	if (addHF) {
+	    if (h != null || f != null) {
+		if (f != null) add(doc, body, "luceefsfooter");
+		if (h != null) add(doc, body, "luceefsheader");
+		String raw = XMLUtil.toString(doc, false, true, null, null, null);
+		Strings util = CFMLEngineFactory.getInstance().getStringUtil();
+		if (h != null) raw = util.replace(raw, "{{{luceefsheader}}}", h.getHtmlTemplate(), true, false);
+		if (f != null) raw = util.replace(raw, "{{{luceefsfooter}}}", f.getHtmlTemplate(), true, false);
+		return parseHTML(XMLUtil.toInputSource(raw), margin, dimension, pageOffset, false);
+	    }
+	}
+
+	// body
+	// add css for page break, header and footer
+	StringBuilder sb = new StringBuilder();
+	sb.append("@media print {").append('\n');
+	sb.append(".pagebreak { page-break-after:always }").append('\n');
+	if (h != null) sb.append("div.luceefsheader {display: block; position: running(header);}").append('\n');
+	if (f != null) sb.append("div.luceefsfooter {display: block; position: running(footer);}").append('\n');
+	sb.append("}").append('\n');
+
+	if (h != null) sb.append("@page { @top-center    { content: element(header) }}").append('\n');
+	if (f != null) sb.append("@page { @bottom-center { content: element(footer) }}").append('\n');
+
+	sb.append(".luceefspagenumber:before {content: counter(page);}").append('\n');
+	sb.append(".luceefspagecount:before {content: counter(pages);}").append('\n');
+	sb.append(".luceefssecpagenumber:before {content: counter(page);}").append('\n');
+	sb.append(".luceefssecpagecount:before {content: counter(pages);}").append('\n');
+	/*
+	 * sb.append("body {").append('\n');
+	 * sb.append("counter-reset: fspage "+pageOffset+";").append('\n'); sb.append("}").append('\n');
+	 * 
+	 * sb.append("div.luceefsheader::before {counter-increment: fspage;content: \"\";}").append('\n');
+	 */
+
+	sb.append("@page { margin: " + margin.getTop() + " " + margin.getRight() + " " + margin.getBottom() + " " + margin.getLeft() + "}").append('\n');
+	sb.append("@page { size: " + asString(dimension.getWidth()) + " " + asString(dimension.getHeight()) + ";}").append('\n');
+
+	Element style = doc.createElement("style");
+	style.appendChild(doc.createTextNode(sb.toString()));
+	head.appendChild(style);
+
+	// margin
+	/*
+	 * String tmp = body.getAttribute("style"); if(Util.isEmpty(tmp)) sb=new StringBuilder(); else
+	 * if(!tmp.endsWith(";"))sb=new StringBuilder(tmp).append(';'); else sb=new StringBuilder(tmp);
+	 * sb.append("padding:0px;margin: ") .append(margin.top).append("pt ")
+	 * .append(margin.right).append("pt ") .append(margin.bottom).append("pt ")
+	 * .append(margin.left).append("pt;"); body.setAttribute("style", sb.toString());
+	 */
+
+	moveStyleScript(head, body);
+
+	return doc;
+    }
+
+    private String asString(double d) throws PageException {
+	return engine.getCastUtil().toString(d) + "pt";
+    }
+
+    private void add(Document doc, Element body, String name) throws SAXException, IOException {
+	Element div = doc.createElement("div");
+	div.setAttribute("class", name);
+	div.appendChild(doc.createTextNode("{{{" + name + "}}}"));
+
+	Node first = body.getFirstChild();
+	if (first != null) body.insertBefore(div, first);
+	else body.appendChild(div);
+    }
+
+    private static void moveStyleScript(Element head, Node p) {
+	NodeList nl = p.getChildNodes();
+	Node n;
+	Element e;
+	int len = nl.getLength();
+	for (int i = 0; i < len; i++) {
+	    n = nl.item(i);
+	    // we only care about tags
+	    if (n instanceof Element) {
+		e = (Element) n;
+		if ("style".equalsIgnoreCase(e.getNodeName()) || "script".equalsIgnoreCase(e.getNodeName())) {
+		    // move to header
+		    p.removeChild(e);
+		    head.appendChild(e);
 		}
-		// srcfile
-		else if(srcfile != null) {
-			if(charset == null)
-				charset = pc.getResourceCharset();
-
-			// mimetype
-			if(mimeType == MIMETYPE_OTHER) {
-				ContentType ct = CFMLEngineFactory.getInstance().getResourceUtil().getContentType(srcfile);
-				setMimetype(CFMLEngineFactory.getInstance().getResourceUtil().getContentType(srcfile));
-			}
-			InputStream is = srcfile.getInputStream();
-			try {
-
-				URL base = new URL("file://" + srcfile);
-				if(!localUrl) {
-					String abs = srcfile.getAbsolutePath();
-					String contract = ClassUtil.ContractPath(pc, abs);
-					if(!abs.equals(contract)) {
-						base = engine.getHTTPUtil().toURL(getDomain(pc.getHttpServletRequest()) + contract);
-					}
-				}
-
-				// URL base = localUrl?new URL("file://"+srcfile):getBase();
-				render(pc, renderer, is, os, base,margin,dimension,pageOffset);
-			}
-			catch (Throwable t) {
-				if(t instanceof ThreadDeath)
-					throw (ThreadDeath)t;
-			} finally {
-				Util.closeEL(is);
-			}
-		}
-		// src
-		else if(src != null) {
-			if(charset == null)
-				charset = pc.getResourceCharset();
-			URL url = engine.getHTTPUtil().toURL(src);
-
-			// set Proxy
-			if(Util.isEmpty(proxyserver) && config.isProxyEnableFor(url.getHost())) {
-				ProxyData pd = config.getProxyData();
-				proxyserver = pd == null ? null : pd.getServer();
-				proxyport = pd == null ? 0 : pd.getPort();
-				proxyuser = pd == null ? null : pd.getUsername();
-				proxypassword = pd == null ? null : pd.getPassword();
-			}
-			HTTPResponse method = engine.getHTTPUtil().get(url, authUser, authPassword, -1, null, userAgent, proxyserver, proxyport, proxyuser, proxypassword,
-					null);
-
-			// mimetype
-			if(mimeType == MIMETYPE_OTHER) {
-				ContentType ct = method.getContentType();
-				if(ct != null)
-					setMimetype(ct);
-			}
-
-			InputStream is = new ByteArrayInputStream(method.getContentAsByteArray());
-			try {
-				render(pc, renderer, is, os, url,margin,dimension,pageOffset);
-			} finally {
-				engine.getIOUtil().closeSilent(is);
-			}
-		}
-		else {
-			createPDF(renderer, "<html><body> </body></html>", os);
-		}
+		else moveStyleScript(head, e);
+	    }
 	}
+    }
 
-
-
-	private void render(PageContext pc, ITextRenderer renderer, InputStream is, OutputStream os, URL base, Margin margin, Dimension dim,int pageOffset) 
-			throws PageException, IOException, SAXException, DocumentException {
-		try {
-
-			// text/html
-			if(mimeType == MIMETYPE_TEXT_HTML || mimeType == MIMETYPE_OTHER) {
-				InputSource input = new InputSource(engine.getIOUtil().getReader(is, charset));
-				Document doc = parseHTML(input,margin,dim,pageOffset,true);
-				createPDF(pc, renderer, doc, os, base);
-			}
-			// text
-			else if(mimeType == MIMETYPE_TEXT) {
-				body = engine.getIOUtil().toString(is, charset);
-				body = "<html><body><pre>" + engine.getHTMLUtil().escapeHTML(body) + "</pre></body></html>";
-				createPDF(renderer, body, os);
-			}
-			// image
-			else if(mimeType == MIMETYPE_IMAGE) {
-				File tmpDir = CFMLEngineFactory.getTempDirectory();
-				File tmp = new File(tmpDir, this + "-" + Math.random());
-				engine.getIOUtil().copy(is, new FileOutputStream(tmp), true, true);
-				body = "<html><body><img src=\"file://" + tmp + "\"></body></html>"; // TODO test this
-				try {
-					createPDF(renderer, body, os);
-				} finally {
-					tmp.delete();
-				}
-			}
-			// Application
-			else if(mimeType == MIMETYPE_APPLICATION_PDF) {
-				engine.getIOUtil().copy(is, os, true, true);
-			}
-			else {
-				throw engine.getExceptionUtil().createApplicationException("this mime type is not supported!");
-			}
-		} finally {
-			Util.closeEL(is, os);
-		}
+    private Element tag(Document doc, String name) {
+	Element root = doc.getDocumentElement();
+	NodeList nl = root.getChildNodes();
+	Node n;
+	int len = nl.getLength();
+	for (int i = 0; i < len; i++) {
+	    n = nl.item(i);
+	    if (n instanceof Element && name.equalsIgnoreCase(n.getNodeName())) {
+		return (Element) n;
+	    }
 	}
+	return null;
+    }
 
-	private void createPDF(PageContext pc, ITextRenderer renderer, Document doc, OutputStream os, URL base) throws DocumentException, MalformedURLException {
-		if(base == null)
-			base = searchBaseURL(doc);
-		if(base == null)
-			base = getRequestURL(pc);
-		// if(base!=null) System.out.println("base:"+base.toExternalForm());
-		renderer.setDocument(doc, base == null ? null : base.toExternalForm());
-		renderer.layout();
-		renderer.createPDF(os);
-	}
+    @Override
+    public String handlePageNumbers(String html) {
+	html = Util.replace(html.trim(), "{currentsectionpagenumber}", "<span class=\"luceefssecpagenumber\"/>", false);
+	html = Util.replace(html, "{totalsectionpagecount}", "<span class=\"luceefssecpagecount\"/>", false);
 
-	private void createPDF(ITextRenderer renderer, String xhtml, OutputStream os) throws DocumentException {
-		renderer.setDocumentFromString(xhtml);
-		renderer.layout();
-		renderer.createPDF(os);
-	}
-
-	@Override
-	public void pageBreak(PageContext pc) throws IOException {
-		pc.forceWrite("<p class=\"pagebreak\"/>");
-	}
-	
-
-	private Document parseHTML(InputSource is, Margin margin, Dimension dimension, int pageOffset, boolean addHF) throws IOException, SAXException, PageException {
-		Document doc = XMLUtil.parseHTML(is);
-		
-		Element head=tag(doc,"head");
-		Element body=tag(doc,"body");
-
-		// no body
-		if(body==null) {
-			body=doc.createElement("body");
-			doc.getDocumentElement().appendChild(body);
-		}
-		// no head
-		if(head==null) {
-			head=doc.createElement("head");
-			doc.getDocumentElement().insertBefore(head, body);
-		}
-		
-		PDFPageMark h = getHeader();
-		PDFPageMark f = getFooter();
-		
-		// we have header or body
-		if(addHF) {
-			if(h!=null || f!=null) {
-				if(f!=null)add(doc, body, "luceefsfooter");
-				if(h!=null)add(doc, body, "luceefsheader");
-				String raw = XMLUtil.toString(doc, false, true, null, null,null);
-				Strings util = CFMLEngineFactory.getInstance().getStringUtil();
-				if(h!=null)raw=util.replace(raw, "{{{luceefsheader}}}", h.getHtmlTemplate(), true, false);
-				if(f!=null)raw=util.replace(raw, "{{{luceefsfooter}}}", f.getHtmlTemplate(), true, false);
-				return parseHTML(XMLUtil.toInputSource(raw),margin,dimension,pageOffset,false);
-			}
-		}
-		
-		// body
-		// add css for page break, header and footer
-		StringBuilder sb=new StringBuilder();
-		sb.append("@media print {").append('\n');
-			sb.append(".pagebreak { page-break-after:always }").append('\n');
-			if(h!=null)sb.append("div.luceefsheader {display: block; position: running(header);}").append('\n');
-			if(f!=null)sb.append("div.luceefsfooter {display: block; position: running(footer);}").append('\n');
-		sb.append("}").append('\n');
-		
-		if(h!=null)sb.append("@page { @top-center    { content: element(header) }}").append('\n');
-		if(f!=null)sb.append("@page { @bottom-center { content: element(footer) }}").append('\n');
-
-		sb.append(".luceefspagenumber:before {content: counter(page);}").append('\n');
-		sb.append(".luceefspagecount:before {content: counter(pages);}").append('\n');
-		sb.append(".luceefssecpagenumber:before {content: counter(page);}").append('\n');
-		sb.append(".luceefssecpagecount:before {content: counter(pages);}").append('\n');
-		/*
-		sb.append("body {").append('\n');
-			sb.append("counter-reset: fspage "+pageOffset+";").append('\n');
-		sb.append("}").append('\n');
-		
-		sb.append("div.luceefsheader::before {counter-increment: fspage;content: \"\";}").append('\n');
-		*/
-
-    
-		sb.append("@page { margin: "+margin.getTop()+" "+margin.getRight()+" "+margin.getBottom()+" "+margin.getLeft()+"}").append('\n');
-		sb.append("@page { size: "+asString(dimension.getWidth())+" "+asString(dimension.getHeight())+";}").append('\n');
-		
-		
-		
-		Element style = doc.createElement("style");
-		style.appendChild(doc.createTextNode(sb.toString()));
-		head.appendChild(style);
-		
-
-		
-		// margin
-		/*String tmp = body.getAttribute("style");
-		if(Util.isEmpty(tmp)) sb=new StringBuilder();
-		else if(!tmp.endsWith(";"))sb=new StringBuilder(tmp).append(';');
-		else sb=new StringBuilder(tmp);
-		sb.append("padding:0px;margin: ")
-		.append(margin.top).append("pt ")
-		.append(margin.right).append("pt ")
-		.append(margin.bottom).append("pt ")
-		.append(margin.left).append("pt;");
-		body.setAttribute("style", sb.toString());*/
-		
-		moveStyleScript(head,body);
-			
-		
-		
-		
-		
-		
-		return doc;
-	}
-	
-	private String asString(double d) throws PageException {
-		return engine.getCastUtil().toString(d)+"pt";
-	}
-
-	private void add(Document doc, Element body, String name) throws SAXException, IOException {
-		Element div = doc.createElement("div");
-		div.setAttribute("class", name);
-		div.appendChild(doc.createTextNode("{{{"+name+"}}}")); 
-		
-		Node first = body.getFirstChild();
-		if(first!=null) body.insertBefore(div, first);
-		else body.appendChild(div);
-	}
-
-	private static void moveStyleScript(Element head,Node p) {
-		NodeList nl = p.getChildNodes();
-		Node n;
-		Element e;
-		int len=nl.getLength();
-		for(int i=0;i<len;i++) {
-			n = nl.item(i);
-			// we only care about tags
-			if(n instanceof Element) {
-				e=(Element)n;
-				if("style".equalsIgnoreCase(e.getNodeName()) || "script".equalsIgnoreCase(e.getNodeName())) {
-					// move to header
-					p.removeChild(e);
-					head.appendChild(e);
-				}
-				else
-					moveStyleScript(head,e);
-			}
-		}
-	}
-	
-	
-	
-	private Element tag(Document doc, String name) {
-		Element root = doc.getDocumentElement();
-		NodeList nl = root.getChildNodes();
-		Node n;
-		int len= nl.getLength();
-		for(int i=0;i<len;i++) {
-			n = nl.item(i);
-			if(n instanceof Element && name.equalsIgnoreCase(n.getNodeName())) {
-				return (Element)n;
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public String handlePageNumbers(String html) {
-		html = Util.replace(html.trim(), "{currentsectionpagenumber}", "<span class=\"luceefssecpagenumber\"/>", false);
-		html = Util.replace(html, "{totalsectionpagecount}", "<span class=\"luceefssecpagecount\"/>", false);
-
-		html = Util.replace(html, "{currentpagenumber}", "<span class=\"luceefspagenumber\"/>", false);
-		html = Util.replace(html, "{totalpagecount}", "<span class=\"luceefspagecount\"/>", false);
-		return html;
-	}
+	html = Util.replace(html, "{currentpagenumber}", "<span class=\"luceefspagenumber\"/>", false);
+	html = Util.replace(html, "{totalpagecount}", "<span class=\"luceefspagecount\"/>", false);
+	return html;
+    }
 }

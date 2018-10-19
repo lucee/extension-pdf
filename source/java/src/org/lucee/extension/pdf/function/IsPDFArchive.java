@@ -30,24 +30,23 @@ import lucee.runtime.ext.function.Function;
 
 public final class IsPDFArchive extends BIF implements Function {
 
-	private static final long serialVersionUID = 6909679675833681678L;
+    private static final long serialVersionUID = 6909679675833681678L;
 
-	public static boolean call(PageContext pc, String path) throws PageException {
-		try {
-			Resource res = CFMLEngineFactory.getInstance().getResourceUtil().toResourceExisting(pc, path);
-			PDFUtil.toPdfReader(pc, res, null);
-		}
-		catch (Exception e) {
-			return false;
-		}
-		return true;
+    public static boolean call(PageContext pc, String path) throws PageException {
+	try {
+	    Resource res = CFMLEngineFactory.getInstance().getResourceUtil().toResourceExisting(pc, path);
+	    PDFUtil.toPdfReader(pc, res, null);
 	}
-
-	@Override
-	public Object invoke(PageContext pc, Object[] args) throws PageException {
-		if(args.length != 1)
-			throw CFMLEngineFactory.getInstance().getExceptionUtil().createFunctionException(pc, "IsPDFFile", 1, 1, args.length);
-
-		return call(pc, CFMLEngineFactory.getInstance().getCastUtil().toString(args[0]));
+	catch (Exception e) {
+	    return false;
 	}
+	return true;
+    }
+
+    @Override
+    public Object invoke(PageContext pc, Object[] args) throws PageException {
+	if (args.length != 1) throw CFMLEngineFactory.getInstance().getExceptionUtil().createFunctionException(pc, "IsPDFFile", 1, 1, args.length);
+
+	return call(pc, CFMLEngineFactory.getInstance().getCastUtil().toString(args[0]));
+    }
 }

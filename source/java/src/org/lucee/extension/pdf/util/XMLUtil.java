@@ -24,84 +24,82 @@ import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.exp.PageException;
 
 public class XMLUtil {
-	
-	public static final short UNDEFINED_NODE=-1;
-	
-	public static Element getRootElement(Node node) {
-	    Document doc=null;
-		if(node instanceof Document) doc=(Document) node;
-		else doc=node.getOwnerDocument();
-		return doc.getDocumentElement();
-	}
+
+    public static final short UNDEFINED_NODE = -1;
+
+    public static Element getRootElement(Node node) {
+	Document doc = null;
+	if (node instanceof Document) doc = (Document) node;
+	else doc = node.getOwnerDocument();
+	return doc.getDocumentElement();
+    }
 
     public static synchronized Element getChildWithName(String name, Element el) {
-		Element[] children = getChildElementsAsArray(el);
-		for(int i=0;i<children.length;i++) {
-			if(name.equalsIgnoreCase(children[i].getNodeName()))
-				return children[i];
-		}
-		return null;
+	Element[] children = getChildElementsAsArray(el);
+	for (int i = 0; i < children.length; i++) {
+	    if (name.equalsIgnoreCase(children[i].getNodeName())) return children[i];
 	}
-    
-    public static Element[] getChildElementsAsArray(Node node) {
-    	ArrayList<Node> nodeList=getChildNodes(node,Node.ELEMENT_NODE,null);
-        return  nodeList.toArray(new Element[nodeList.size()]);
+	return null;
     }
-   
+
+    public static Element[] getChildElementsAsArray(Node node) {
+	ArrayList<Node> nodeList = getChildNodes(node, Node.ELEMENT_NODE, null);
+	return nodeList.toArray(new Element[nodeList.size()]);
+    }
+
     public static synchronized ArrayList<Node> getChildNodes(Node node, short type, String filter) {
-		ArrayList<Node> rtn=new ArrayList<Node>();
-		NodeList nodes=node.getChildNodes();
-		int len=nodes.getLength();
-		Node n;
-		for(int i=0;i<len;i++) {
-			try {
-				n=nodes.item(i);
-				if(n!=null && (type==UNDEFINED_NODE || n.getNodeType()==type)){
-					if(filter==null || filter.equals(n.getLocalName()))
-					rtn.add(n);
-				}
-			}
-			catch (Exception t){}
+	ArrayList<Node> rtn = new ArrayList<Node>();
+	NodeList nodes = node.getChildNodes();
+	int len = nodes.getLength();
+	Node n;
+	for (int i = 0; i < len; i++) {
+	    try {
+		n = nodes.item(i);
+		if (n != null && (type == UNDEFINED_NODE || n.getNodeType() == type)) {
+		    if (filter == null || filter.equals(n.getLocalName())) rtn.add(n);
 		}
-		return rtn;
+	    }
+	    catch (Exception t) {}
 	}
+	return rtn;
+    }
 
     public static Document getDocument(Node node) {
-		if(node instanceof Document) return (Document)node;
-		return node.getOwnerDocument();
-	}
-    
-    public static final Document parseHTML(InputSource xml) throws SAXException, IOException {
-            XMLReader reader = new Parser();
-            reader.setFeature(Parser.namespacesFeature, true);
-            reader.setFeature(Parser.namespacePrefixesFeature, true);
-        
-        try {
-            Transformer transformer = TransformerFactory.newInstance().newTransformer();
-            
-            DOMResult result = new DOMResult();
-            transformer.transform(new SAXSource(reader, xml), result);
-            return getDocument(result.getNode());
-        } 
-        catch (Exception e) {
-            throw new SAXException(e);
-        }
+	if (node instanceof Document) return (Document) node;
+	return node.getOwnerDocument();
     }
 
-		// toString(node, omitXMLDecl, indent, publicId, systemId, encoding);
-	public static String toString(Node node, boolean omitXMLDecl, boolean indent,String publicId, String systemId, String encoding) throws PageException {
-		// FUTURE use interface from loader
-		try {
-			Class<?> clazz = CFMLEngineFactory.getInstance().getClassUtil().loadClass("lucee.runtime.text.xml.XMLCaster");
-			Method method = clazz.getMethod("toString", new Class[]{Node.class, boolean.class, boolean.class,String.class, String.class, String.class});
-			return (String)method.invoke(null, new Object[]{node, omitXMLDecl, indent, publicId, systemId, encoding});
-		}
-		catch(Exception e){
-			throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
-		}
-	}
+    public static final Document parseHTML(InputSource xml) throws SAXException, IOException {
+	XMLReader reader = new Parser();
+	reader.setFeature(Parser.namespacesFeature, true);
+	reader.setFeature(Parser.namespacePrefixesFeature, true);
 
-	public static InputSource toInputSource(String str) {
-		return new InputSource(new StringReader(str));
+	try {
+	    Transformer transformer = TransformerFactory.newInstance().newTransformer();
+
+	    DOMResult result = new DOMResult();
+	    transformer.transform(new SAXSource(reader, xml), result);
+	    return getDocument(result.getNode());
 	}
+	catch (Exception e) {
+	    throw new SAXException(e);
+	}
+    }
+
+    // toString(node, omitXMLDecl, indent, publicId, systemId, encoding);
+    public static String toString(Node node, boolean omitXMLDecl, boolean indent, String publicId, String systemId, String encoding) throws PageException {
+	// FUTURE use interface from loader
+	try {
+	    Class<?> clazz = CFMLEngineFactory.getInstance().getClassUtil().loadClass("lucee.runtime.text.xml.XMLCaster");
+	    Method method = clazz.getMethod("toString", new Class[] { Node.class, boolean.class, boolean.class, String.class, String.class, String.class });
+	    return (String) method.invoke(null, new Object[] { node, omitXMLDecl, indent, publicId, systemId, encoding });
+	}
+	catch (Exception e) {
+	    throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
+	}
+    }
+
+    public static InputSource toInputSource(String str) {
+	return new InputSource(new StringReader(str));
+    }
 }
