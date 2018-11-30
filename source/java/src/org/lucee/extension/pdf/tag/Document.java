@@ -312,6 +312,20 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
     }
 
+
+    public void setPage(Object page) throws PageException {
+        Cast cast = engine.getCastUtil();
+        Struct sct = cast.toStruct(page);
+
+        Object o = sct.get("width", null);
+        if (o != null) setPagewidth(cast.toDoubleValue(o));
+        o = sct.get("height", null);
+
+        if (o != null) setPageheight(cast.toDoubleValue(o));
+        o = sct.get("pageType", null);
+        if (o != null) setPagetype(cast.toString(o));
+    }
+
     public void setMarginbottom(double marginbottom) {
 	getPDFDocument().setMarginbottom(marginbottom);
     }
