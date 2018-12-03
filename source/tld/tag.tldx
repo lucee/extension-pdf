@@ -69,6 +69,16 @@
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 			<description>format of the created file</description>
+
+		</attribute>
+		<attribute>
+			<type>any</type>
+			<name>page</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>
+			Specifies the page info in a struct like this {width:10, height:5, type:A4}
+            </description>
 		</attribute>
 		<attribute>
 			<type>any</type>
