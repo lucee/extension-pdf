@@ -23,7 +23,6 @@ import java.awt.Dimension;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,10 +31,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.jsp.JspException;
-
-import lucee.Info;
-import lucee.commons.io.res.Resource;
 
 import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
@@ -43,27 +38,19 @@ import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
 
-import lucee.loader.engine.CFMLEngineFactory;
-import lucee.loader.util.Util;
-import lucee.runtime.PageContext;
-import lucee.runtime.exp.PageException;
-import lucee.runtime.type.Struct;
-import lucee.runtime.util.Cast;
-import lucee.runtime.util.ResourceUtil;
-
-import com.lowagie.text.Chunk;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.pdf.ColumnText;
 import com.lowagie.text.pdf.PdfCopy;
-import com.lowagie.text.pdf.PdfCopy.PageStamp;
-import com.lowagie.text.pdf.PdfDocument;
 import com.lowagie.text.pdf.PdfImportedPage;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.PdfSmartCopy;
-import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.SimpleBookmark;
+
+import lucee.Info;
+import lucee.commons.io.res.Resource;
+import lucee.loader.engine.CFMLEngineFactory;
+import lucee.loader.util.Util;
+import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Struct;
+import lucee.runtime.util.Cast;
 
 public final class Document extends BodyTagImpl implements AbsDoc {
 
@@ -124,6 +111,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	applicationSettings = null;
     }
 
+    @Override
     public PDFDocument getPDFDocument() {
 	if (_document == null) _document = PDFDocument.newInstance(getApplicationSettings().getType());
 	return _document;
@@ -312,18 +300,25 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
     }
 
-
     public void setPage(Object page) throws PageException {
-        Cast cast = engine.getCastUtil();
-        Struct sct = cast.toStruct(page);
+	if (engine.getDecisionUtil().isNumeric(page)) {
+	    double nbr = engine.getCastUtil().toDoubleValue(page);
+	    setPagewidth(nbr);
+	    setPageheight(nbr);
+	}
+	else {
+	    Cast cast = engine.getCastUtil();
+	    Struct sct = cast.toStruct(page);
 
-        Object o = sct.get("width", null);
-        if (o != null) setPagewidth(cast.toDoubleValue(o));
-        o = sct.get("height", null);
+	    Object o = sct.get("width", null);
+	    if (o != null) setPagewidth(cast.toDoubleValue(o));
 
-        if (o != null) setPageheight(cast.toDoubleValue(o));
-        o = sct.get("pageType", null);
-        if (o != null) setPagetype(cast.toString(o));
+	    o = sct.get("height", null);
+	    if (o != null) setPageheight(cast.toDoubleValue(o));
+
+	    o = sct.get("type", null);
+	    if (o != null) setPagetype(cast.toString(o));
+	}
     }
 
     public void setMarginbottom(double marginbottom) {
