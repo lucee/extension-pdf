@@ -513,7 +513,7 @@ public abstract class PDFDocument {
 
     protected static URL searchBaseURL(Document doc) {
 	Element html = doc.getDocumentElement();
-	System.out.println("html:" + html.getNodeName());
+	// System.out.println("html:" + html.getNodeName());
 	NodeList list = html.getChildNodes();
 	Node n;
 	for (int i = list.getLength() - 1; i >= 0; i--) {
@@ -521,7 +521,7 @@ public abstract class PDFDocument {
 	    // head
 	    if (n instanceof Element && ((Element) n).getNodeName().equalsIgnoreCase("head")) {
 		Element head = (Element) n;
-		System.out.println("head:" + head.getNodeName());
+		// System.out.println("head:" + head.getNodeName());
 		NodeList _list = html.getChildNodes();
 		for (int _i = _list.getLength() - 1; _i >= 0; _i--) {
 		    n = list.item(i);
