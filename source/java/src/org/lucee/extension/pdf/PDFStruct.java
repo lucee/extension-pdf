@@ -37,6 +37,7 @@ import lucee.runtime.dump.DumpTable;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Collection;
 import lucee.runtime.type.Struct;
+import lucee.runtime.type.Array;
 import lucee.runtime.type.dt.DateTime;
 
 import org.apache.pdfbox.exceptions.CryptographyException;
@@ -283,6 +284,26 @@ public class PDFStruct extends StructSupport implements Struct {
 	    info.setEL("Subject", "");
 	    info.setEL("Title", "");
 	    info.setEL("Trapped", "");
+
+	    int total = pr.getNumberOfPages()+1;
+	    Struct pagesize = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
+		Array rotation = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
+		Array pagesize1 = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
+
+	    for (int i = 1; i < total; i++) {
+	    	rotation.appendEL(pr.getPageRotation(i));
+	    }
+
+	    int count = pr.getNumberOfPages()+1;
+
+	    for (int j = 1; j < count; j++) {
+	    	pagesize.setEL("Height", pr.getPageSize(j).getHeight());
+	    	pagesize.setEL("Width", pr.getPageSize(j).getWidth());
+	    	pagesize1.appendEL(pagesize);
+	    }
+
+	    info.setEL("PageRotation", rotation);
+    	info.setEL("Pagesize", pagesize1);
 
 	    // info
 	    HashMap imap = pr.getInfo();
