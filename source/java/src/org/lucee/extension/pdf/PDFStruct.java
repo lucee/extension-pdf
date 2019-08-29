@@ -218,7 +218,6 @@ public class PDFStruct extends StructSupport implements Struct {
 
 	public PdfReader getPdfReader() throws PageException {
 		try {
-			System.err.println("pw:" + password);
 			if (barr != null) {
 				if (password != null) return new PdfReader(barr, password.getBytes());
 				return new PdfReader(barr);

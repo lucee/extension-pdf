@@ -31,22 +31,22 @@ import lucee.runtime.ext.function.Function;
 
 public final class IsPDFObject extends BIF implements Function {
 
-    private static final long serialVersionUID = 2871560443450837918L;
+	private static final long serialVersionUID = 2871560443450837918L;
 
-    public static boolean call(PageContext pc, Object value) {
-	try {
-	    PDFUtil.toPdfReader(pc, value, null);
+	public static boolean call(PageContext pc, Object value) {
+		try {
+			PDFUtil.toPdfReader(pc, value, null);
+		}
+		catch (Exception e) {
+			return false;
+		}
+		return true;
 	}
-	catch (Exception e) {
-	    return false;
+
+	@Override
+	public Object invoke(PageContext pc, Object[] args) throws PageException {
+		if (args.length != 1) throw CFMLEngineFactory.getInstance().getExceptionUtil().createFunctionException(pc, "IsPDFObject", 1, 1, args.length);
+
+		return call(pc, args[0]);
 	}
-	return true;
-    }
-
-    @Override
-    public Object invoke(PageContext pc, Object[] args) throws PageException {
-	if (args.length != 1) throw CFMLEngineFactory.getInstance().getExceptionUtil().createFunctionException(pc, "IsPDFObject", 1, 1, args.length);
-
-	return call(pc, args[0]);
-    }
 }

@@ -33,56 +33,56 @@ import lucee.runtime.exp.PageException;
  **/
 public final class PDFParam extends TagImpl {
 
-    PDFParamBean param = new PDFParamBean();
+	PDFParamBean param = new PDFParamBean();
 
-    /**
-     * @param pages the pages to set
-     */
-    public void setPages(String pages) {
-	param.setPages(pages);
-    }
-
-    /**
-     * @param password the password to set
-     */
-    public void setPassword(String password) {
-	param.setPassword(password);
-    }
-
-    /**
-     * @param source the source to set
-     */
-    public void setSource(Object source) {
-	param.setSource(source);
-    }
-
-    @Override
-    public int doStartTag() throws PageException {
-
-	// get HTTP Tag
-	Tag parent = getParent();
-	while (parent != null && !(parent instanceof PDF)) {
-	    parent = parent.getParent();
+	/**
+	 * @param pages the pages to set
+	 */
+	public void setPages(String pages) {
+		param.setPages(pages);
 	}
 
-	if (parent instanceof PDF) {
-	    PDF pdf = (PDF) parent;
-	    pdf.setParam(param);
+	/**
+	 * @param password the password to set
+	 */
+	public void setPassword(String password) {
+		param.setPassword(password);
 	}
-	else {
-	    throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("Wrong Context, tag PDFParam must be inside a PDF tag");
+
+	/**
+	 * @param source the source to set
+	 */
+	public void setSource(Object source) {
+		param.setSource(source);
 	}
-	return SKIP_BODY;
-    }
 
-    @Override
-    public int doEndTag() {
-	return EVAL_PAGE;
-    }
+	@Override
+	public int doStartTag() throws PageException {
 
-    @Override
-    public void release() {
-	super.release();
-	param = new PDFParamBean();
-    }
+		// get HTTP Tag
+		Tag parent = getParent();
+		while (parent != null && !(parent instanceof PDF)) {
+			parent = parent.getParent();
+		}
+
+		if (parent instanceof PDF) {
+			PDF pdf = (PDF) parent;
+			pdf.setParam(param);
+		}
+		else {
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("Wrong Context, tag PDFParam must be inside a PDF tag");
+		}
+		return SKIP_BODY;
+	}
+
+	@Override
+	public int doEndTag() {
+		return EVAL_PAGE;
+	}
+
+	@Override
+	public void release() {
+		super.release();
+		param = new PDFParamBean();
+	}
 }

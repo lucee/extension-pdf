@@ -249,6 +249,7 @@ public class PDFUtil {
 
 	public static void encrypt(PDFStruct doc, OutputStream os, String newUserPassword, String newOwnerPassword, int permissions, int encryption)
 			throws PageException, DocumentException, IOException {
+		if (Util.isEmpty(newOwnerPassword)) newOwnerPassword = newUserPassword;
 		byte[] user = newUserPassword == null ? null : newUserPassword.getBytes();
 		byte[] owner = newOwnerPassword == null ? null : newOwnerPassword.getBytes();
 
