@@ -85,6 +85,10 @@ public abstract class PDFDocument {
 	public static final Dimension PAGETYPE_B5_JIS = new Dimension(516, 728);
 	public static final Dimension PAGETYPE_CUSTOM = new Dimension(1, 1);
 
+	// orientation
+	public static final String ORIENTATION_LANDSCAPE = "landscape";
+	public static final String ORIENTATION_PORTRAIT = "portrait";
+
 	// encryption
 	public static final int ENC_NONE = 0;
 	public static final int ENC_40BIT = 1;
@@ -121,7 +125,7 @@ public abstract class PDFDocument {
 	protected int mimeType = MIMETYPE_OTHER;
 	protected Charset charset = null;
 
-	protected String orientation = "portrait";
+	protected String orientation = ORIENTATION_PORTRAIT;
 
 	protected boolean backgroundvisible;
 	protected boolean fontembed = true;
@@ -255,8 +259,14 @@ public abstract class PDFDocument {
 	 * @throws PageException
 	 */
 	public void setOrientation(String strOrientation) throws PageException {
-		if (!["portrait", "landscape"].contains(strOrientation)) {
-			throw engine.getExceptionUtil().createApplicationException("invalid orientation [" + strOrientation + "], valid orientations are [portrait,landscape]");
+		if (strOrientation != ORIENTATION_LANDSCAPE && strOrientation != ORIENTATION_PORTRAIT) {
+			String err = String.format(
+					"invalid orientation [%s], valid orientations are [%s,%s]",
+					strOrientation,
+					ORIENTATION_PORTRAIT,
+					ORIENTATION_LANDSCAPE
+				);
+			throw engine.getExceptionUtil().createApplicationException(err);
 		}
 		this.orientation = strOrientation;
 	}

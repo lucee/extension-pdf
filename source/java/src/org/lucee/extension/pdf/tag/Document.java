@@ -846,7 +846,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			dim = new Dimension(PDFDocument.toPoint(pagewidth, unitFactor), PDFDocument.toPoint(pageheight, unitFactor));
 		}
 		// page orientation
-		if (orientation.equals("landscape")) dim = new Dimension(dim.height, dim.width);
+		if (orientation.equals(PDFDocument.ORIENTATION_LANDSCAPE)) {
+			dim = new Dimension(dim.height, dim.width);
+		}
 		return dim;
 	}
 
