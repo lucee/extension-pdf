@@ -780,7 +780,6 @@ public class PDF extends BodyTagImpl {
 			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 			stamper = new PdfStamper(reader, destination.getOutputStream());
 			if (font == null) font = getDefaultFont();
-			// , new Font(FontFamily.HELVETICA, 14)
 			for (int p = 1; p <= len; p++) {
 				if (pageSet != null && !pageSet.contains(p)) continue;
 
@@ -793,21 +792,9 @@ public class PDF extends BodyTagImpl {
 				}
 				else {
 					y = reader.getPageSize(p).getBottom((bottommargin + 2));
-					/*
-					 * System.out.println("y:"+y); System.out.println("bottom:"+reader.getPageSize(p).getBottom());
-					 * System.out.println("margin:"+bottommargin);
-					 * System.out.println("font:"+header.getFont().getSize());
-					 * System.out.println("CalculatedStyle:"+header.getFont().getCalculatedStyle());
-					 * System.out.println("CalculatedSize:"+header.getFont().getCalculatedSize());
-					 */
 				}
-				// float yh = reader.getPageSize(p).getTop(topmargin);
-				// float yf = reader.getPageSize(p).getBottom(bottommargin);
-				System.out.println("++++++++++++");
-				System.out.println(y);
-				System.out.println(reader.getPageSize(p).getTop());
-				// horizontal orientation
 
+				// horizontal orientation
 				float x = reader.getPageSize(p).getWidth() / 2;
 				if (Element.ALIGN_LEFT == align) {
 					x = leftmargin;
@@ -819,7 +806,6 @@ public class PDF extends BodyTagImpl {
 					x = reader.getPageSize(p).getWidth() / 2;
 				}
 				ColumnText.showTextAligned(stamper.getOverContent(p), align, header, x, y, 0);
-
 			}
 		}
 		finally {

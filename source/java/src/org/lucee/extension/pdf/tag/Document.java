@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
@@ -35,9 +36,11 @@ import javax.servlet.http.HttpServletResponse;
 import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
+import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
 
+import com.lowagie.text.DocumentException;
 import com.lowagie.text.pdf.PdfCopy;
 import com.lowagie.text.pdf.PdfImportedPage;
 import com.lowagie.text.pdf.PdfReader;
@@ -46,6 +49,7 @@ import com.lowagie.text.pdf.SimpleBookmark;
 
 import lucee.Info;
 import lucee.commons.io.res.Resource;
+import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.exp.PageException;
@@ -82,6 +86,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	private ArrayList<PDFDocument> documents = new ArrayList<PDFDocument>();
 	private ApplicationSettings applicationSettings = null;
+	private byte[] pdf;
+	private int sectionCounter = 0;
 
 	public Document() {
 		this._document = null;
@@ -109,12 +115,37 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		fontembed = PDFDocument.FONT_EMBED_YES;
 		fontdir = null;
 		applicationSettings = null;
+		this.pdf = null;
+		sectionCounter = 0;
 	}
 
 	@Override
 	public PDFDocument getPDFDocument() {
-		if (_document == null) _document = PDFDocument.newInstance(getApplicationSettings().getType());
+		if (_document == null) { // second round this is already existing
+			_document = PDFDocument.newInstance(getApplicationSettings().getType());
+		}
 		return _document;
+	}
+
+	public List<PDFDocument> getPDFDocuments() {
+		return documents;
+	}
+
+	public PDFDocument getPDFDocument(int index) {
+		try {
+			PDFDocument existing = documents.get(index);
+			if (existing != null) {
+				return existing;
+			}
+		}
+		catch (Exception e) {}
+		return null;
+	}
+
+	//
+
+	public byte[] getPDF() {
+		return pdf;
 	}
 
 	public ApplicationSettings getApplicationSettings() {
@@ -497,6 +528,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	public void addPDFDocument(PDFDocument document) {
 		// set proxy settings
+		if (documents.contains(document)) return; // should never happen, just an insurance
 
 		if (getPDFDocument().hasProxy()) {
 			document.setProxyserver(getPDFDocument().getProxyserver());
@@ -515,62 +547,79 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	@Override
 	public int doStartTag() throws PageException {
 		if (fontdir == null) getPDFDocument().setFontDirectory(applicationSettings.getFontDirectory());
-
-		Struct cfdoc = engine.getCreationUtil().createStruct(); // TODO make a read only struct
-		cfdoc.setEL("currentpagenumber", "{currentpagenumber}");
-		cfdoc.setEL("totalpagecount", "{totalpagecount}");
-		cfdoc.setEL("totalsectionpagecount", "{totalsectionpagecount}");
-		cfdoc.setEL("currentsectionpagenumber", "{currentsectionpagenumber}");
-		// cfdoc.setReadOnly(true); TODO
-		pageContext.variablesScope().setEL("cfdocument", cfdoc);
-
+		/*
+		 * Struct cfdoc = engine.getCreationUtil().createStruct(); // TODO make a read only struct
+		 * cfdoc.setEL("currentpagenumber", "{currentpagenumber}"); cfdoc.setEL("totalpagecount",
+		 * "{totalpagecount}"); cfdoc.setEL("totalsectionpagecount", "{totalsectionpagecount}");
+		 * cfdoc.setEL("currentsectionpagenumber", "{currentsectionpagenumber}"); //
+		 * cfdoc.setReadOnly(true); TODO pageContext.variablesScope().setEL("cfdocument", cfdoc);
+		 */
 		return EVAL_BODY_BUFFERED;
 	}
 
 	@Override
-	public void doInitBody() {
-
-	}
+	public void doInitBody() {}
 
 	@Override
-	public int doAfterBody() {
-		getPDFDocument().setBody(bodyContent.getString());
-
-		return SKIP_BODY;
-	}
-
-	@Override
-	public int doEndTag() throws PageException {
+	public int doAfterBody() throws PageException {
+		sectionCounter = 0; // must be 0 for the next round
+		if (pdf == null) { // first run of the tag
+			getPDFDocument().setBody(bodyContent.getString());
+		}
 		try {
-			_doEndTag();
+			bodyContent.clear();
+		}
+		catch (IOException e) {}
+		try {
+			return _doAfterBody();
 		}
 		catch (Exception e) {
 			throw engine.getCastUtil().toPageException(e);
 		}
+	}
+
+	@Override
+	public int doEndTag() throws PageException {
 		return EVAL_PAGE;
 	}
 
-	public void _doEndTag() throws Exception {
+	public int _doAfterBody() throws Exception {
 		// set root header/footer to sections
+		boolean second = pdf != null;
 		boolean doBookmarks = false;
 		boolean doHtmlBookmarks = false;
 		if (_document != null) {
-			PDFPageMark header = _document.getHeader();
-			PDFPageMark footer = _document.getFooter();
-			boolean hasHeader = header != null;
-			boolean hasFooter = footer != null;
-			if (hasFooter || hasHeader) {
-				Iterator<PDFDocument> it = documents.iterator();
-				PDFDocument doc;
-				while (it.hasNext()) {
-					doc = it.next();
-					if (hasHeader && doc.getHeader() == null) doc.setHeader(header);
-					if (hasFooter && doc.getFooter() == null) doc.setFooter(footer);
+			if (!second) {
+				PDFPageMark header = _document.getHeader();
+				PDFPageMark footer = _document.getFooter();
+				boolean hasHeader = header != null;
+				boolean hasFooter = footer != null;
+				if (hasFooter || hasHeader) {
+					Iterator<PDFDocument> it = documents.iterator();
+					PDFDocument doc;
+					while (it.hasNext()) {
+						doc = it.next();
+						if (hasHeader && doc.getHeader() == null) doc.setHeader(header);
+						if (hasFooter && doc.getFooter() == null) doc.setFooter(footer);
+					}
 				}
+
 			}
 			doBookmarks = _document.getBookmark();
 			doHtmlBookmarks = _document.getHtmlBookmark();
 		}
+		// only if there is no documentsection, we are interested in the content from document
+		if (documents.size() == 0) {
+			documents.add(_document);
+		}
+
+		if (!second && hasEvalAtPrint(documents)) {
+			this.pdf = renderInital(doBookmarks, doHtmlBookmarks);
+			return EVAL_BODY_AGAIN;
+		}
+
+		// if (pdf == null)
+		pdf = renderInital(doBookmarks, doHtmlBookmarks);
 
 		if (filename != null) {
 			if (filename.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("file [" + filename + "] already exist",
@@ -580,7 +629,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			try {
 				if (filename instanceof File) os = new FileOutputStream(filename.getAbsolutePath());
 				else os = filename.getOutputStream();
-				render(os, doBookmarks, doHtmlBookmarks);
+				renderUpdate(pdf, os);
 			}
 			finally {
 				Util.closeEL(os);
@@ -588,7 +637,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 		}
 		else if (!Util.isEmpty(name)) {
-			render(null, doBookmarks, doHtmlBookmarks);
+			renderUpdate(pdf, null);
 		}
 		else {
 			HttpServletResponse rsp = pageContext.getHttpServletResponse();
@@ -598,7 +647,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 			OutputStream os = getOutputStream();
 			try {
-				render(os, doBookmarks, doHtmlBookmarks);
+				renderUpdate(pdf, os);
 			}
 			finally {
 				try {
@@ -612,90 +661,144 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			}
 			throw engine.getExceptionUtil().createAbort();
 		}
+		return SKIP_BODY;
 
 	}
 
-	private void render(OutputStream os, boolean doBookmarks, boolean doHtmlBookmarks) throws Exception {
-		byte[] pdf = null;
+	private boolean hasEvalAtPrint(ArrayList<PDFDocument> documents2) {
+		Iterator<PDFDocument> it = documents.iterator();
+		PDFDocument doc;
+		PDFPageMark h;
+		PDFPageMark f;
+		while (it.hasNext()) {
+			doc = it.next();
+			h = doc.getHeader();
+			if (h != null && h.isEvalAtPrint()) return true;
+			f = doc.getFooter();
+			if (f != null && f.isEvalAtPrint()) return true;
 
-		// only if there is no documentsection, we are interested in the content from document
-		if (documents.size() == 0) {
-			documents.add(_document);
 		}
+		return false;
+	}
 
-		// merge multiple docs to 1
-		// if(documents.size() > 0)
-		{
-			PDFDocument[] pdfDocs = new PDFDocument[documents.size()];
-			PdfReader[] pdfReaders = new PdfReader[pdfDocs.length];
-			Iterator<PDFDocument> it = documents.iterator();
-			int index = 0, pageOffset = 0;
-			// generate pdf with pd4ml
-			while (it.hasNext()) {
-				pdfDocs[index] = it.next();
-				pdfDocs[index].setPageOffset(pageOffset);
-				pdfReaders[index] = new PdfReader(pdfDocs[index].render(getDimension(), unitFactor, pageContext, doHtmlBookmarks));
-				pageOffset += pdfReaders[index].getNumberOfPages();
-				index++;
-			}
+	private byte[] renderInital(boolean doBookmarks, boolean doHtmlBookmarks) throws Exception {
+		PDFDocument[] pdfDocs = new PDFDocument[documents.size()];
+		PdfReader[] pdfReaders = new PdfReader[pdfDocs.length];
+		Iterator<PDFDocument> it = documents.iterator();
+		int index = 0, pageOffset = 0, count = 0, pages;
+		// generate pdf with pd4ml
 
-			// collect together
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			com.lowagie.text.Document document = new com.lowagie.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
-			PdfSmartCopy copy = new PdfSmartCopy(document, baos);
-			document.open();
-			String name;
-			ArrayList bookmarks = doBookmarks ? new ArrayList() : null;
-			try {
-				int size, totalPage = 0, pageNo = 0;
-				Map<String, String> parent;
+		while (it.hasNext()) {
+			count++;
+			pdfDocs[index] = it.next();
+			pdfDocs[index].setPageOffset(pageOffset);
 
-				for (int doc = 0; doc < pdfReaders.length; doc++) {
-					size = pdfReaders[doc].getNumberOfPages();
-
-					PdfImportedPage ip;
-
-					// bookmarks
-					if (doBookmarks) {
-						name = pdfDocs[doc].getName();
-						if (!Util.isEmpty(name)) {
-							bookmarks.add(parent = PDFUtil.generateGoToBookMark(name, totalPage + 1));
-						}
-						else parent = null;
-
-						if (doHtmlBookmarks) {
-							java.util.List pageBM = SimpleBookmark.getBookmark(pdfReaders[doc]);
-							if (pageBM != null) {
-								if (totalPage > 0) SimpleBookmark.shiftPageNumbers(pageBM, totalPage, null);
-								if (parent != null) PDFUtil.setChildBookmarks(parent, pageBM);
-								else bookmarks.addAll(pageBM);
-							}
-						}
+			int multiCount = getMultipleHF(pdfDocs[index]);
+			// multiple header/footer
+			if (multiCount > 1) {
+				PdfReader[] tmp = new PdfReader[multiCount];
+				for (int i = 0; i < multiCount; i++) {
+					pdfDocs[index].setHFIndex(i);
+					tmp[i] = new PdfReader(pdfDocs[index].render(getDimension(), unitFactor, pageContext, doHtmlBookmarks));
+				}
+				try {
+					pdfReaders[index] = merge(tmp);
+				}
+				catch (Exception e) {
+					CFMLEngine eng = CFMLEngineFactory.getInstance();
+					if (pdfDocs[index] instanceof PD4MLPDFDocument) {
+						throw eng.getExceptionUtil()
+								.createApplicationException("attribute evalAtPrint is not fully supported with the classic PDF Engine, please use the regular PDF Engine.");
 					}
 
-					totalPage++;
-					for (int page = 1; page <= size; page++) {
-						pageNo++;
-						if (page > 1) totalPage++;
-						ip = copy.getImportedPage(pdfReaders[doc], page);
+					throw eng.getExceptionUtil().createPageRuntimeException(eng.getCastUtil().toPageException(e));
+				}
+			}
+			else {
+				pdfReaders[index] = new PdfReader(pdfDocs[index].render(getDimension(), unitFactor, pageContext, doHtmlBookmarks));
+			}
+			pdfDocs[index].setHFIndex(0);
 
-						/*
-						 * PageStamp stamp = copy.createPageStamp(ip); Chunk chunk = new Chunk(String.format("Page %d",
-						 * pageNo)); if (page == 1) chunk.setLocalDestination("p" + pageNo);
-						 * ColumnText.showTextAligned(stamp.getUnderContent(), Element.ALIGN_RIGHT, new Phrase(chunk), 559,
-						 * 810, 0); stamp.alterContents();
-						 */
+			pages = pdfReaders[index].getNumberOfPages();
+			pdfDocs[index].setPages(pages);
+			pageOffset += pages;
+			index++;
+		}
 
-						copy.addPage(ip);
+		// collect together
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		com.lowagie.text.Document document = new com.lowagie.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
+		PdfSmartCopy copy = new PdfSmartCopy(document, baos);
+		document.open();
+		String name;
+		ArrayList bookmarks = doBookmarks ? new ArrayList() : null;
+		try {
+			int size, totalPage = 0, pageNo = 0;
+			Map<String, String> parent;
+			for (int doc = 0; doc < pdfReaders.length; doc++) {
+				size = pdfReaders[doc].getNumberOfPages();
+				PdfImportedPage ip;
+				// bookmarks
+				if (doBookmarks) {
+					name = pdfDocs[doc].getName();
+					if (!Util.isEmpty(name)) {
+						bookmarks.add(parent = PDFUtil.generateGoToBookMark(name, totalPage + 1));
+					}
+					else parent = null;
+
+					if (doHtmlBookmarks) {
+						java.util.List pageBM = SimpleBookmark.getBookmark(pdfReaders[doc]);
+						if (pageBM != null) {
+							if (totalPage > 0) SimpleBookmark.shiftPageNumbers(pageBM, totalPage, null);
+							if (parent != null) PDFUtil.setChildBookmarks(parent, pageBM);
+							else bookmarks.addAll(pageBM);
+						}
 					}
 				}
-				if (doBookmarks && !bookmarks.isEmpty()) copy.setOutlines(bookmarks);
+
+				totalPage++;
+				for (int page = 1; page <= size; page++) {
+					pageNo++;
+					if (page > 1) totalPage++;
+					ip = copy.getImportedPage(pdfReaders[doc], page);
+					copy.addPage(ip);
+				}
 			}
-			finally {
-				document.close();
-			}
-			pdf = baos.toByteArray();
+			if (doBookmarks && !bookmarks.isEmpty()) copy.setOutlines(bookmarks);
 		}
+		finally {
+			document.close();
+		}
+		return baos.toByteArray();
+
+	}
+
+	private PdfReader merge(PdfReader[] pdfReaders) throws DocumentException, IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		com.lowagie.text.Document document = new com.lowagie.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
+		PdfSmartCopy copy = new PdfSmartCopy(document, baos);
+		document.open();
+		try {
+			for (int doc = 0; doc < pdfReaders.length; doc++) {
+				PdfImportedPage ip;
+				ip = copy.getImportedPage(pdfReaders[doc], doc + 1);
+				copy.addPage(ip);
+			}
+		}
+		finally {
+			document.close();
+		}
+		return new PdfReader(baos.toByteArray());
+	}
+
+	private int getMultipleHF(PDFDocument doc) {
+		int count;
+		if (doc.getHeader() != null && (count = doc.getHeader().getHtmlTemplates().size()) > 1) return count;
+		if (doc.getFooter() != null && (count = doc.getFooter().getHtmlTemplates().size()) > 1) return count;
+		return 1;
+	}
+
+	private void renderUpdate(byte[] pdf, OutputStream os) throws Exception {
 
 		// permission/encryption
 		if (PDFDocument.ENC_NONE != encryption) {
@@ -775,6 +878,10 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	public static String trimAndLower(String str) {
 		if (str == null) return "";
 		return str.trim().toLowerCase();
+	}
+
+	public int getIndex() {
+		return sectionCounter++;
 	}
 
 }

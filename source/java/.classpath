@@ -20,7 +20,7 @@
 	<classpathentry kind="lib" path="libs/org.apache.pdfbox.fontbox-1.8.13.jar"/>
 	<classpathentry kind="lib" path="libs/org.apache.pdfbox.jempbox-1.8.13.jar"/>
 	<classpathentry kind="lib" path="libs/tagsoup-1.2.1.0002L.jar"/>
-	<classpathentry kind="lib" path="libs/org.lucee.flyingSaucerPDF-9.1.16.jar"/>
-	<classpathentry kind="lib" path="libs/org.xhtmlrenderer.flying.saucer.core-9.1.16.jar"/>
+	<classpathentry kind="lib" path="libs/org.xhtmlrenderer.flying.saucer.core-9.1.19.jar"/>
+	<classpathentry kind="lib" path="libs/org.lucee.flyingSaucerPDF-9.1.19.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

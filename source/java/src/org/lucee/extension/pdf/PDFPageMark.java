@@ -18,10 +18,15 @@
  **/
 package org.lucee.extension.pdf;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PDFPageMark {
 
 	private int areaHeight;
-	private String htmlTemplate;
+	private List<String> htmlTemplates = new ArrayList<>();
+	private final boolean evalAtPrint;
+	private int hfIndex;
 
 	/**
 	 * Constructor of the class
@@ -29,9 +34,14 @@ public class PDFPageMark {
 	 * @param areaHeight
 	 * @param htmlTemplate
 	 */
-	public PDFPageMark(int areaHeight, String htmlTemplate) {
+	public PDFPageMark(int areaHeight, String htmlTemplate, boolean evalAtPrint) {
 		this.areaHeight = areaHeight;
-		this.htmlTemplate = htmlTemplate;
+		htmlTemplates.add(htmlTemplate);
+		this.evalAtPrint = evalAtPrint;
+	}
+
+	public boolean isEvalAtPrint() {
+		return evalAtPrint;
 	}
 
 	/**
@@ -51,15 +61,22 @@ public class PDFPageMark {
 	/**
 	 * @return the htmlTemplate
 	 */
+	public List<String> getHtmlTemplates() {
+		return htmlTemplates;
+	}
+
 	public String getHtmlTemplate() {
-		return htmlTemplate;
+		if (htmlTemplates.size() == 0) return "";
+		if (htmlTemplates.size() == 1) return htmlTemplates.get(0);
+		return htmlTemplates.get(hfIndex);
 	}
 
-	/**
-	 * @param htmlTemplate the htmlTemplate to set
-	 */
-	public void setHtmlTemplate(String htmlTemplate) {
-		this.htmlTemplate = htmlTemplate;
+	public void addHtmlTemplate(String htmlTemplate) {
+		htmlTemplates.add(htmlTemplate);
 	}
 
+	public PDFPageMark setIndex(int hfIndex) {
+		this.hfIndex = hfIndex;
+		return this;
+	}
 }

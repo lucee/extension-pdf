@@ -61,7 +61,6 @@ public final class FSPDFDocument extends PDFDocument {
 
 	@Override
 	public byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException, DocumentException {
-
 		ITextRenderer renderer = new ITextRenderer();
 
 		// prepare(fontDirectory, "fs.properties");
@@ -71,7 +70,13 @@ public final class FSPDFDocument extends PDFDocument {
 		resolver.addFontDirectory(fontDirectory.getCanonicalPath(), fontembed);
 
 		// margin
-		Margin margin = new Margin(unitFactor, margintop, marginbottom, marginleft, marginright);
+		double mt = margintop;
+		if (mt <= 0D) mt = getHeader() != null ? MARGIN_WITH_HF : MARGIN_INIT;
+		double mb = marginbottom;
+		if (mb <= 0D) mb = getFooter() != null ? MARGIN_WITH_HF : MARGIN_INIT;
+
+		Margin margin = new Margin(this, unitFactor, margintop, marginbottom, marginleft, marginright);
+
 		if ((margin.getLeftAsPoint() + margin.getRightAsPoint()) > dimension.getWidth()) throw engine.getExceptionUtil().createApplicationException(
 				"current document width (" + engine.getCastUtil().toString(dimension.getWidth()) + " point) is smaller that specified horizontal margin  ("
 						+ engine.getCastUtil().toString(margin.getLeftAsPoint() + margin.getRightAsPoint()) + " point).",
@@ -107,6 +112,7 @@ public final class FSPDFDocument extends PDFDocument {
 		Document doc;
 		if (!Util.isEmpty(body, true)) {
 			doc = parseHTML(XMLUtil.toInputSource(body), margin, dimension, pageOffset, true);
+			String raw = XMLUtil.toString(doc, false, true, null, null, null);
 			createPDF(pc, renderer, doc, os, null);
 		}
 		// srcfile
@@ -177,11 +183,11 @@ public final class FSPDFDocument extends PDFDocument {
 	private void render(PageContext pc, ITextRenderer renderer, InputStream is, OutputStream os, URL base, Margin margin, Dimension dim, int pageOffset)
 			throws PageException, IOException, SAXException, DocumentException {
 		try {
-
 			// text/html
 			if (mimeType == MIMETYPE_TEXT_HTML || mimeType == MIMETYPE_OTHER) {
 				InputSource input = new InputSource(engine.getIOUtil().getReader(is, charset));
 				Document doc = parseHTML(input, margin, dim, pageOffset, true);
+				String raw = XMLUtil.toString(doc, false, true, null, null, null);
 				createPDF(pc, renderer, doc, os, base);
 			}
 			// text
@@ -258,8 +264,10 @@ public final class FSPDFDocument extends PDFDocument {
 		// we have header or body
 		if (addHF) {
 			if (h != null || f != null) {
-				if (f != null) add(doc, body, "luceefsfooter");
 				if (h != null) add(doc, body, "luceefsheader");
+
+				if (f != null) add(doc, body, "luceefsfooter");
+
 				String raw = XMLUtil.toString(doc, false, true, null, null, null);
 				Strings util = CFMLEngineFactory.getInstance().getStringUtil();
 				if (h != null) raw = util.replace(raw, "{{{luceefsheader}}}", h.getHtmlTemplate(), true, false);
@@ -284,15 +292,10 @@ public final class FSPDFDocument extends PDFDocument {
 		sb.append(".luceefspagecount:before {content: counter(pages);}").append('\n');
 		sb.append(".luceefssecpagenumber:before {content: counter(page);}").append('\n');
 		sb.append(".luceefssecpagecount:before {content: counter(pages);}").append('\n');
-		/*
-		 * sb.append("body {").append('\n');
-		 * sb.append("counter-reset: fspage "+pageOffset+";").append('\n'); sb.append("}").append('\n');
-		 * 
-		 * sb.append("div.luceefsheader::before {counter-increment: fspage;content: \"\";}").append('\n');
-		 */
 
 		sb.append("@page { margin: " + margin.getTop() + " " + margin.getRight() + " " + margin.getBottom() + " " + margin.getLeft() + "}").append('\n');
 		sb.append("@page { size: " + asString(dimension.getWidth()) + " " + asString(dimension.getHeight()) + ";}").append('\n');
+		sb.append("body {font-size: 21px;}").append('\n');
 
 		Element style = doc.createElement("style");
 		style.appendChild(doc.createTextNode(sb.toString()));
@@ -308,7 +311,6 @@ public final class FSPDFDocument extends PDFDocument {
 		 */
 
 		moveStyleScript(head, body);
-
 		return doc;
 	}
 
@@ -320,10 +322,10 @@ public final class FSPDFDocument extends PDFDocument {
 		Element div = doc.createElement("div");
 		div.setAttribute("class", name);
 		div.appendChild(doc.createTextNode("{{{" + name + "}}}"));
-
 		Node first = body.getFirstChild();
 		if (first != null) body.insertBefore(div, first);
 		else body.appendChild(div);
+
 	}
 
 	private static void moveStyleScript(Element head, Node p) {

@@ -102,7 +102,8 @@ public abstract class PDFDocument {
 	public static final double UNIT_FACTOR_PIXEL = Margin.UNIT_FACTOR_PX;// 1d/12d/16d;
 
 	// margin init
-	protected static final int MARGIN_INIT = 36;
+	public static final int MARGIN_INIT = 36;
+	public static final int MARGIN_WITH_HF = 73;
 
 	// mimetype
 	protected static final int MIMETYPE_TEXT_HTML = 0;
@@ -144,6 +145,7 @@ public abstract class PDFDocument {
 	protected final CFMLEngine engine;
 	protected File fontDirectory;
 	private int pageOffset;
+	private int pages;
 
 	public static int PD4ML = 1;
 	public static int FS = 2;
@@ -633,6 +635,19 @@ public abstract class PDFDocument {
 
 	public int getPageOffset() {
 		return pageOffset;
+	}
+
+	public void setPages(int pages) {
+		this.pages = pages;
+	}
+
+	public int getPages() {
+		return pages;
+	}
+
+	public void setHFIndex(int i) {
+		if (header != null) header.setIndex(i);
+		if (footer != null) footer.setIndex(i);
 	}
 
 }

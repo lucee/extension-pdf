@@ -22,19 +22,14 @@ package org.lucee.extension.pdf.pd4ml;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.Charset;
 
 import org.lucee.extension.pdf.PDFPageMark;
-import org.xhtmlrenderer.util.IOUtil;
 
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;

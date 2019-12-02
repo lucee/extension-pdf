@@ -25,27 +25,42 @@ import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
 
 import lucee.commons.io.res.Resource;
+import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.exp.PageException;
 
 public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 
 	private PDFDocument _document;
+	private int index;
+	private boolean second;
 
 	public DocumentSection() {
 		this._document = null;
 	}
 
-	public PDFDocument getPDFDocument() {
-		if (_document == null) {
-			_document = PDFDocument.newInstance(getDocument().getApplicationSettings().getType());
-		}
-		return _document;
-	}
-
 	@Override
 	public void release() {
 		super.release();
+		index = 0;
 		_document = null;
+
+	}
+
+	@Override
+	public PDFDocument getPDFDocument() {
+		if (_document == null) { // in the second round we already have this
+
+			Document doc = getDocumentEL();
+			this.index = doc.getIndex();
+			_document = doc.getPDFDocument(index);
+			second = true;
+			if (_document == null) {
+				second = false;
+				_document = PDFDocument.newInstance(doc.getApplicationSettings().getType());
+			}
+
+		}
+		return _document;
 	}
 
 	/**
@@ -116,7 +131,6 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * @param src the src to set
-	 * @throws ApplicationException
 	 */
 	public void setSrc(String src) throws PageException {
 		getPDFDocument().setSrc(src);
@@ -176,7 +190,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	}
 
 	@Override
-	public int doStartTag() {
+	public int doStartTag() throws PageException {
 		return EVAL_BODY_BUFFERED;
 	}
 
@@ -192,14 +206,21 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	}
 
 	@Override
-	public int doEndTag() {
-		Document doc = getDocument();
-		if (doc != null) doc.addPDFDocument(getPDFDocument());
+	public int doEndTag() throws PageException {
+		if (!second) getDocument().addPDFDocument(getPDFDocument());
 		return EVAL_PAGE;
 	}
 
-	public Document getDocument() {
-		// get Mail Tag
+	public Document getDocumentEL() {
+		try {
+			return getDocument();
+		}
+		catch (PageException e) {
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().createPageRuntimeException(e);
+		}
+	}
+
+	public Document getDocument() throws PageException {
 		Tag parent = getParent();
 		while (parent != null && !(parent instanceof Document)) {
 			parent = parent.getParent();
@@ -208,7 +229,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 		if (parent instanceof Document) {
 			return (Document) parent;
 		}
-		return null;
+		throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("tag documentsection must be within tag document");
 	}
 
 	/**
@@ -218,6 +239,10 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	 */
 	public void hasBody(boolean hasBody) {
 
+	}
+
+	public int getIndex() {
+		return index;
 	}
 
 }

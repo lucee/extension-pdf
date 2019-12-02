@@ -1,5 +1,7 @@
 package org.lucee.extension.pdf.util;
 
+import org.lucee.extension.pdf.PDFDocument;
+
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.util.Cast;
 
@@ -30,7 +32,7 @@ public class Margin {
 	private final double right;
 	private Cast cast;
 
-	public Margin(double unitFactor, double top, double bottom, double left, double right) {
+	public Margin(PDFDocument doc, double unitFactor, double top, double bottom, double left, double right) {
 		this.cast = CFMLEngineFactory.getInstance().getCastUtil();
 
 		this.unitFactorLeft = unitFactor;
@@ -40,7 +42,7 @@ public class Margin {
 
 		// top
 		if (top < 0) {
-			this.top = 36;
+			this.top = doc.getHeader() != null ? PDFDocument.MARGIN_WITH_HF : PDFDocument.MARGIN_INIT;
 			this.unitFactorTop = UNIT_FACTOR_PT;
 			this.unitTop = UNIT_PT;
 		}
@@ -52,7 +54,7 @@ public class Margin {
 
 		// bottom
 		if (bottom < 0) {
-			this.bottom = 36;
+			this.bottom = doc.getFooter() != null ? PDFDocument.MARGIN_WITH_HF : PDFDocument.MARGIN_INIT;
 			this.unitFactorBottom = UNIT_FACTOR_PT;
 			this.unitBottom = UNIT_PT;
 		}
@@ -85,6 +87,10 @@ public class Margin {
 			this.unitFactorRight = unitFactor;
 			this.unitRight = Margin.toUnit(unitFactor);
 		}
+	}
+
+	public static void main(String[] args) {
+		System.err.println(toPoint(98, UNIT_FACTOR_PT));
 	}
 
 	public double getTopAsPoint() {

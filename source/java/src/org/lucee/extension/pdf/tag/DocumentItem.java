@@ -20,6 +20,8 @@
 package org.lucee.extension.pdf.tag;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 
 import javax.servlet.jsp.tagext.Tag;
 
@@ -29,6 +31,7 @@ import org.lucee.extension.pdf.PDFPageMark;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Struct;
 
 public final class DocumentItem extends BodyTagImpl {
 
@@ -42,17 +45,22 @@ public final class DocumentItem extends BodyTagImpl {
 	private PDFPageMark body;
 	private boolean evalAtPrint;
 	private PDFDocument _document;
+	private Document doc;
+	private boolean second;
+	private int count;
 
 	@Override
 	public void release() {
 		super.release();
 		this.body = null;
 		name = null;
+		_document = null;
+		evalAtPrint = false;
+		doc = null;
 	}
 
 	/**
 	 * @param type the type to set
-	 * @throws ApplicationException
 	 */
 	public void setType(String strType) throws PageException {
 		strType = Document.trimAndLower(strType);
@@ -72,45 +80,90 @@ public final class DocumentItem extends BodyTagImpl {
 
 	@Override
 	public int doStartTag() {
+		doc = getDocument();
+		second = doc.getPDF() != null;
+		if (second) {
+			if (doc.getPDFDocuments().size() > 1) evalAtPrint = true; // workaround because it does not work
+			// correctly with false when more than one section
+		}
+
+		count = 1;
 		return EVAL_BODY_BUFFERED;
 	}
 
 	@Override
-	public void doInitBody() {}
+	public void doInitBody() {
+		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) setPageInfo();
+	}
+
+	private void setPageInfo() {
+		Struct cfdoc = engine.getCreationUtil().createStruct(); // TODO make a read only struct
+		if (second && evalAtPrint) {
+			PDFDocument currPD = getPDFDocument();
+			List<PDFDocument> list = getDocument().getPDFDocuments();
+			Iterator<PDFDocument> it = list.iterator();
+			int totalPageCount = 0;
+			while (it.hasNext()) {
+				totalPageCount += it.next().getPages();
+			}
+			cfdoc.setEL("currentpagenumber", Double.valueOf(currPD.getPageOffset() + count));
+			cfdoc.setEL("currentsectionpagenumber", Double.valueOf(count));
+			cfdoc.setEL("totalpagecount", Double.valueOf(totalPageCount));
+			cfdoc.setEL("totalsectionpagecount", currPD.getPages());
+		}
+		else {
+			cfdoc.setEL("currentpagenumber", "{currentpagenumber}");
+			cfdoc.setEL("totalpagecount", "{totalpagecount}");
+			cfdoc.setEL("totalsectionpagecount", "{totalsectionpagecount}");
+			cfdoc.setEL("currentsectionpagenumber", "{currentsectionpagenumber}");
+		}
+		pageContext.variablesScope().setEL("cfdocument", cfdoc);
+	}
 
 	@Override
-	public int doAfterBody() {
-		if (TYPE_HEADER == type || TYPE_FOOTER == type) {
-			body = new PDFPageMark(-1, getPDFDocument().handlePageNumbers(bodyContent.getString()));
+	public int doAfterBody() throws PageException {
+		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) {
+			String b = bodyContent.getString();
+			try {
+				bodyContent.clear();
+			}
+			catch (IOException e) {
+				throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
+			}
+			if (!evalAtPrint) b = getPDFDocument().handlePageNumbers(b);
+			if (body != null && count > 1) body.addHtmlTemplate(b);
+			else body = new PDFPageMark(-1, b, evalAtPrint);
 		}
-
+		if (evalAtPrint && count < getPDFDocument().getPages()) {
+			count++;
+			setPageInfo();
+			return EVAL_BODY_AGAIN;
+		}
 		return SKIP_BODY;
 	}
 
 	@Override
 	public int doEndTag() throws PageException {
+		// in second round we only care about header and footer
+		if (second && TYPE_HEADER != type && TYPE_FOOTER != type) return EVAL_PAGE;
+
 		try {
-			_doEndTag();
+			if (TYPE_PAGE_BREAK == type) {
+				getPDFDocument().pageBreak(pageContext);
+			}
+			else if (TYPE_BOOKMARK == type) {
+				if (Util.isEmpty(name)) throw engine.getExceptionUtil().createApplicationException("attribute [name] is required when type is [bookmark]");
+				pageContext.forceWrite("<pd4ml:bookmark>" + name + "</pd4ml:bookmark>");
+			}
+			// header/footer
+			else {
+				provideDocumentItem();
+			}
 		}
 		catch (IOException e) {
 			throw engine.getCastUtil().toPageException(e);
 		}
 		return EVAL_PAGE;
-	}
-
-	private void _doEndTag() throws IOException, PageException {
-		if (TYPE_PAGE_BREAK == type) {
-			getPDFDocument().pageBreak(pageContext);
-			return;
-		}
-		else if (TYPE_BOOKMARK == type) {
-			if (Util.isEmpty(name)) throw engine.getExceptionUtil().createApplicationException("attribute [name] is required when type is [bookmark]");
-			pageContext.forceWrite("<pd4ml:bookmark>" + name + "</pd4ml:bookmark>");
-		}
-		else if (body != null) {
-			provideDocumentItem();
-		}
-
 	}
 
 	private void provideDocumentItem() {
@@ -119,19 +172,28 @@ public final class DocumentItem extends BodyTagImpl {
 		while (parent != null && !(parent instanceof Document) && !(parent instanceof DocumentSection)) {
 			parent = parent.getParent();
 		}
-
+		PDFDocument pdfdoc;
 		if (parent instanceof Document) {
-			Document doc = (Document) parent;
-			if (TYPE_HEADER == type) doc.setHeader(body);
-			else if (TYPE_FOOTER == type) doc.setFooter(body);
-			return;
+			pdfdoc = ((Document) parent).getPDFDocument();
 		}
-		else if (parent instanceof DocumentSection) {
-			DocumentSection doc = (DocumentSection) parent;
-			if (TYPE_HEADER == type) doc.setHeader(body);
-			else if (TYPE_FOOTER == type) doc.setFooter(body);
-			return;
+		else {
+			pdfdoc = ((DocumentSection) parent).getPDFDocument();
 		}
+		if (TYPE_HEADER == type) pdfdoc.setHeader(body);
+		else if (TYPE_FOOTER == type) pdfdoc.setFooter(body);
+		return;
+	}
+
+	private Document getDocument() {
+		// get Document Tag
+		Tag parent = getParent();
+		while (parent != null && !(parent instanceof Document)) {
+			parent = parent.getParent();
+		}
+		if (parent instanceof Document) {
+			return ((Document) parent);
+		}
+		return null;
 	}
 
 	/**
