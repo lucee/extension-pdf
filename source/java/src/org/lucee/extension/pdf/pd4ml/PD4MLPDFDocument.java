@@ -5,17 +5,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.extension.pdf.pd4ml;
 
@@ -217,7 +217,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 	 * Arial\ Italic=ariali.ttf Courier\ New=cour.ttf Courier\ New\ Bold=courbd.ttf Courier\ New\ Bold\
 	 * Italic=courbi.ttf Courier\ New\ Italic=couri.ttf Times\ New\ Roman=times.ttf Times\ New\ Roman\
 	 * Bold=timesbd.ttf Times\ New\ Roman\ Bold\ Italic=timesbi.ttf Times\ New\ Roman\ Italic=timesi.ttf
-	 * 
+	 *
 	 * @param args
 	 */
 
@@ -341,14 +341,6 @@ public final class PD4MLPDFDocument extends PDFDocument {
 
 	@Override
 	public String handlePageNumbers(String html) {
-		PageContext pc = CFMLEngineFactory.getInstance().getThreadPageContext();
-		if (pc != null) {
-			// some time after an update this jhappens, after a restart everything is fine, what exactly causing
-			// this is not clear
-			ApplicationSettings as = ApplicationSettings.getApplicationSettings(pc);
-			if (as.getType() != PDFDocument.PD4ML) throw new RuntimeException("please restart your Lucee server!");
-		}
-
 		html = Util.replace(html.trim(), "{currentsectionpagenumber}", "${page}", false);
 		html = Util.replace(html, "{totalsectionpagecount}", "${total}", false);
 
