@@ -125,7 +125,11 @@ public abstract class PDFDocument {
 	protected int mimeType = MIMETYPE_OTHER;
 	protected Charset charset = null;
 
-	protected String orientation = ORIENTATION_PORTRAIT;
+	// No default value applied here, because a PDFDocument may represent either
+	// a cfdocument or a cfdocumentsection. We only want the former to have a
+	// default, so we will set it in Document instead, because Document is aware
+	// of the context.
+	protected String orientation = null;
 
 	protected boolean backgroundvisible;
 	protected boolean fontembed = true;
@@ -268,6 +272,15 @@ public abstract class PDFDocument {
 				);
 			throw engine.getExceptionUtil().createApplicationException(err);
 		}
+		setOrientationNoCheck(strOrientation);
+	}
+
+	/**
+	 * Set the orientation, without any parameter checking. Use this when the
+	 * calling method cannot throw exceptions, and be careful!
+	 * @param orientation the orientation to set. ("portrait" or "landscape")
+	 */
+	public void setOrientationNoCheck(String strOrientation) {
 		this.orientation = strOrientation;
 	}
 

@@ -119,8 +119,13 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	@Override
 	public PDFDocument getPDFDocument() {
-		if (_document == null) { // second round this is already existing
+		if (_document == null) {
 			_document = PDFDocument.newInstance(getApplicationSettings().getType());
+
+			// Set default orientation for cfdocument. This happens here, instead of
+			// in PDFDocument's property declarations because we only want to set it for
+			// PDFDocuments that represent top-level cfdocuments, not cfdocumentsections.
+			_document.setOrientationNoCheck(PDFDocument.ORIENTATION_PORTRAIT);
 		}
 		return _document;
 	}
@@ -526,6 +531,12 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		document.setLocalUrl(getPDFDocument().getLocalUrl());
 		document.setFontDirectory(getPDFDocument().getFontDirectory());
 		document.setFontembed(getPDFDocument().getFontembed() ? PDFDocument.FONT_EMBED_YES : PDFDocument.FONT_EMBED_NO);
+
+		// Apply cfdocument's orientation to cfdocumentsections that don't have one
+		// specified.
+		if (document.getOrientation() == null) {
+			document.setOrientationNoCheck(getPDFDocument().getOrientation());
+		}
 
 		documents.add(document);
 	}
