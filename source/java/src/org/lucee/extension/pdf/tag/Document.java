@@ -89,6 +89,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private byte[] pdf;
 	private int sectionCounter = 0;
 
+	private int selectedEngineType = 0;
+
 	public Document() {
 		this._document = null;
 	}
@@ -117,12 +119,19 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		applicationSettings = null;
 		this.pdf = null;
 		sectionCounter = 0;
+		selectedEngineType = 0;
 	}
 
 	@Override
 	public PDFDocument getPDFDocument() {
-		if (_document == null) { // second round this is already existing
-			_document = PDFDocument.newInstance(getApplicationSettings().getType());
+		System.out.println("Document: getPDFDocument()");
+		if (_document == null) {
+			System.out.println("Document: selectedEngineType is [" + this.selectedEngineType + "]");
+			if (this.selectedEngineType == 0) {
+				_document = PDFDocument.newInstance(getApplicationSettings().getType());
+			} else {
+				_document = PDFDocument.newInstance(this.selectedEngineType);
+			}
 		}
 		return _document;
 	}
@@ -218,6 +227,24 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 */
 	public void setUseragent(String userAgent) {
 		getPDFDocument().setUserAgent(userAgent);
+	}
+
+	/**
+	 * @param selectedEngine the rendering engine to use for this document (classic or modern)
+	 * @throws PageException
+	 */
+	public void setEngine(String selectedEngine) throws PageException {
+		selectedEngine = selectedEngine.trim().toLowerCase();
+		System.out.println("Document: setEngine(" + selectedEngine + ")");
+
+		if ("classic".equals(selectedEngine)) {
+			this.selectedEngineType = PDFDocument.PD4ML;
+		} else if ("modern".equals(selectedEngine)) {
+			this.selectedEngineType = PDFDocument.FS;
+		} else {
+			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + selectedEngine + "], only the following engines are supported [classic, modern]");
+		}
+		System.out.println("Document: this.selectedEngineType = " + this.selectedEngineType);
 	}
 
 	/**

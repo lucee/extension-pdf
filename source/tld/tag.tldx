@@ -65,6 +65,13 @@
 		</attribute>
 		<attribute>
 			<type>string</type>
+			<name>engine</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>PDF rendering engine to use ("classic" or "modern")</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
 			<name>format</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
