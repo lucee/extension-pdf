@@ -90,16 +90,12 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	private int selectedType = 0;
 
+	// Store values of attributes for subsequent usage
 	private String attr_authPassword = null;
 	private String attr_authUser = null;
-	private String attr_backgroundvisible = null;
 	private boolean attr_bookmark = false;
-	private String attr_encryption = null;
-	private String attr_engine = null;
-	private String attr_filename = null;
 	private File attr_fontdirectory = null;
 	private int attr_fontembed = PDFDocument.FONT_EMBED_YES;
-	private String attr_format = null;
 	private boolean attr_htmlbookmark = false;
 	private boolean attr_localUrl = false;
 	private double attr_marginbottom = -1;
@@ -107,24 +103,14 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private double attr_marginright = -1;
 	private double attr_margintop = -1;
 	private String attr_mimetype = null;
-	private String attr_name = null;
 	private String attr_orientation = null;
-	private String attr_overwrite = null;
-	private String attr_ownerpassword = null;
-	private String attr_page = null;
-	private String attr_pageheight = null;
-	private String attr_pagetype = null;
-	private String attr_pagewidth = null;
-	private String attr_permissions = null;
 	private String attr_proxyHost = null;
 	private String attr_proxyPassword = null;
 	private double attr_proxyPort = 80;
 	private String attr_proxyUser = null;
 	private String attr_src = null;
 	private Resource attr_srcfile = null;
-	private String attr_unit = null;
 	private String attr_userAgent = null;
-	private String attr_userpassword = null;
 
 	public Document() {
 		this._document = null;
@@ -141,7 +127,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		pagewidth = 0;
 		isLandscape = false;
 		unitFactor = PDFDocument.UNIT_FACTOR_IN;
-		encryption = PDFDocument.ENC_NONE;
 		ownerpassword = null;
 		userpassword = "";
 		permissions = 0;
@@ -157,14 +142,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 		attr_authPassword = null;
 		attr_authUser = null;
-		attr_backgroundvisible = null;
 		attr_bookmark = false;
-		attr_encryption = null;
-		attr_engine = null;
-		attr_filename = null;
 		attr_fontdirectory = null;
 		attr_fontembed = PDFDocument.FONT_EMBED_YES;
-		attr_format = null;
 		attr_htmlbookmark = false;
 		attr_localUrl = false;
 		attr_marginbottom = -1;
@@ -172,24 +152,14 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		attr_marginright = -1;
 		attr_margintop = -1;
 		attr_mimetype = null;
-		attr_name = null;
 		attr_orientation = null;
-		attr_overwrite = null;
-		attr_ownerpassword = null;
-		attr_page = null;
-		attr_pageheight = null;
-		attr_pagetype = null;
-		attr_pagewidth = null;
-		attr_permissions = null;
 		attr_proxyHost = null;
 		attr_proxyPassword = null;
 		attr_proxyPort = 80;
 		attr_proxyUser = null;
 		attr_src = null;
 		attr_srcfile = null;
-		attr_unit = null;
 		attr_userAgent = null;
-		attr_userpassword = null;
 	}
 
 	@Override
