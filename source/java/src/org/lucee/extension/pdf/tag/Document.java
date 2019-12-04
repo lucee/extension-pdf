@@ -212,9 +212,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 																				_document.setHtmlBookmark(attr_htmlbookmark);
 																				_document.setLocalUrl(attr_localUrl);
 																				_document.setMargintop(attr_margintop);
-																				_document.setMarginbottom(attr_margintop);
-																				_document.setMarginleft(attr_margintop);
-																				_document.setMarginright(attr_margintop);
+																				_document.setMarginbottom(attr_marginbottom);
+																				_document.setMarginleft(attr_marginleft);
+																				_document.setMarginright(attr_marginright);
 			if (attr_mimetype != null)			{ _document.setMimetype(attr_mimetype); }
 			if (attr_proxyHost != null)			{ _document.setProxyserver(attr_proxyHost); }
 																				_document.setProxyport((int) attr_proxyPort);
@@ -986,7 +986,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * sets if has body or not
-	 * 
+	 *
 	 * @param hasBody
 	 */
 	public void hasBody(boolean hasBody) {
