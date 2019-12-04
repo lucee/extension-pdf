@@ -5,17 +5,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.extension.pdf.tag;
 
@@ -88,7 +88,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private byte[] pdf;
 	private int sectionCounter = 0;
 
-	private int selectedEngineType = 0;
+	private int selectedType = 0;
 
 	private String attr_authPassword = null;
 	private String attr_authUser = null;
@@ -153,7 +153,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		applicationSettings = null;
 		this.pdf = null;
 		sectionCounter = 0;
-		selectedEngineType = 0;
+		selectedType = 0;
 
 		attr_authPassword = null;
 		attr_authUser = null;
@@ -196,11 +196,11 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	public PDFDocument getPDFDocument() throws PageException {
 		System.out.println("Document: getPDFDocument()");
 		if (_document == null) {
-			System.out.println("Document: selectedEngineType is [" + selectedEngineType + "]");
-			if (selectedEngineType == 0) {
+			System.out.println("Document: selectedType is [" + selectedType + "]");
+			if (selectedType == 0) {
 				_document = PDFDocument.newInstance(getApplicationSettings().getType());
 			} else {
-				_document = PDFDocument.newInstance(selectedEngineType);
+				_document = PDFDocument.newInstance(selectedType);
 			}
 
 			// Apply all of the tag attributes whose values we've been storing
@@ -322,21 +322,21 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param selectedEngine the rendering engine to use for this document (classic or modern)
+	 * @param type the PDF rendering method to use for this document (classic or modern)
 	 * @throws PageException
 	 */
-	public void setEngine(String selectedEngine) throws PageException {
-		selectedEngine = selectedEngine.trim().toLowerCase();
-		System.out.println("Document: setEngine(" + selectedEngine + ")");
+	public void setType(String type) throws PageException {
+		type = type.trim().toLowerCase();
+		System.out.println("Document: setType(" + type + ")");
 
-		if ("classic".equals(selectedEngine)) {
-			this.selectedEngineType = PDFDocument.PD4ML;
-		} else if ("modern".equals(selectedEngine)) {
-			this.selectedEngineType = PDFDocument.FS;
+		if ("classic".equals(type)) {
+			this.selectedType = PDFDocument.PD4ML;
+		} else if ("modern".equals(type)) {
+			this.selectedType = PDFDocument.FS;
 		} else {
-			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + selectedEngine + "], only the following engines are supported [classic, modern]");
+			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + selectedType + "], only the following engines are supported [classic, modern]");
 		}
-		System.out.println("Document: this.selectedEngineType = " + this.selectedEngineType);
+		System.out.println("Document: this.selectedType = " + this.selectedType);
 	}
 
 	/**
