@@ -91,26 +91,25 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private int selectedType = PDFDocument.TYPE_NONE;
 
 	// Store values of attributes for subsequent usage
-	private String attr_authPassword = null;
-	private String attr_authUser = null;
-	private boolean attr_bookmark = false;
-	private File attr_fontdirectory = null;
-	private int attr_fontembed = PDFDocument.FONT_EMBED_YES;
-	private boolean attr_htmlbookmark = false;
-	private boolean attr_localUrl = false;
-	private double attr_marginbottom = -1;
-	private double attr_marginleft = -1;
-	private double attr_marginright = -1;
-	private double attr_margintop = -1;
-	private String attr_mimetype = null;
-	private String attr_orientation = null;
-	private String attr_proxyHost = null;
-	private String attr_proxyPassword = null;
-	private double attr_proxyPort = 80;
-	private String attr_proxyUser = null;
-	private String attr_src = null;
-	private Resource attr_srcfile = null;
-	private String attr_userAgent = null;
+	private String attrAuthPassword = null;
+	private String attrAuthUser = null;
+	private boolean attrBookmark = false;
+	private File attrFontdirectory = null;
+	private int attrFontembed = PDFDocument.FONT_EMBED_YES;
+	private boolean attrHtmlbookmark = false;
+	private boolean attrLocalUrl = false;
+	private double attrMarginbottom = -1;
+	private double attrMarginleft = -1;
+	private double attrMarginright = -1;
+	private double attrMargintop = -1;
+	private String attrMimetype = null;
+	private String attrProxyHost = null;
+	private String attrProxyPassword = null;
+	private double attrProxyPort = 80;
+	private String attrProxyUser = null;
+	private String attrSrc = null;
+	private Resource attrSrcfile = null;
+	private String attrUserAgent = null;
 
 	public Document() {
 		this._document = null;
@@ -140,26 +139,25 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		sectionCounter = 0;
 		selectedType = PDFDocument.TYPE_NONE;
 
-		attr_authPassword = null;
-		attr_authUser = null;
-		attr_bookmark = false;
-		attr_fontdirectory = null;
-		attr_fontembed = PDFDocument.FONT_EMBED_YES;
-		attr_htmlbookmark = false;
-		attr_localUrl = false;
-		attr_marginbottom = -1;
-		attr_marginleft = -1;
-		attr_marginright = -1;
-		attr_margintop = -1;
-		attr_mimetype = null;
-		attr_orientation = null;
-		attr_proxyHost = null;
-		attr_proxyPassword = null;
-		attr_proxyPort = 80;
-		attr_proxyUser = null;
-		attr_src = null;
-		attr_srcfile = null;
-		attr_userAgent = null;
+		attrAuthPassword = null;
+		attrAuthUser = null;
+		attrBookmark = false;
+		attrFontdirectory = null;
+		attrFontembed = PDFDocument.FONT_EMBED_YES;
+		attrHtmlbookmark = false;
+		attrLocalUrl = false;
+		attrMarginbottom = -1;
+		attrMarginleft = -1;
+		attrMarginright = -1;
+		attrMargintop = -1;
+		attrMimetype = null;
+		attrProxyHost = null;
+		attrProxyPassword = null;
+		attrProxyPort = 80;
+		attrProxyUser = null;
+		attrSrc = null;
+		attrSrcfile = null;
+		attrUserAgent = null;
 	}
 
 	@Override
@@ -174,26 +172,25 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 			// Apply all of the tag attributes whose values we've been storing
 			// TODO: Make sure no set*() calls can be made after this has happened.
-			if (attr_authPassword != null)	{ _document.setAuthPassword(attr_authPassword); }
-			if (attr_authUser != null)			{ _document.setAuthUser(attr_authUser); }
-																				_document.setBookmark(attr_bookmark);
-			if (attr_fontdirectory != null)	{	_document.setFontDirectory(attr_fontdirectory); }
-																				_document.setFontembed(attr_fontembed);
-																				_document.setHtmlBookmark(attr_htmlbookmark);
-																				_document.setLocalUrl(attr_localUrl);
-																				_document.setMargintop(attr_margintop);
-																				_document.setMarginbottom(attr_marginbottom);
-																				_document.setMarginleft(attr_marginleft);
-																				_document.setMarginright(attr_marginright);
-			if (attr_mimetype != null)			{ _document.setMimetype(attr_mimetype); }
-			if (attr_proxyHost != null)			{ _document.setProxyserver(attr_proxyHost); }
-																				_document.setProxyport((int) attr_proxyPort);
-			if (attr_proxyUser != null)			{ _document.setProxyuser(attr_proxyUser); }
-			if (attr_proxyPassword != null)	{ _document.setProxypassword(attr_proxyPassword); }
-			if (attr_src != null)						{ _document.setSrc(attr_src); }
-			if (attr_srcfile != null)				{ _document.setSrcfile(attr_srcfile); }
-			if (attr_userAgent != null)			{ _document.setUserAgent(attr_userAgent); }
-
+			if (attrAuthPassword != null)		{ _document.setAuthPassword(attrAuthPassword); }
+			if (attrAuthUser != null)				{ _document.setAuthUser(attrAuthUser); }
+																				_document.setBookmark(attrBookmark);
+			if (attrFontdirectory != null)	{	_document.setFontDirectory(attrFontdirectory); }
+																				_document.setFontembed(attrFontembed);
+																				_document.setHtmlBookmark(attrHtmlbookmark);
+																				_document.setLocalUrl(attrLocalUrl);
+																				_document.setMargintop(attrMargintop);
+																				_document.setMarginbottom(attrMarginbottom);
+																				_document.setMarginleft(attrMarginleft);
+																				_document.setMarginright(attrMarginright);
+			if (attrMimetype != null)				{ _document.setMimetype(attrMimetype); }
+			if (attrProxyHost != null)			{ _document.setProxyserver(attrProxyHost); }
+																				_document.setProxyport((int) attrProxyPort);
+			if (attrProxyUser != null)			{ _document.setProxyuser(attrProxyUser); }
+			if (attrProxyPassword != null)	{ _document.setProxypassword(attrProxyPassword); }
+			if (attrSrc != null)						{ _document.setSrc(attrSrc); }
+			if (attrSrcfile != null)				{ _document.setSrcfile(attrSrcfile); }
+			if (attrUserAgent != null)			{ _document.setUserAgent(attrUserAgent); }
 		}
 		return _document;
 	}
@@ -230,11 +227,11 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param proxyserver value to set
 	 **/
 	public void setProxyserver(String proxyserver) {
-		this.attr_proxyHost = proxyserver;
+		this.attrProxyHost = proxyserver;
 	}
 
 	public void setProxyhost(String proxyserver) {
-		this.attr_proxyHost = proxyserver;
+		this.attrProxyHost = proxyserver;
 	}
 
 	/**
@@ -245,7 +242,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param proxyport value to set
 	 **/
 	public void setProxyport(double proxyport) {
-		this.attr_proxyPort = proxyport;
+		this.attrProxyPort = proxyport;
 	}
 
 	/**
@@ -254,7 +251,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param proxyuser value to set
 	 **/
 	public void setProxyuser(String proxyuser) {
-		this.attr_proxyUser = proxyuser;
+		this.attrProxyUser = proxyuser;
 	}
 
 	/**
@@ -263,7 +260,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param proxypassword value to set
 	 **/
 	public void setProxypassword(String proxypassword) {
-		this.attr_proxyPassword = proxypassword;
+		this.attrProxyPassword = proxypassword;
 	}
 
 	public void setSaveasname(String saveAsName) {
@@ -274,21 +271,21 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param authUser the authUser to set
 	 */
 	public void setAuthuser(String authUser) {
-		this.attr_authUser = authUser;
+		this.attrAuthUser = authUser;
 	}
 
 	/**
 	 * @param authPassword the authPassword to set
 	 */
 	public void setAuthpassword(String authPassword) {
-		this.attr_authPassword = authPassword;
+		this.attrAuthPassword = authPassword;
 	}
 
 	/**
 	 * @param userAgent the userAgent to set
 	 */
 	public void setUseragent(String userAgent) {
-		this.attr_userAgent = userAgent;
+		this.attrUserAgent = userAgent;
 	}
 
 	/**
@@ -398,23 +395,23 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	public void setMargin(Object margin) throws PageException {
 		if (engine.getDecisionUtil().isNumeric(margin)) {
 			double nbr = engine.getCastUtil().toDoubleValue(margin);
-			this.attr_margintop = nbr;
-			this.attr_marginbottom = nbr;
-			this.attr_marginleft = nbr;
-			this.attr_marginright = nbr;
+			this.attrMargintop = nbr;
+			this.attrMarginbottom = nbr;
+			this.attrMarginleft = nbr;
+			this.attrMarginright = nbr;
 		}
 		else {
 			Cast cast = engine.getCastUtil();
 			Struct sct = cast.toStruct(margin);
 
 			Object o = sct.get("top", null);
-			if (o != null) this.attr_margintop = cast.toDoubleValue(o);
+			if (o != null) this.attrMargintop = cast.toDoubleValue(o);
 			o = sct.get("bottom", null);
-			if (o != null) this.attr_marginbottom = cast.toDoubleValue(o);
+			if (o != null) this.attrMarginbottom = cast.toDoubleValue(o);
 			o = sct.get("left", null);
-			if (o != null) this.attr_marginleft = cast.toDoubleValue(o);
+			if (o != null) this.attrMarginleft = cast.toDoubleValue(o);
 			o = sct.get("right", null);
-			if (o != null) this.attr_marginright = cast.toDoubleValue(o);
+			if (o != null) this.attrMarginright = cast.toDoubleValue(o);
 		}
 	}
 
@@ -440,46 +437,46 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	public void setMarginbottom(double marginbottom) {
-		this.attr_marginbottom = marginbottom;
+		this.attrMarginbottom = marginbottom;
 	}
 
 	/**
 	 * @param marginleft the marginleft to set
 	 */
 	public void setMarginleft(double marginleft) {
-		this.attr_marginleft = marginleft;
+		this.attrMarginleft = marginleft;
 	}
 
 	/**
 	 * @param marginright the marginright to set
 	 */
 	public void setMarginright(double marginright) {
-		this.attr_marginright = marginright;
+		this.attrMarginright = marginright;
 	}
 
 	/**
 	 * @param margintop the margintop to set
 	 */
 	public void setMargintop(double margintop) {
-		this.attr_margintop = margintop;
+		this.attrMargintop = margintop;
 	}
 
 	/**
 	 * @param bookmark the bookmark to set
 	 */
 	public void setBookmark(boolean bookmark) {
-		this.attr_bookmark = bookmark;
+		this.attrBookmark = bookmark;
 	}
 
 	public void setHtmlbookmark(boolean bookmark) {
-		this.attr_htmlbookmark = bookmark;
+		this.attrHtmlbookmark = bookmark;
 	}
 
 	/**
 	 * @param localUrl the localUrl to set
 	 */
 	public void setLocalurl(boolean localUrl) {
-		this.attr_localUrl = localUrl;
+		this.attrLocalUrl = localUrl;
 	}
 
 	/**
@@ -551,7 +548,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @throws PageException
 	 */
 	public void setSrc(String src) throws PageException {
-		this.attr_src = src;
+		this.attrSrc = src;
 	}
 
 	/**
@@ -560,7 +557,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	public void setSrcfile(String strSrcfile) throws PageException {
 		Resource srcfile = engine.getResourceUtil().toResourceExisting(pageContext, strSrcfile);
 		pageContext.getConfig().getSecurityManager().checkFileLocation(srcfile);
-		this.attr_srcfile = srcfile;
+		this.attrSrcfile = srcfile;
 	}
 
 	/**
@@ -568,7 +565,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @throws PageException
 	 */
 	public void setMimetype(String strMimetype) throws PageException {
-		this.attr_mimetype = strMimetype;
+		this.attrMimetype = strMimetype;
 		strMimetype = strMimetype.toLowerCase().trim();
 	}
 
@@ -590,14 +587,14 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		fontembed = fontembed.trim();
 		Boolean fe = engine.getCastUtil().toBoolean(fontembed, null);
 		if (fe == null) {
-			if ("selective".equalsIgnoreCase(fontembed)) this.attr_fontembed = PDFDocument.FONT_EMBED_SELECCTIVE;
+			if ("selective".equalsIgnoreCase(fontembed)) this.attrFontembed = PDFDocument.FONT_EMBED_SELECCTIVE;
 			else throw engine.getExceptionUtil().createAbortException("invalid value for fontembed [" + fontembed + "], valid values for fontembed are [yes,no,selective]");
 		}
 		else if (fe.booleanValue()) {
-			this.attr_fontembed = PDFDocument.FONT_EMBED_YES;
+			this.attrFontembed = PDFDocument.FONT_EMBED_YES;
 		}
 		else {
-			this.attr_fontembed = PDFDocument.FONT_EMBED_NO;
+			this.attrFontembed = PDFDocument.FONT_EMBED_NO;
 		}
 	}
 
@@ -609,7 +606,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		if (!(tmp instanceof File)) throw engine.getExceptionUtil().createAbortException("[" + tmp + "] need to be a local file.");
 		if (!tmp.isDirectory()) throw engine.getExceptionUtil().createAbortException("[" + tmp + "] is not a directory.");
 		fontdir = (File) tmp;
-		this.attr_fontdirectory = fontdir;
+		this.attrFontdirectory = fontdir;
 	}
 
 	public void addPDFDocument(PDFDocument document) throws PageException {
