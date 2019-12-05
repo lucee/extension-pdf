@@ -147,8 +147,9 @@ public abstract class PDFDocument {
 	private int pageOffset;
 	private int pages;
 
-	public static int PD4ML = 1;
-	public static int FS = 2;
+	public static int TYPE_NONE = 0;
+	public static int TYPE_PD4ML = 1; // AKA "classic"
+	public static int TYPE_FS = 2; // AKA "modern"
 
 	public PDFDocument() {
 		engine = CFMLEngineFactory.getInstance();
@@ -157,7 +158,7 @@ public abstract class PDFDocument {
 	}
 
 	public static PDFDocument newInstance(int type) {
-		if (PD4ML == type) return new PD4MLPDFDocument();
+		if (TYPE_PD4ML == type) return new PD4MLPDFDocument();
 		return new FSPDFDocument();
 	}
 

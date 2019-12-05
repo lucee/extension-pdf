@@ -88,7 +88,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private byte[] pdf;
 	private int sectionCounter = 0;
 
-	private int selectedType = 0;
+	private int selectedType = PDFDocument.TYPE_NONE;
 
 	// Store values of attributes for subsequent usage
 	private String attr_authPassword = null;
@@ -138,7 +138,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		applicationSettings = null;
 		this.pdf = null;
 		sectionCounter = 0;
-		selectedType = 0;
+		selectedType = PDFDocument.TYPE_NONE;
 
 		attr_authPassword = null;
 		attr_authUser = null;
@@ -165,7 +165,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	@Override
 	public PDFDocument getPDFDocument() throws PageException {
 		if (_document == null) {
-			if (selectedType == 0) {
+			if (selectedType == PDFDocument.TYPE_NONE) {
+				// No type was specified in the tag attributes, so use the application's default type.
 				_document = PDFDocument.newInstance(getApplicationSettings().getType());
 			} else {
 				_document = PDFDocument.newInstance(selectedType);
@@ -298,9 +299,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		type = type.trim().toLowerCase();
 
 		if ("classic".equals(type)) {
-			this.selectedType = PDFDocument.PD4ML;
+			this.selectedType = PDFDocument.TYPE_PD4ML;
 		} else if ("modern".equals(type)) {
-			this.selectedType = PDFDocument.FS;
+			this.selectedType = PDFDocument.TYPE_FS;
 		} else {
 			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + selectedType + "], only the following engines are supported [classic, modern]");
 		}

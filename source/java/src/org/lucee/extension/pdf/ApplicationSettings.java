@@ -39,7 +39,7 @@ public class ApplicationSettings {
 			init = true;
 		}
 
-		int type = PDFDocument.FS;
+		int type = PDFDocument.TYPE_FS;
 		File fontDirectory = null;
 		try {
 			BIF bif = CFMLEngineFactory.getInstance().getClassUtil().loadBIF(pc, "lucee.runtime.functions.system.GetApplicationSettings");
@@ -54,8 +54,8 @@ public class ApplicationSettings {
 
 				if (o instanceof String) {
 					String str = (String) o;
-					if (str.equalsIgnoreCase("fs") || str.equalsIgnoreCase("modern")) type = PDFDocument.FS;
-					if (str.equalsIgnoreCase("pd4ml") || str.equalsIgnoreCase("classic")) type = PDFDocument.PD4ML;
+					if (str.equalsIgnoreCase("fs") || str.equalsIgnoreCase("modern")) type = PDFDocument.TYPE_FS;
+					if (str.equalsIgnoreCase("pd4ml") || str.equalsIgnoreCase("classic")) type = PDFDocument.TYPE_PD4ML;
 				}
 
 				// fontDirectory
