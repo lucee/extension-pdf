@@ -28,7 +28,6 @@ import javax.servlet.jsp.tagext.Tag;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
 
-import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Struct;
@@ -124,12 +123,10 @@ public final class DocumentItem extends BodyTagImpl {
 	public int doAfterBody() throws PageException {
 		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) {
 			String b = bodyContent.getString();
-			try {
-				bodyContent.clear();
-			}
-			catch (IOException e) {
-				throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(e);
-			}
+			/*
+			 * try { bodyContent.clear(); } catch (IOException e) { throw
+			 * CFMLEngineFactory.getInstance().getCastUtil().toPageException(e); }
+			 */
 			if (!evalAtPrint) b = getPDFDocument().handlePageNumbers(b);
 			if (body != null && count > 1) body.addHtmlTemplate(b);
 			else body = new PDFPageMark(-1, b, evalAtPrint);

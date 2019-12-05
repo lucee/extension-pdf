@@ -304,6 +304,10 @@ public abstract class PDFDocument {
 		this.body = body;
 	}
 
+	public final String getBody() {
+		return body;
+	}
+
 	public abstract byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws Exception;
 
 	protected final static URL getRequestURL(PageContext pc) {

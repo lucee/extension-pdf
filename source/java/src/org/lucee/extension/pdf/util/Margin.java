@@ -89,10 +89,6 @@ public class Margin {
 		}
 	}
 
-	public static void main(String[] args) {
-		System.err.println(toPoint(98, UNIT_FACTOR_PT));
-	}
-
 	public double getTopAsPoint() {
 		return toPoint(top, unitFactorTop);
 	}
