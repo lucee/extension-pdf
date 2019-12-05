@@ -164,9 +164,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	@Override
 	public PDFDocument getPDFDocument() throws PageException {
-		System.out.println("Document: getPDFDocument()");
 		if (_document == null) {
-			System.out.println("Document: selectedType is [" + selectedType + "]");
 			if (selectedType == 0) {
 				_document = PDFDocument.newInstance(getApplicationSettings().getType());
 			} else {
@@ -174,6 +172,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			}
 
 			// Apply all of the tag attributes whose values we've been storing
+			// TODO: Make sure no set*() calls can be made after this has happened.
 			if (attr_authPassword != null)	{ _document.setAuthPassword(attr_authPassword); }
 			if (attr_authUser != null)			{ _document.setAuthUser(attr_authUser); }
 																				_document.setBookmark(attr_bookmark);
@@ -297,7 +296,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 */
 	public void setType(String type) throws PageException {
 		type = type.trim().toLowerCase();
-		System.out.println("Document: setType(" + type + ")");
 
 		if ("classic".equals(type)) {
 			this.selectedType = PDFDocument.PD4ML;
@@ -306,7 +304,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		} else {
 			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + selectedType + "], only the following engines are supported [classic, modern]");
 		}
-		System.out.println("Document: this.selectedType = " + this.selectedType);
 	}
 
 	/**
