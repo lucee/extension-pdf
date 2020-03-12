@@ -47,6 +47,7 @@ public final class DocumentItem extends BodyTagImpl {
 	private Document doc;
 	private boolean second;
 	private int count;
+	private int offset;
 
 	@Override
 	public void release() {
@@ -85,14 +86,16 @@ public final class DocumentItem extends BodyTagImpl {
 			if (doc.getPDFDocuments().size() > 1) evalAtPrint = true; // workaround because it does not work
 			// correctly with false when more than one section
 		}
-
 		count = 1;
 		return EVAL_BODY_BUFFERED;
 	}
 
 	@Override
 	public void doInitBody() {
-		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) setPageInfo();
+		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) {
+			setPageInfo();
+			offset = 0;
+		}
 	}
 
 	private void setPageInfo() {
@@ -123,13 +126,16 @@ public final class DocumentItem extends BodyTagImpl {
 	public int doAfterBody() throws PageException {
 		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) {
 			String b = bodyContent.getString();
+			String sub = offset > 0 ? b.substring(offset) : b;
+			offset = b.length();
 			/*
 			 * try { bodyContent.clear(); } catch (IOException e) { throw
 			 * CFMLEngineFactory.getInstance().getCastUtil().toPageException(e); }
 			 */
-			if (!evalAtPrint) b = getPDFDocument().handlePageNumbers(b);
-			if (body != null && count > 1) body.addHtmlTemplate(b);
-			else body = new PDFPageMark(-1, b, evalAtPrint);
+
+			if (!evalAtPrint) sub = getPDFDocument().handlePageNumbers(sub);
+			if (body != null && count > 1) body.addHtmlTemplate(sub);
+			else body = new PDFPageMark(-1, sub, evalAtPrint);
 		}
 		if (evalAtPrint && count < getPDFDocument().getPages()) {
 			count++;
