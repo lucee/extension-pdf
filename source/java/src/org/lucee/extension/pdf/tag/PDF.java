@@ -734,6 +734,8 @@ public class PDF extends BodyTagImpl {
 				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
 			}
 		}
+		this.info = doc.getInfo();
+		doActionSetInfo();
 	}
 
 	private void doActionAddHeaderFooter(boolean isHeader) throws PageException, IOException, DocumentException {
@@ -865,7 +867,6 @@ public class PDF extends BodyTagImpl {
 
 		// supress whitespace
 		text = suppressWhiteSpace(text);
-		System.out.println("++" + font.getFamilyname() + ":" + font.getSize());
 		Phrase p = new Phrase(text, font);
 		return p;
 	}
