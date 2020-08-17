@@ -353,7 +353,7 @@ public class PDFUtil {
 			PDDocument document = new PDDocument();
 			p = it.next();
 			sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
-			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximun page size is [" + n + "]");
+			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
 			document.addPage((PDPage) pdDoc.getDocumentCatalog().getAllPages().get(p - 1));
 			String text = stripper.getText(document);
 			sb.append(text);
