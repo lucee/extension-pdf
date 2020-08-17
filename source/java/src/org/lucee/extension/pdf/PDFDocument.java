@@ -86,8 +86,9 @@ public abstract class PDFDocument {
 	public static final Dimension PAGETYPE_CUSTOM = new Dimension(1, 1);
 
 	// orientation
-	public static final String ORIENTATION_LANDSCAPE = "landscape";
-	public static final String ORIENTATION_PORTRAIT = "portrait";
+	public static final int ORIENTATION_UNDEFINED = 0;
+	public static final int ORIENTATION_LANDSCAPE = 1;
+	public static final int ORIENTATION_PORTRAIT = 2;
 
 	// encryption
 	public static final int ENC_NONE = 0;
@@ -129,7 +130,7 @@ public abstract class PDFDocument {
 	// a cfdocument or a cfdocumentsection. We only want the former to have a
 	// default, so we will set it in Document instead, because Document is aware
 	// of the context.
-	protected String orientation = null;
+	protected int orientation = ORIENTATION_UNDEFINED;
 
 	protected boolean backgroundvisible;
 	protected boolean fontembed = true;
@@ -254,7 +255,7 @@ public abstract class PDFDocument {
 		}
 	}
 
-	public String getOrientation() {
+	public int getOrientation() {
 		return this.orientation;
 	}
 
@@ -263,25 +264,21 @@ public abstract class PDFDocument {
 	 * @throws PageException
 	 */
 	public void setOrientation(String strOrientation) throws PageException {
-		if (strOrientation != ORIENTATION_LANDSCAPE && strOrientation != ORIENTATION_PORTRAIT) {
-			String err = String.format(
-					"invalid orientation [%s], valid orientations are [%s,%s]",
-					strOrientation,
-					ORIENTATION_PORTRAIT,
-					ORIENTATION_LANDSCAPE
-				);
-			throw engine.getExceptionUtil().createApplicationException(err);
-		}
-		setOrientationNoCheck(strOrientation);
+		if (Util.isEmpty(strOrientation, true)) return;
+		strOrientation = strOrientation.trim();
+		if ("portrait".equalsIgnoreCase(strOrientation)) setOrientation(ORIENTATION_PORTRAIT);
+		else if ("landscape".equalsIgnoreCase(strOrientation)) setOrientation(ORIENTATION_LANDSCAPE);
+		else throw engine.getExceptionUtil().createApplicationException("invalid orientation [" + strOrientation + "], valid orientations are [portrait,landscape]");
 	}
 
 	/**
-	 * Set the orientation, without any parameter checking. Use this when the
-	 * calling method cannot throw exceptions, and be careful!
+	 * Set the orientation, without any parameter checking. Use this when the calling method cannot
+	 * throw exceptions, and be careful!
+	 * 
 	 * @param orientation the orientation to set. ("portrait" or "landscape")
 	 */
-	public void setOrientationNoCheck(String strOrientation) {
-		this.orientation = strOrientation;
+	public void setOrientation(int orientation) {
+		this.orientation = orientation;
 	}
 
 	/**

@@ -125,7 +125,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			// Set default orientation for cfdocument. This happens here, instead of
 			// in PDFDocument's property declarations because we only want to set it for
 			// PDFDocuments that represent top-level cfdocuments, not cfdocumentsections.
-			_document.setOrientationNoCheck(PDFDocument.ORIENTATION_PORTRAIT);
+			_document.setOrientation(PDFDocument.ORIENTATION_PORTRAIT);
 		}
 		return _document;
 	}
@@ -534,8 +534,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 		// Apply cfdocument's orientation to cfdocumentsections that don't have one
 		// specified.
-		if (document.getOrientation() == null) {
-			document.setOrientationNoCheck(getPDFDocument().getOrientation());
+		if (document.getOrientation() == PDFDocument.ORIENTATION_UNDEFINED) {
+			document.setOrientation(getPDFDocument().getOrientation());
 		}
 
 		documents.add(document);
@@ -847,7 +847,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		}
 	}
 
-	private Dimension getDimension(String orientation) throws PageException {
+	private Dimension getDimension(int orientation) throws PageException {
 		// page size custom
 		Dimension dim = pagetype;
 		if (isCustom(pagetype)) {
@@ -856,7 +856,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			dim = new Dimension(PDFDocument.toPoint(pagewidth, unitFactor), PDFDocument.toPoint(pageheight, unitFactor));
 		}
 		// page orientation
-		if (orientation.equals(PDFDocument.ORIENTATION_LANDSCAPE)) {
+		if (orientation == PDFDocument.ORIENTATION_LANDSCAPE) {
 			dim = new Dimension(dim.height, dim.width);
 		}
 		return dim;
@@ -877,6 +877,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	public void hasBody(boolean hasBody) {
 
 	}
+
 	/**
 	 * @param orientation the orientation to set @throws PageException
 	 */
