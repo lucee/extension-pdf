@@ -92,7 +92,7 @@ public final class DocumentItem extends BodyTagImpl {
 
 	@Override
 	public void doInitBody() throws PageException {
-		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) setPageInfo();
+		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) {
 			setPageInfo();
 			offset = 0;
 		}

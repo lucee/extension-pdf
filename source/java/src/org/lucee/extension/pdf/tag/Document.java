@@ -164,31 +164,52 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			if (selectedType == PDFDocument.TYPE_NONE) {
 				// No type was specified in the tag attributes, so use the application's default type.
 				_document = PDFDocument.newInstance(getApplicationSettings().getType());
-			} else {
+			}
+			else {
 				_document = PDFDocument.newInstance(selectedType);
 			}
 
 			// Apply all of the tag attributes whose values we've been storing
 			// TODO: Make sure no set*() calls can be made after this has happened.
-			if (attrAuthPassword != null)		{ _document.setAuthPassword(attrAuthPassword); }
-			if (attrAuthUser != null)				{ _document.setAuthUser(attrAuthUser); }
-																				_document.setBookmark(attrBookmark);
-			if (attrFontdirectory != null)	{	_document.setFontDirectory(attrFontdirectory); }
-																				_document.setFontembed(attrFontembed);
-																				_document.setHtmlBookmark(attrHtmlbookmark);
-																				_document.setLocalUrl(attrLocalUrl);
-																				_document.setMargintop(attrMargintop);
-																				_document.setMarginbottom(attrMarginbottom);
-																				_document.setMarginleft(attrMarginleft);
-																				_document.setMarginright(attrMarginright);
-			if (attrMimetype != null)				{ _document.setMimetype(attrMimetype); }
-			if (attrProxyHost != null)			{ _document.setProxyserver(attrProxyHost); }
-																				_document.setProxyport((int) attrProxyPort);
-			if (attrProxyUser != null)			{ _document.setProxyuser(attrProxyUser); }
-			if (attrProxyPassword != null)	{ _document.setProxypassword(attrProxyPassword); }
-			if (attrSrc != null)						{ _document.setSrc(attrSrc); }
-			if (attrSrcfile != null)				{ _document.setSrcfile(attrSrcfile); }
-			if (attrUserAgent != null)			{ _document.setUserAgent(attrUserAgent); }
+			if (attrAuthPassword != null) {
+				_document.setAuthPassword(attrAuthPassword);
+			}
+			if (attrAuthUser != null) {
+				_document.setAuthUser(attrAuthUser);
+			}
+			_document.setBookmark(attrBookmark);
+			if (attrFontdirectory != null) {
+				_document.setFontDirectory(attrFontdirectory);
+			}
+			_document.setFontembed(attrFontembed);
+			_document.setHtmlBookmark(attrHtmlbookmark);
+			_document.setLocalUrl(attrLocalUrl);
+			_document.setMargintop(attrMargintop);
+			_document.setMarginbottom(attrMarginbottom);
+			_document.setMarginleft(attrMarginleft);
+			_document.setMarginright(attrMarginright);
+			if (attrMimetype != null) {
+				_document.setMimetype(attrMimetype);
+			}
+			if (attrProxyHost != null) {
+				_document.setProxyserver(attrProxyHost);
+			}
+			_document.setProxyport((int) attrProxyPort);
+			if (attrProxyUser != null) {
+				_document.setProxyuser(attrProxyUser);
+			}
+			if (attrProxyPassword != null) {
+				_document.setProxypassword(attrProxyPassword);
+			}
+			if (attrSrc != null) {
+				_document.setSrc(attrSrc);
+			}
+			if (attrSrcfile != null) {
+				_document.setSrcfile(attrSrcfile);
+			}
+			if (attrUserAgent != null) {
+				_document.setUserAgent(attrUserAgent);
+			}
 		}
 		return _document;
 	}
@@ -291,13 +312,17 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @throws PageException
 	 */
 	public void setType(String type) throws PageException {
+		if (Util.isEmpty(type, true)) return;
+
 		type = type.trim().toLowerCase();
 
-		if ("classic".equals(type)) {
+		if ("classic".equals(type) || "pd4ml".equals(type)) {
 			this.selectedType = PDFDocument.TYPE_PD4ML;
-		} else if ("modern".equals(type)) {
+		}
+		else if ("modern".equals(type) || "fs".equals(type)) {
 			this.selectedType = PDFDocument.TYPE_FS;
-		} else {
+		}
+		else {
 			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + selectedType + "], only the following engines are supported [classic, modern]");
 		}
 	}
