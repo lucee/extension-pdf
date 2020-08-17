@@ -5,17 +5,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.extension.pdf.tag;
 
@@ -65,7 +65,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * set the value proxyserver Host name or IP address of a proxy server.
-	 * 
+	 *
 	 * @param proxyserver value to set
 	 **/
 	public void setProxyserver(String proxyserver) {
@@ -76,7 +76,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	 * set the value proxyport The port number on the proxy server from which the object is requested.
 	 * Default is 80. When used with resolveURL, the URLs of retrieved documents that specify a port
 	 * number are automatically resolved to preserve links in the retrieved document.
-	 * 
+	 *
 	 * @param proxyport value to set
 	 **/
 	public void setProxyport(double proxyport) {
@@ -85,7 +85,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * set the value username When required by a proxy server, a valid username.
-	 * 
+	 *
 	 * @param proxyuser value to set
 	 **/
 	public void setProxyuser(String proxyuser) {
@@ -94,7 +94,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * set the value password When required by a proxy server, a valid password.
-	 * 
+	 *
 	 * @param proxypassword value to set
 	 **/
 	public void setProxypassword(String proxypassword) {
@@ -127,6 +127,13 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	 */
 	public void setMargintop(double margintop) {
 		getPDFDocument().setMargintop(margintop);
+	}
+
+	/**
+	 * @param orientation the orientation to set @throws PageException
+	 */
+	public void setOrientation(String strOrientation) throws PageException {
+		getPDFDocument().setOrientation(strOrientation);
 	}
 
 	/**
@@ -234,7 +241,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * sets if has body or not
-	 * 
+	 *
 	 * @param hasBody
 	 */
 	public void hasBody(boolean hasBody) {

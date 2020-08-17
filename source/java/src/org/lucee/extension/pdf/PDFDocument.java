@@ -4,17 +4,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.extension.pdf;
 
@@ -85,6 +85,10 @@ public abstract class PDFDocument {
 	public static final Dimension PAGETYPE_B5_JIS = new Dimension(516, 728);
 	public static final Dimension PAGETYPE_CUSTOM = new Dimension(1, 1);
 
+	// orientation
+	public static final String ORIENTATION_LANDSCAPE = "landscape";
+	public static final String ORIENTATION_PORTRAIT = "portrait";
+
 	// encryption
 	public static final int ENC_NONE = 0;
 	public static final int ENC_40BIT = 1;
@@ -120,6 +124,12 @@ public abstract class PDFDocument {
 
 	protected int mimeType = MIMETYPE_OTHER;
 	protected Charset charset = null;
+
+	// No default value applied here, because a PDFDocument may represent either
+	// a cfdocument or a cfdocumentsection. We only want the former to have a
+	// default, so we will set it in Document instead, because Document is aware
+	// of the context.
+	protected String orientation = null;
 
 	protected boolean backgroundvisible;
 	protected boolean fontembed = true;
@@ -244,9 +254,39 @@ public abstract class PDFDocument {
 		}
 	}
 
+	public String getOrientation() {
+		return this.orientation;
+	}
+
+	/**
+	 * @param orientation the orientation to set
+	 * @throws PageException
+	 */
+	public void setOrientation(String strOrientation) throws PageException {
+		if (strOrientation != ORIENTATION_LANDSCAPE && strOrientation != ORIENTATION_PORTRAIT) {
+			String err = String.format(
+					"invalid orientation [%s], valid orientations are [%s,%s]",
+					strOrientation,
+					ORIENTATION_PORTRAIT,
+					ORIENTATION_LANDSCAPE
+				);
+			throw engine.getExceptionUtil().createApplicationException(err);
+		}
+		setOrientationNoCheck(strOrientation);
+	}
+
+	/**
+	 * Set the orientation, without any parameter checking. Use this when the
+	 * calling method cannot throw exceptions, and be careful!
+	 * @param orientation the orientation to set. ("portrait" or "landscape")
+	 */
+	public void setOrientationNoCheck(String strOrientation) {
+		this.orientation = strOrientation;
+	}
+
 	/**
 	 * set the value proxyserver Host name or IP address of a proxy server.
-	 * 
+	 *
 	 * @param proxyserver value to set
 	 **/
 	public final void setProxyserver(String proxyserver) {
@@ -257,7 +297,7 @@ public abstract class PDFDocument {
 	 * set the value proxyport The port number on the proxy server from which the object is requested.
 	 * Default is 80. When used with resolveURL, the URLs of retrieved documents that specify a port
 	 * number are automatically resolved to preserve links in the retrieved document.
-	 * 
+	 *
 	 * @param proxyport value to set
 	 **/
 	public final void setProxyport(int proxyport) {
@@ -266,7 +306,7 @@ public abstract class PDFDocument {
 
 	/**
 	 * set the value username When required by a proxy server, a valid username.
-	 * 
+	 *
 	 * @param proxyuser value to set
 	 **/
 	public final void setProxyuser(String proxyuser) {
@@ -275,7 +315,7 @@ public abstract class PDFDocument {
 
 	/**
 	 * set the value password When required by a proxy server, a valid password.
-	 * 
+	 *
 	 * @param proxypassword value to set
 	 **/
 	public final void setProxypassword(String proxypassword) {

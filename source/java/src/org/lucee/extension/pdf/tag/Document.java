@@ -5,17 +5,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.extension.pdf.tag;
 
@@ -67,7 +67,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private Dimension pagetype = PDFDocument.PAGETYPE_LETTER;
 	private double pageheight = 0;
 	private double pagewidth = 0;
-	private boolean isLandscape = false;
 
 	private double unitFactor = PDFDocument.UNIT_FACTOR_IN;
 	private int encryption = PDFDocument.ENC_NONE;
@@ -102,7 +101,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		pagetype = PDFDocument.PAGETYPE_LETTER;
 		pageheight = 0;
 		pagewidth = 0;
-		isLandscape = false;
 		unitFactor = PDFDocument.UNIT_FACTOR_IN;
 		encryption = PDFDocument.ENC_NONE;
 		ownerpassword = null;
@@ -121,8 +119,13 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	@Override
 	public PDFDocument getPDFDocument() {
-		if (_document == null) { // second round this is already existing
+		if (_document == null) {
 			_document = PDFDocument.newInstance(getApplicationSettings().getType());
+
+			// Set default orientation for cfdocument. This happens here, instead of
+			// in PDFDocument's property declarations because we only want to set it for
+			// PDFDocuments that represent top-level cfdocuments, not cfdocumentsections.
+			_document.setOrientationNoCheck(PDFDocument.ORIENTATION_PORTRAIT);
 		}
 		return _document;
 	}
@@ -155,7 +158,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * set the value proxyserver Host name or IP address of a proxy server.
-	 * 
+	 *
 	 * @param proxyserver value to set
 	 **/
 	public void setProxyserver(String proxyserver) {
@@ -170,7 +173,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * set the value proxyport The port number on the proxy server from which the object is requested.
 	 * Default is 80. When used with resolveURL, the URLs of retrieved documents that specify a port
 	 * number are automatically resolved to preserve links in the retrieved document.
-	 * 
+	 *
 	 * @param proxyport value to set
 	 **/
 	public void setProxyport(double proxyport) {
@@ -179,7 +182,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * set the value username When required by a proxy server, a valid username.
-	 * 
+	 *
 	 * @param proxyuser value to set
 	 **/
 	public void setProxyuser(String proxyuser) {
@@ -188,7 +191,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * set the value password When required by a proxy server, a valid password.
-	 * 
+	 *
 	 * @param proxypassword value to set
 	 **/
 	public void setProxypassword(String proxypassword) {
@@ -294,18 +297,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	public void setPagewidth(double pagewidth) throws PageException {
 		if (pagewidth < 1) throw engine.getExceptionUtil().createApplicationException("pagewidth must be a positive number");
 		this.pagewidth = pagewidth;
-	}
-
-	/**
-	 * @param orientation the orientation to set
-	 * @throws PageException
-	 */
-	public void setOrientation(String strOrientation) throws PageException {
-		strOrientation = trimAndLower(strOrientation);
-		if ("portrait".equals(strOrientation)) isLandscape = false;
-		else if ("landscape".equals(strOrientation)) isLandscape = true;
-		else throw engine.getExceptionUtil().createApplicationException("invalid orientation [" + strOrientation + "], valid orientations are [portrait,landscape]");
-
 	}
 
 	public void setMargin(Object margin) throws PageException {
@@ -541,6 +532,12 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		document.setFontDirectory(getPDFDocument().getFontDirectory());
 		document.setFontembed(getPDFDocument().getFontembed() ? PDFDocument.FONT_EMBED_YES : PDFDocument.FONT_EMBED_NO);
 
+		// Apply cfdocument's orientation to cfdocumentsections that don't have one
+		// specified.
+		if (document.getOrientation() == null) {
+			document.setOrientationNoCheck(getPDFDocument().getOrientation());
+		}
+
 		documents.add(document);
 	}
 
@@ -685,6 +682,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		PdfReader[] pdfReaders = new PdfReader[pdfDocs.length];
 		Iterator<PDFDocument> it = documents.iterator();
 		int index = 0, pageOffset = 0, count = 0, pages;
+		Dimension dimension = null;
+
 		// generate pdf with pd4ml
 
 		while (it.hasNext()) {
@@ -692,13 +691,17 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			pdfDocs[index] = it.next();
 			pdfDocs[index].setPageOffset(pageOffset);
 
+			// Set the dimension based on the specified orientation of each PDF doc.
+			// This allows for mixed-orientation PDFs.
+			dimension = getDimension(pdfDocs[index].getOrientation());
+
 			int multiCount = getMultipleHF(pdfDocs[index]);
 			// multiple header/footer
 			if (multiCount > 1) {
 				PdfReader[] tmp = new PdfReader[multiCount];
 				for (int i = 0; i < multiCount; i++) {
 					pdfDocs[index].setHFIndex(i);
-					tmp[i] = new PdfReader(pdfDocs[index].render(getDimension(), unitFactor, pageContext, doHtmlBookmarks));
+					tmp[i] = new PdfReader(pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks));
 				}
 				try {
 					pdfReaders[index] = merge(tmp);
@@ -709,12 +712,11 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 						throw eng.getExceptionUtil()
 								.createApplicationException("attribute evalAtPrint is not fully supported with the classic PDF Engine, please use the regular PDF Engine.");
 					}
-
 					throw eng.getExceptionUtil().createPageRuntimeException(eng.getCastUtil().toPageException(e));
 				}
 			}
 			else {
-				pdfReaders[index] = new PdfReader(pdfDocs[index].render(getDimension(), unitFactor, pageContext, doHtmlBookmarks));
+				pdfReaders[index] = new PdfReader(pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks));
 			}
 			pdfDocs[index].setHFIndex(0);
 
@@ -845,7 +847,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		}
 	}
 
-	private Dimension getDimension() throws PageException {
+	private Dimension getDimension(String orientation) throws PageException {
 		// page size custom
 		Dimension dim = pagetype;
 		if (isCustom(pagetype)) {
@@ -854,7 +856,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			dim = new Dimension(PDFDocument.toPoint(pagewidth, unitFactor), PDFDocument.toPoint(pageheight, unitFactor));
 		}
 		// page orientation
-		if (isLandscape) dim = new Dimension(dim.height, dim.width);
+		if (orientation.equals(PDFDocument.ORIENTATION_LANDSCAPE)) {
+			dim = new Dimension(dim.height, dim.width);
+		}
 		return dim;
 	}
 
@@ -867,11 +871,17 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	/**
 	 * sets if has body or not
-	 * 
+	 *
 	 * @param hasBody
 	 */
 	public void hasBody(boolean hasBody) {
 
+	}
+	/**
+	 * @param orientation the orientation to set @throws PageException
+	 */
+	public void setOrientation(String strOrientation) throws PageException {
+		getPDFDocument().setOrientation(strOrientation);
 	}
 
 	public static String trimAndLower(String str) {

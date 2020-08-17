@@ -419,6 +419,13 @@ Determines if the contents of the cfdocumentitem tag body has to be evaluated at
 		</attribute>
 		<attribute>
 			<type>string</type>
+			<name>orientation</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>is the orientation landscape or portrait</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
 			<name>src</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
