@@ -710,7 +710,8 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "write", "source", source);
 		required("pdf", "write", "destination", destination);
 
-		if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 		// PdfReader pr = doc.getPdfReader();
