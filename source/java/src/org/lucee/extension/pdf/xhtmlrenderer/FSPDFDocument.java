@@ -112,7 +112,6 @@ public final class FSPDFDocument extends PDFDocument {
 		Document doc;
 		if (!Util.isEmpty(body, true)) {
 			doc = parseHTML(XMLUtil.toInputSource(body), margin, dimension, pageOffset, true);
-			String raw = XMLUtil.toString(doc, false, true, null, null, null);
 			createPDF(pc, renderer, doc, os, null);
 		}
 		// srcfile

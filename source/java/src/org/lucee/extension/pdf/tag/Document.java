@@ -649,10 +649,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		if (pdf == null) { // first run of the tag
 			getPDFDocument().setBody(bodyContent.getString());
 		}
-		try {
-			bodyContent.clear();
-		}
-		catch (IOException e) {}
+		/*
+		 * try { bodyContent.clear(); } catch (IOException e) {}
+		 */
 		try {
 			return _doAfterBody();
 		}

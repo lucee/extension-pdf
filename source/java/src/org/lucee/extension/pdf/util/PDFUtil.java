@@ -23,10 +23,10 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +34,8 @@ import java.util.Set;
 import org.apache.pdfbox.exceptions.CryptographyException;
 import org.apache.pdfbox.exceptions.InvalidPasswordException;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.util.PDFText2HTML;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.util.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.img.PDF2ImageICEpdf;
 import org.omg.CORBA.portable.ApplicationException;
@@ -332,29 +333,47 @@ public class PDFUtil {
 
 	public static Object extractText(PDFStruct doc, Set<Integer> pageNumbers) throws IOException, CryptographyException, InvalidPasswordException {
 		PDDocument pdDoc = doc.toPDDocument();
-		// PDPageNode pages = pdDoc.getDocumentCatalog().getPages();
+		// PDDocument newDocument = new PDDocument();
+		// List pages = pdDoc.getDocumentCatalog().getAllPages();
 		// pages.
 		// pdDoc.getDocumentCatalog().
+		int n = pdDoc.getPageCount();
+		Iterator<Integer> it = pageNumbers.iterator();
+		// PDFTextStripper textStripper=new PDFTextStripper();
+		int p;
+		StringBuilder sb = new StringBuilder();
 
-		// Iterator<Integer> it = pageNumbers.iterator();
-		// int p;
-		// while(it.hasNext()){
-		// p=it.next().intValue();
+		PDFTextStripper stripper = new PDFTextStripper();
 
-		// pdDoc.getDocumentCatalog().getPages()
-		// }
+		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+		sb.append("<DocText>");
+		sb.append("<TextPerPage>");
+
+		while (it.hasNext()) {
+			PDDocument document = new PDDocument();
+			p = it.next();
+			sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
+			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+			document.addPage((PDPage) pdDoc.getDocumentCatalog().getAllPages().get(p - 1));
+			String text = stripper.getText(document);
+			sb.append(text);
+			sb.append("</page>");
+		}
+
+		sb.append("</TextPerPage>");
+		sb.append("</DocText>");
 
 		// print.o(pages);
 
 		// pdDoc.
-
 		// PDFTextStripperByArea stripper = new PDFTextStripperByArea();
 		// PDFHighlighter stripper = new PDFHighlighter();
-		PDFText2HTML stripper = new PDFText2HTML("UDF-8");// TODO pass in encoding
+		// PDFText2HTML stripper = new PDFText2HTML("UDF-8");// TODO pass in encoding
 		// PDFTextStripper stripper = new PDFTextStripper();
-		StringWriter writer = new StringWriter();
-		stripper.writeText(pdDoc, writer);
+		// StringWriter writer = new StringWriter();
+		// stripper.writeText(document, writer);
 
-		return writer.toString();
+		return sb.toString();
+		// return pdDoc.getDocumentCatalog().getAllPages().get(2);
 	}
 }

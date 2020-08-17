@@ -22,6 +22,7 @@ package org.lucee.extension.pdf.pd4ml;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -62,26 +63,49 @@ public class PDFByReflection {
 			// File("/Users/mic/Downloads/java/pd4ml/fullversion/pd4ml.volume.310/lib/pd4ml.jar").toURL()},this.getClass().getClassLoader());
 			if (classLoader == null) {
 				Resource temp = config.getConfigDir().getRealResource("temp");
+
 				Resource file1 = temp.getRealResource("resource.lmdp");
 				Resource file2 = temp.getRealResource("css.lmdp");
 				Resource file3 = temp.getRealResource("fonts.lmdp");
 
 				if (!file1.exists() || file1.length() == 0 || !file2.exists() || file2.length() == 0 || !file3.exists() || file3.length() == 0) {
-					file1.delete();
-					file2.delete();
-					file3.delete();
-					// ss_css2.jar
 
 					ResourceUtil resUtil = engine.getResourceUtil();
 					resUtil.removeChildrenSilent(temp, resUtil.getExtensionResourceFilter(".lmdp", false));
 
-					file1.createFile(true);
-					file2.createFile(true);
-					file3.createFile(true);
+					// resource
+					file1.delete();
+					try {
+						file1.createFile(true);
+					}
+					catch (IOException ioe) {
+						file1 = temp.getRealResource("resource-" + System.currentTimeMillis() + ".lmdp");
+						file1.createFile(true);
+					}
 					InputStream jar1 = getClass().getResourceAsStream("/org/lucee/extension/pdf/res/pd4ml.jar");
 					io.copy(jar1, file1, true);
+
+					// css
+					file2.delete();
+					try {
+						file2.createFile(true);
+					}
+					catch (IOException ioe) {
+						file2 = temp.getRealResource("css-" + System.currentTimeMillis() + ".lmdp");
+						file2.createFile(true);
+					}
 					InputStream jar2 = getClass().getResourceAsStream("/org/lucee/extension/pdf/res/ss_css2.jar");
 					io.copy(jar2, file2, true);
+
+					// fonts
+					file3.delete();
+					try {
+						file3.createFile(true);
+					}
+					catch (IOException ioe) {
+						file3 = temp.getRealResource("fonts-" + System.currentTimeMillis() + ".lmdp");
+						file3.createFile(true);
+					}
 					InputStream jar3 = getClass().getResourceAsStream("/org/lucee/extension/pdf/res/fonts.jar");
 					io.copy(jar3, file3, true);
 

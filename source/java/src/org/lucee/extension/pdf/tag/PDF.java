@@ -693,7 +693,6 @@ public class PDF extends BodyTagImpl {
 			else if (ACTION_OPEN == action) doActionProtect(false);
 			else if (ACTION_THUMBNAIL == action) doActionThumbnail();
 			else if (ACTION_EXTRACT_TEXT == action) {
-				if (true) throw engine.getExceptionUtil().createApplicationException("not supported yet, see https://issues.jboss.org/browse/LUCEE-1559");
 				doActionExtractText();
 			}
 
@@ -711,7 +710,8 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "write", "source", source);
 		required("pdf", "write", "destination", destination);
 
-		if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 		// PdfReader pr = doc.getPdfReader();
@@ -735,6 +735,8 @@ public class PDF extends BodyTagImpl {
 				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
 			}
 		}
+		this.info = doc.getInfo();
+		doActionSetInfo();
 	}
 
 	private void doActionAddHeaderFooter(boolean isHeader) throws PageException, IOException, DocumentException {
@@ -866,7 +868,6 @@ public class PDF extends BodyTagImpl {
 
 		// supress whitespace
 		text = suppressWhiteSpace(text);
-		System.out.println("++" + font.getFamilyname() + ":" + font.getSize());
 		Phrase p = new Phrase(text, font);
 		return p;
 	}
@@ -1393,20 +1394,12 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "extractText", "name", name, true);
 
 		PDFStruct doc = toPDFDocument(source, password, null);
-		doc.setPages(pages);
+		PdfReader reader = doc.getPdfReader();
+		int len = reader.getNumberOfPages();
+		if (pages == null) pages = "1-" + len + "";
+		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		pageContext.setVariable(name, PDFUtil.extractText(doc, doc.getPages()));
-		/*
-		 * <cfpdf required action="extracttext" <!---extract all the words in the PDF.---> source= "absolute
-		 * or relative path of the PDF file|PDF document variable| cfdocument variable" pages = "*"
-		 * <!----page numbers from where the text needs to be extracted from the PDF document--->
-		 * 
-		 * optional addquads = "add the position or quadrants for the text in the PDF" honourspaces =
-		 * "true|false" overwrite = "true" <!---Overwrite the specified object in the PDF document--->
-		 * password = "" <!--- PDF document password---> type = "string|xml" <!---format in which the text
-		 * needs to be extracted---> one of the following: destination = "PDF output file pathname" name =
-		 * "PDF document variable" usestructure = "true|false"
-		 */
+		pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet));
 	}
 
 	private Object allowed(boolean encrypted, int permissions, int permission) {
