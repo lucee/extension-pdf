@@ -91,14 +91,14 @@ public final class DocumentItem extends BodyTagImpl {
 	}
 
 	@Override
-	public void doInitBody() {
-		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) {
+	public void doInitBody() throws PageException {
+		if ((TYPE_HEADER == type || TYPE_FOOTER == type)) setPageInfo();
 			setPageInfo();
 			offset = 0;
 		}
 	}
 
-	private void setPageInfo() {
+	private void setPageInfo() throws PageException {
 		Struct cfdoc = engine.getCreationUtil().createStruct(); // TODO make a read only struct
 		if (second && evalAtPrint) {
 			PDFDocument currPD = getPDFDocument();
@@ -169,7 +169,7 @@ public final class DocumentItem extends BodyTagImpl {
 		return EVAL_PAGE;
 	}
 
-	private void provideDocumentItem() {
+	private void provideDocumentItem() throws PageException {
 		// get Document Tag
 		Tag parent = getParent();
 		while (parent != null && !(parent instanceof Document) && !(parent instanceof DocumentSection)) {
@@ -215,7 +215,7 @@ public final class DocumentItem extends BodyTagImpl {
 		this.name = name;
 	}
 
-	private PDFDocument getPDFDocument() {
+	private PDFDocument getPDFDocument() throws PageException {
 		if (_document == null) {
 			_document = getAbsDoc().getPDFDocument();
 		}

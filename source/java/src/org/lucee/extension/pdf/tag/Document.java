@@ -77,7 +77,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	// TODO impl. tag Document backgroundvisible,fontembed,scale
 	private boolean backgroundvisible;
-	private int fontembed = PDFDocument.FONT_EMBED_YES;
 	private File fontdir = null;
 
 	private int permissions = 0;
@@ -87,6 +86,29 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private ApplicationSettings applicationSettings = null;
 	private byte[] pdf;
 	private int sectionCounter = 0;
+
+	private int selectedType = PDFDocument.TYPE_NONE;
+
+	// Store values of attributes for subsequent usage
+	private String attrAuthPassword = null;
+	private String attrAuthUser = null;
+	private boolean attrBookmark = false;
+	private File attrFontdirectory = null;
+	private int attrFontembed = PDFDocument.FONT_EMBED_YES;
+	private boolean attrHtmlbookmark = false;
+	private boolean attrLocalUrl = false;
+	private double attrMarginbottom = -1;
+	private double attrMarginleft = -1;
+	private double attrMarginright = -1;
+	private double attrMargintop = -1;
+	private String attrMimetype = null;
+	private String attrProxyHost = null;
+	private String attrProxyPassword = null;
+	private double attrProxyPort = 80;
+	private String attrProxyUser = null;
+	private String attrSrc = null;
+	private Resource attrSrcfile = null;
+	private String attrUserAgent = null;
 
 	public Document() {
 		this._document = null;
@@ -102,7 +124,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		pageheight = 0;
 		pagewidth = 0;
 		unitFactor = PDFDocument.UNIT_FACTOR_IN;
-		encryption = PDFDocument.ENC_NONE;
 		ownerpassword = null;
 		userpassword = "";
 		permissions = 0;
@@ -110,22 +131,64 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		documents.clear();
 		_document = null;
 		backgroundvisible = false;
-		fontembed = PDFDocument.FONT_EMBED_YES;
 		fontdir = null;
 		applicationSettings = null;
 		this.pdf = null;
 		sectionCounter = 0;
+		selectedType = PDFDocument.TYPE_NONE;
+
+		attrAuthPassword = null;
+		attrAuthUser = null;
+		attrBookmark = false;
+		attrFontdirectory = null;
+		attrFontembed = PDFDocument.FONT_EMBED_YES;
+		attrHtmlbookmark = false;
+		attrLocalUrl = false;
+		attrMarginbottom = -1;
+		attrMarginleft = -1;
+		attrMarginright = -1;
+		attrMargintop = -1;
+		attrMimetype = null;
+		attrProxyHost = null;
+		attrProxyPassword = null;
+		attrProxyPort = 80;
+		attrProxyUser = null;
+		attrSrc = null;
+		attrSrcfile = null;
+		attrUserAgent = null;
 	}
 
 	@Override
-	public PDFDocument getPDFDocument() {
+	public PDFDocument getPDFDocument() throws PageException {
 		if (_document == null) {
-			_document = PDFDocument.newInstance(getApplicationSettings().getType());
+			if (selectedType == PDFDocument.TYPE_NONE) {
+				// No type was specified in the tag attributes, so use the application's default type.
+				_document = PDFDocument.newInstance(getApplicationSettings().getType());
+			} else {
+				_document = PDFDocument.newInstance(selectedType);
+			}
 
-			// Set default orientation for cfdocument. This happens here, instead of
-			// in PDFDocument's property declarations because we only want to set it for
-			// PDFDocuments that represent top-level cfdocuments, not cfdocumentsections.
-			_document.setOrientation(PDFDocument.ORIENTATION_PORTRAIT);
+			// Apply all of the tag attributes whose values we've been storing
+			// TODO: Make sure no set*() calls can be made after this has happened.
+			if (attrAuthPassword != null)		{ _document.setAuthPassword(attrAuthPassword); }
+			if (attrAuthUser != null)				{ _document.setAuthUser(attrAuthUser); }
+																				_document.setBookmark(attrBookmark);
+			if (attrFontdirectory != null)	{	_document.setFontDirectory(attrFontdirectory); }
+																				_document.setFontembed(attrFontembed);
+																				_document.setHtmlBookmark(attrHtmlbookmark);
+																				_document.setLocalUrl(attrLocalUrl);
+																				_document.setMargintop(attrMargintop);
+																				_document.setMarginbottom(attrMarginbottom);
+																				_document.setMarginleft(attrMarginleft);
+																				_document.setMarginright(attrMarginright);
+			if (attrMimetype != null)				{ _document.setMimetype(attrMimetype); }
+			if (attrProxyHost != null)			{ _document.setProxyserver(attrProxyHost); }
+																				_document.setProxyport((int) attrProxyPort);
+			if (attrProxyUser != null)			{ _document.setProxyuser(attrProxyUser); }
+			if (attrProxyPassword != null)	{ _document.setProxypassword(attrProxyPassword); }
+			if (attrSrc != null)						{ _document.setSrc(attrSrc); }
+			if (attrSrcfile != null)				{ _document.setSrcfile(attrSrcfile); }
+			if (attrUserAgent != null)			{ _document.setUserAgent(attrUserAgent); }
 		}
 		return _document;
 	}
@@ -162,11 +225,11 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param proxyserver value to set
 	 **/
 	public void setProxyserver(String proxyserver) {
-		getPDFDocument().setProxyserver(proxyserver);
+		this.attrProxyHost = proxyserver;
 	}
 
 	public void setProxyhost(String proxyserver) {
-		getPDFDocument().setProxyserver(proxyserver);
+		this.attrProxyHost = proxyserver;
 	}
 
 	/**
@@ -177,7 +240,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param proxyport value to set
 	 **/
 	public void setProxyport(double proxyport) {
-		getPDFDocument().setProxyport((int) proxyport);
+		this.attrProxyPort = proxyport;
 	}
 
 	/**
@@ -186,7 +249,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param proxyuser value to set
 	 **/
 	public void setProxyuser(String proxyuser) {
-		getPDFDocument().setProxyuser(proxyuser);
+		this.attrProxyUser = proxyuser;
 	}
 
 	/**
@@ -195,7 +258,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param proxypassword value to set
 	 **/
 	public void setProxypassword(String proxypassword) {
-		getPDFDocument().setProxypassword(proxypassword);
+		this.attrProxyPassword = proxypassword;
 	}
 
 	public void setSaveasname(String saveAsName) {
@@ -206,21 +269,37 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param authUser the authUser to set
 	 */
 	public void setAuthuser(String authUser) {
-		getPDFDocument().setAuthUser(authUser);
+		this.attrAuthUser = authUser;
 	}
 
 	/**
 	 * @param authPassword the authPassword to set
 	 */
 	public void setAuthpassword(String authPassword) {
-		getPDFDocument().setAuthPassword(authPassword);
+		this.attrAuthPassword = authPassword;
 	}
 
 	/**
 	 * @param userAgent the userAgent to set
 	 */
 	public void setUseragent(String userAgent) {
-		getPDFDocument().setUserAgent(userAgent);
+		this.attrUserAgent = userAgent;
+	}
+
+	/**
+	 * @param type the PDF rendering method to use for this document (classic or modern)
+	 * @throws PageException
+	 */
+	public void setType(String type) throws PageException {
+		type = type.trim().toLowerCase();
+
+		if ("classic".equals(type)) {
+			this.selectedType = PDFDocument.TYPE_PD4ML;
+		} else if ("modern".equals(type)) {
+			this.selectedType = PDFDocument.TYPE_FS;
+		} else {
+			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + selectedType + "], only the following engines are supported [classic, modern]");
+		}
 	}
 
 	/**
@@ -302,23 +381,23 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	public void setMargin(Object margin) throws PageException {
 		if (engine.getDecisionUtil().isNumeric(margin)) {
 			double nbr = engine.getCastUtil().toDoubleValue(margin);
-			getPDFDocument().setMargintop(nbr);
-			getPDFDocument().setMarginbottom(nbr);
-			getPDFDocument().setMarginleft(nbr);
-			getPDFDocument().setMarginright(nbr);
+			this.attrMargintop = nbr;
+			this.attrMarginbottom = nbr;
+			this.attrMarginleft = nbr;
+			this.attrMarginright = nbr;
 		}
 		else {
 			Cast cast = engine.getCastUtil();
 			Struct sct = cast.toStruct(margin);
 
 			Object o = sct.get("top", null);
-			if (o != null) getPDFDocument().setMargintop(cast.toDoubleValue(o));
+			if (o != null) this.attrMargintop = cast.toDoubleValue(o);
 			o = sct.get("bottom", null);
-			if (o != null) getPDFDocument().setMarginbottom(cast.toDoubleValue(o));
+			if (o != null) this.attrMarginbottom = cast.toDoubleValue(o);
 			o = sct.get("left", null);
-			if (o != null) getPDFDocument().setMarginleft(cast.toDoubleValue(o));
+			if (o != null) this.attrMarginleft = cast.toDoubleValue(o);
 			o = sct.get("right", null);
-			if (o != null) getPDFDocument().setMarginright(cast.toDoubleValue(o));
+			if (o != null) this.attrMarginright = cast.toDoubleValue(o);
 		}
 	}
 
@@ -344,46 +423,46 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	public void setMarginbottom(double marginbottom) {
-		getPDFDocument().setMarginbottom(marginbottom);
+		this.attrMarginbottom = marginbottom;
 	}
 
 	/**
 	 * @param marginleft the marginleft to set
 	 */
 	public void setMarginleft(double marginleft) {
-		getPDFDocument().setMarginleft(marginleft);
+		this.attrMarginleft = marginleft;
 	}
 
 	/**
 	 * @param marginright the marginright to set
 	 */
 	public void setMarginright(double marginright) {
-		getPDFDocument().setMarginright(marginright);
+		this.attrMarginright = marginright;
 	}
 
 	/**
 	 * @param margintop the margintop to set
 	 */
 	public void setMargintop(double margintop) {
-		getPDFDocument().setMargintop(margintop);
+		this.attrMargintop = margintop;
 	}
 
 	/**
 	 * @param bookmark the bookmark to set
 	 */
 	public void setBookmark(boolean bookmark) {
-		getPDFDocument().setBookmark(bookmark);
+		this.attrBookmark = bookmark;
 	}
 
 	public void setHtmlbookmark(boolean bookmark) {
-		getPDFDocument().setHtmlBookmark(bookmark);
+		this.attrHtmlbookmark = bookmark;
 	}
 
 	/**
 	 * @param localUrl the localUrl to set
 	 */
 	public void setLocalurl(boolean localUrl) {
-		getPDFDocument().setLocalUrl(localUrl);
+		this.attrLocalUrl = localUrl;
 	}
 
 	/**
@@ -455,7 +534,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @throws PageException
 	 */
 	public void setSrc(String src) throws PageException {
-		getPDFDocument().setSrc(src);
+		this.attrSrc = src;
 	}
 
 	/**
@@ -464,7 +543,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	public void setSrcfile(String strSrcfile) throws PageException {
 		Resource srcfile = engine.getResourceUtil().toResourceExisting(pageContext, strSrcfile);
 		pageContext.getConfig().getSecurityManager().checkFileLocation(srcfile);
-		getPDFDocument().setSrcfile(srcfile);
+		this.attrSrcfile = srcfile;
 	}
 
 	/**
@@ -472,15 +551,15 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @throws PageException
 	 */
 	public void setMimetype(String strMimetype) throws PageException {
-		getPDFDocument().setMimetype(strMimetype);
+		this.attrMimetype = strMimetype;
 		strMimetype = strMimetype.toLowerCase().trim();
 	}
 
-	public void setHeader(PDFPageMark header) {
+	public void setHeader(PDFPageMark header) throws PageException {
 		getPDFDocument().setHeader(header);
 	}
 
-	public void setFooter(PDFPageMark footer) {
+	public void setFooter(PDFPageMark footer) throws PageException {
 		getPDFDocument().setFooter(footer);
 	}
 
@@ -494,16 +573,15 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		fontembed = fontembed.trim();
 		Boolean fe = engine.getCastUtil().toBoolean(fontembed, null);
 		if (fe == null) {
-			if ("selective".equalsIgnoreCase(fontembed)) this.fontembed = PDFDocument.FONT_EMBED_SELECCTIVE;
+			if ("selective".equalsIgnoreCase(fontembed)) this.attrFontembed = PDFDocument.FONT_EMBED_SELECCTIVE;
 			else throw engine.getExceptionUtil().createAbortException("invalid value for fontembed [" + fontembed + "], valid values for fontembed are [yes,no,selective]");
 		}
 		else if (fe.booleanValue()) {
-			this.fontembed = PDFDocument.FONT_EMBED_YES;
+			this.attrFontembed = PDFDocument.FONT_EMBED_YES;
 		}
 		else {
-			this.fontembed = PDFDocument.FONT_EMBED_NO;
+			this.attrFontembed = PDFDocument.FONT_EMBED_NO;
 		}
-		getPDFDocument().setFontembed(this.fontembed);
 	}
 
 	public void setFontdirectory(String fontDirectory) throws PageException {
@@ -514,10 +592,10 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		if (!(tmp instanceof File)) throw engine.getExceptionUtil().createAbortException("[" + tmp + "] need to be a local file.");
 		if (!tmp.isDirectory()) throw engine.getExceptionUtil().createAbortException("[" + tmp + "] is not a directory.");
 		fontdir = (File) tmp;
-		getPDFDocument().setFontDirectory(fontdir);
+		this.attrFontdirectory = fontdir;
 	}
 
-	public void addPDFDocument(PDFDocument document) {
+	public void addPDFDocument(PDFDocument document) throws PageException {
 		// set proxy settings
 		if (documents.contains(document)) return; // should never happen, just an insurance
 
