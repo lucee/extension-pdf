@@ -1344,6 +1344,8 @@ public class PDF extends BodyTagImpl {
 			Entry<Key, Object> e;
 			while (it.hasNext()) {
 				e = it.next();
+				if (e.getKey().equals("PageRotation") || e.getKey().equals("Pagesize")) continue;
+
 				moreInfo.put(engine.getStringUtil().ucFirst(e.getKey().getLowerString()), engine.getCastUtil().toString(e.getValue()));
 			}
 			// author

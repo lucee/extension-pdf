@@ -4,17 +4,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.extension.pdf;
 
@@ -85,6 +85,11 @@ public abstract class PDFDocument {
 	public static final Dimension PAGETYPE_B5_JIS = new Dimension(516, 728);
 	public static final Dimension PAGETYPE_CUSTOM = new Dimension(1, 1);
 
+	// orientation
+	public static final int ORIENTATION_UNDEFINED = 0;
+	public static final int ORIENTATION_LANDSCAPE = 1;
+	public static final int ORIENTATION_PORTRAIT = 2;
+
 	// encryption
 	public static final int ENC_NONE = 0;
 	public static final int ENC_40BIT = 1;
@@ -120,6 +125,12 @@ public abstract class PDFDocument {
 
 	protected int mimeType = MIMETYPE_OTHER;
 	protected Charset charset = null;
+
+	// No default value applied here, because a PDFDocument may represent either
+	// a cfdocument or a cfdocumentsection. We only want the former to have a
+	// default, so we will set it in Document instead, because Document is aware
+	// of the context.
+	protected int orientation = ORIENTATION_UNDEFINED;
 
 	protected boolean backgroundvisible;
 	protected boolean fontembed = true;
@@ -245,9 +256,35 @@ public abstract class PDFDocument {
 		}
 	}
 
+	public int getOrientation() {
+		return this.orientation;
+	}
+
+	/**
+	 * @param orientation the orientation to set
+	 * @throws PageException
+	 */
+	public void setOrientation(String strOrientation) throws PageException {
+		if (Util.isEmpty(strOrientation, true)) return;
+		strOrientation = strOrientation.trim();
+		if ("portrait".equalsIgnoreCase(strOrientation)) setOrientation(ORIENTATION_PORTRAIT);
+		else if ("landscape".equalsIgnoreCase(strOrientation)) setOrientation(ORIENTATION_LANDSCAPE);
+		else throw engine.getExceptionUtil().createApplicationException("invalid orientation [" + strOrientation + "], valid orientations are [portrait,landscape]");
+	}
+
+	/**
+	 * Set the orientation, without any parameter checking. Use this when the calling method cannot
+	 * throw exceptions, and be careful!
+	 * 
+	 * @param orientation the orientation to set. ("portrait" or "landscape")
+	 */
+	public void setOrientation(int orientation) {
+		this.orientation = orientation;
+	}
+
 	/**
 	 * set the value proxyserver Host name or IP address of a proxy server.
-	 * 
+	 *
 	 * @param proxyserver value to set
 	 **/
 	public final void setProxyserver(String proxyserver) {
@@ -258,7 +295,7 @@ public abstract class PDFDocument {
 	 * set the value proxyport The port number on the proxy server from which the object is requested.
 	 * Default is 80. When used with resolveURL, the URLs of retrieved documents that specify a port
 	 * number are automatically resolved to preserve links in the retrieved document.
-	 * 
+	 *
 	 * @param proxyport value to set
 	 **/
 	public final void setProxyport(int proxyport) {
@@ -267,7 +304,7 @@ public abstract class PDFDocument {
 
 	/**
 	 * set the value username When required by a proxy server, a valid username.
-	 * 
+	 *
 	 * @param proxyuser value to set
 	 **/
 	public final void setProxyuser(String proxyuser) {
@@ -276,7 +313,7 @@ public abstract class PDFDocument {
 
 	/**
 	 * set the value password When required by a proxy server, a valid password.
-	 * 
+	 *
 	 * @param proxypassword value to set
 	 **/
 	public final void setProxypassword(String proxypassword) {
