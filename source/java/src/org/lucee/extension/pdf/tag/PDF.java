@@ -1394,14 +1394,14 @@ public class PDF extends BodyTagImpl {
 
 	private void doActionExtractText() throws PageException, IOException, CryptographyException, InvalidPasswordException {
 		required("pdf", "extractText", "name", name, true);
-
+		required("pdf", "extractText", "source", source);
 		PDFStruct doc = toPDFDocument(source, password, null);
 		PdfReader reader = doc.getPdfReader();
 		int len = reader.getNumberOfPages();
 		if (pages == null) pages = "1-" + len + "";
 		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet));
+		pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type));
 	}
 
 	private Object allowed(boolean encrypted, int permissions, int permission) {
