@@ -112,7 +112,9 @@ public final class FSPDFDocument extends PDFDocument {
 		Document doc;
 		if (!Util.isEmpty(body, true)) {
 			doc = parseHTML(XMLUtil.toInputSource(body), margin, dimension, pageOffset, true);
-			createPDF(pc, renderer, doc, os, null);
+			URL base = getBase(pc);
+			inlineExternalImages(engine, pc, doc.getDocumentElement(), base.getHost() + ":" + base.getPort());
+			createPDF(pc, renderer, doc, os, base);
 		}
 		// srcfile
 		else if (srcfile != null) {
@@ -299,15 +301,6 @@ public final class FSPDFDocument extends PDFDocument {
 		Element style = doc.createElement("style");
 		style.appendChild(doc.createTextNode(sb.toString()));
 		head.appendChild(style);
-
-		// margin
-		/*
-		 * String tmp = body.getAttribute("style"); if(Util.isEmpty(tmp)) sb=new StringBuilder(); else
-		 * if(!tmp.endsWith(";"))sb=new StringBuilder(tmp).append(';'); else sb=new StringBuilder(tmp);
-		 * sb.append("padding:0px;margin: ") .append(margin.top).append("pt ")
-		 * .append(margin.right).append("pt ") .append(margin.bottom).append("pt ")
-		 * .append(margin.left).append("pt;"); body.setAttribute("style", sb.toString());
-		 */
 
 		moveStyleScript(head, body);
 		return doc;

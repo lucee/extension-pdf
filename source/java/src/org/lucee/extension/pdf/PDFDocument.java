@@ -21,6 +21,7 @@ package org.lucee.extension.pdf;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -45,6 +46,7 @@ import org.w3c.dom.NodeList;
 
 import lucee.commons.io.res.ContentType;
 import lucee.commons.io.res.Resource;
+import lucee.commons.net.http.HTTPResponse;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
@@ -691,6 +693,95 @@ public abstract class PDFDocument {
 	public void setHFIndex(int i) {
 		if (header != null) header.setIndex(i);
 		if (footer != null) footer.setIndex(i);
+	}
+
+	protected static URL getBase(PageContext pc) throws MalformedURLException, PageException, RuntimeException {
+		// PageContext pc = Thread LocalPageContext.get();
+		if (pc == null) return null;
+
+		String userAgent = pc.getHttpServletRequest().getHeader("User-Agent");
+		// bug in pd4ml-> html badse definition create a call
+		if (!Util.isEmpty(userAgent) && (userAgent.startsWith("Java"))) return null;
+
+		String url = getRequestURL(pc.getHttpServletRequest(), false);
+		return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(url, -1, true);
+	}
+
+	protected static void inlineExternalImages(CFMLEngine engine, PageContext pc, Node n, String hostPort) {
+		if (n.getNodeName().equalsIgnoreCase("img") && n instanceof Element) {
+			Element e = (Element) n;
+			String src = e.getAttribute("src");
+			try {
+				// inline local images
+				if (src.startsWith("http://") || src.startsWith("https://")) {
+					e.setAttribute("src", toBase64(engine, new URL(src)));
+				}
+				// improve file path
+				else {
+					Resource res = engine.getCastUtil().toResource(src, null);
+					if (res != null) e.setAttribute("src", toBase64(engine, res));
+				}
+			}
+			catch (Exception mue) {}
+		}
+		else {
+			NodeList children = n.getChildNodes();
+			int len = children.getLength();
+			for (int i = 0; i < len; i++) {
+				inlineExternalImages(engine, pc, children.item(i), hostPort);
+			}
+		}
+	}
+
+	protected static String toBase64(CFMLEngine engine, URL url) {
+		try {
+			String name = url.getFile();
+			String expType = null;
+			if (engine.getStringUtil().endsWithIgnoreCase(name, ".jpg")) expType = "image/jpeg";
+			else if (engine.getStringUtil().endsWithIgnoreCase(name, ".png")) expType = "image/png";
+			else if (engine.getStringUtil().endsWithIgnoreCase(name, ".gif")) expType = "image/gif";
+
+			if (expType != null) {
+				HTTPResponse rsp = engine.getHTTPUtil().get(url, null, null, -1, null, null, null, -1, null, null, null);
+				if (expType.equals(rsp.getContentType().toString())) {
+					String b64 = engine.getCastUtil().toBase64(rsp.getContentAsByteArray());
+					return "data:" + expType + ";base64," + b64;
+				}
+			}
+		}
+		catch (Exception e) {}
+		return url.toExternalForm();
+	}
+
+	protected static String toBase64(CFMLEngine engine, Resource res) {
+		try {
+			String name = res.getName();
+			String expType = null;
+			if (engine.getStringUtil().endsWithIgnoreCase(name, ".jpg")) expType = "image/jpeg";
+			else if (engine.getStringUtil().endsWithIgnoreCase(name, ".png")) expType = "image/png";
+			else if (engine.getStringUtil().endsWithIgnoreCase(name, ".gif")) expType = "image/gif";
+
+			if (expType != null) {
+				ContentType ct = engine.getResourceUtil().getContentType(res);
+				if (expType.equals(ct.getMimeType())) {
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					engine.getIOUtil().copy(res.getInputStream(), baos, true, true);
+					String b64 = engine.getCastUtil().toBase64(baos.toByteArray());
+					return "data:" + expType + ";base64," + b64;
+				}
+			}
+		}
+		catch (Exception e) {}
+
+		try {
+			if (res instanceof File) {
+				return ((File) res).toURI().toURL().toString();
+			}
+			return res.getCanonicalPath();
+		}
+		catch (Exception e) {
+			return res.getAbsolutePath();
+		}
 	}
 
 }

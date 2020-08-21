@@ -29,24 +29,19 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.net.MalformedURLException;
 import java.net.URL;
 
-import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.XMLUtil;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import lucee.commons.io.res.ContentType;
 import lucee.commons.io.res.Resource;
 import lucee.commons.net.http.HTTPResponse;
-import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
@@ -131,7 +126,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 			URL base = getBase(pc);
 
 			try {
-				body = beautifyHTML(new InputSource(new StringReader(body)), base);
+				body = beautifyHTML(pc, new InputSource(new StringReader(body)), base);
 			}
 			catch (Exception e) {}
 			pd4ml.render(body, os, base);
@@ -162,7 +157,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 				}
 
 				// URL base = localUrl?new URL("file://"+srcfile):getBase();
-				render(pd4ml, is, os, base);
+				render(pc, pd4ml, is, os, base);
 			}
 			catch (Throwable t) {
 				if (t instanceof ThreadDeath) throw (ThreadDeath) t;
@@ -196,7 +191,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 			InputStream is = new ByteArrayInputStream(method.getContentAsByteArray());
 			try {
 
-				render(pd4ml, is, os, url);
+				render(pc, pd4ml, is, os, url);
 			}
 			finally {
 				io.closeSilent(is);
@@ -221,73 +216,23 @@ public final class PD4MLPDFDocument extends PDFDocument {
 	 * @param args
 	 */
 
-	private static String beautifyHTML(InputSource is, URL base) throws PageException, SAXException, IOException {
+	private static String beautifyHTML(PageContext pc, InputSource is, URL base) throws PageException, SAXException, IOException {
 		Document xml = XMLUtil.parseHTML(is);
-		patchPD4MLProblems(xml, base);
+		patchPD4MLProblems(pc, xml, base);
 		if (base != null) URLResolver.getInstance().transform(xml, base);
 		String html = toHTML(xml);
 		return html;
 	}
 
-	private static void patchPD4MLProblems(Document xml, URL base) {
+	private static void patchPD4MLProblems(PageContext pc, Document xml, URL base) {
 		Element b = XMLUtil.getChildWithName("body", xml.getDocumentElement());
 		if (!b.hasChildNodes()) {
 			b.appendChild(xml.createTextNode(" "));
 		}
-		inlineExternalImages(CFMLEngineFactory.getInstance(), xml.getDocumentElement(), base.getHost() + ":" + base.getPort());
+		inlineExternalImages(CFMLEngineFactory.getInstance(), pc, xml.getDocumentElement(), base.getHost() + ":" + base.getPort());
 	}
 
-	private static void inlineExternalImages(CFMLEngine engine, Node n, String hostPort) {
-		if (n.getNodeName().equalsIgnoreCase("img") && n instanceof Element) {
-			Element e = (Element) n;
-			String src = e.getAttribute("src");
-			try {
-				if (src.startsWith("http://") || src.startsWith("https://")) {
-					URL url = new URL(src);
-					if (!(url.getHost() + ":" + url.getPort()).equalsIgnoreCase(hostPort)) {
-						e.setAttribute("src", toBase64(url, engine));
-					}
-				}
-			}
-			catch (MalformedURLException mue) {}
-		}
-		else {
-			NodeList children = n.getChildNodes();
-			int len = children.getLength();
-			for (int i = 0; i < len; i++) {
-				inlineExternalImages(engine, children.item(i), hostPort);
-			}
-		}
-	}
-
-	private static String toBase64(URL url, CFMLEngine engine) {
-		try {
-			if (!url.getFile().endsWith(".jpg")) return url.toExternalForm();
-
-			HTTPResponse rsp = engine.getHTTPUtil().get(url, null, null, -1, null, null, null, -1, null, null, null);
-			if (!"image/jpeg".equals(rsp.getContentType().toString())) return url.toExternalForm();
-			String b64 = engine.getCastUtil().toBase64(rsp.getContentAsByteArray());
-			return "data:image/jpeg;base64," + b64;
-		}
-		catch (Exception e) {
-			return url.toExternalForm();
-		}
-
-	}
-
-	private URL getBase(PageContext pc) throws MalformedURLException, PageException, RuntimeException {
-		// PageContext pc = Thread LocalPageContext.get();
-		if (pc == null) return null;
-
-		String userAgent = pc.getHttpServletRequest().getHeader("User-Agent");
-		// bug in pd4ml-> html badse definition create a call
-		if (!Util.isEmpty(userAgent) && (userAgent.startsWith("Java"))) return null;
-
-		String url = getRequestURL(pc.getHttpServletRequest(), false);
-		return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(url, -1, true);
-	}
-
-	private void render(PDFByReflection pd4ml, InputStream is, OutputStream os, URL base) throws IOException, PageException {
+	private void render(PageContext pc, PDFByReflection pd4ml, InputStream is, OutputStream os, URL base) throws IOException, PageException {
 		try {
 
 			// text/html
@@ -296,7 +241,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 
 				try {
 					InputSource input = new InputSource(io.getReader(is, charset));
-					body = beautifyHTML(input, base);
+					body = beautifyHTML(pc, input, base);
 				}
 				catch (Throwable t) {
 					if (t instanceof ThreadDeath) throw (ThreadDeath) t;
