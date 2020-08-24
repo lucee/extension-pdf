@@ -69,7 +69,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 	}
 
 	@Override
-	public byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generateOutlines) throws PageException, IOException {
+	public byte[] _render(Dimension dimension, double unitFactor, PageContext pc, boolean generateOutlines) throws PageException, IOException {
 		ConfigWeb config = pc.getConfig();
 		PDFByReflection pd4ml = new PDFByReflection(config);
 		pd4ml.generateOutlines(generateOutlines);
@@ -216,7 +216,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 	 * @param args
 	 */
 
-	private static String beautifyHTML(PageContext pc, InputSource is, URL base) throws PageException, SAXException, IOException {
+	private String beautifyHTML(PageContext pc, InputSource is, URL base) throws PageException, SAXException, IOException {
 		Document xml = XMLUtil.parseHTML(is);
 		patchPD4MLProblems(pc, xml, base);
 		if (base != null) URLResolver.getInstance().transform(xml, base);
@@ -224,12 +224,12 @@ public final class PD4MLPDFDocument extends PDFDocument {
 		return html;
 	}
 
-	private static void patchPD4MLProblems(PageContext pc, Document xml, URL base) {
+	private void patchPD4MLProblems(PageContext pc, Document xml, URL base) {
 		Element b = XMLUtil.getChildWithName("body", xml.getDocumentElement());
 		if (!b.hasChildNodes()) {
 			b.appendChild(xml.createTextNode(" "));
 		}
-		inlineExternalImages(CFMLEngineFactory.getInstance(), pc, xml.getDocumentElement(), base.getHost() + ":" + base.getPort());
+		toLocalSource(CFMLEngineFactory.getInstance(), pc, xml.getDocumentElement(), base.getHost() + ":" + base.getPort());
 	}
 
 	private void render(PageContext pc, PDFByReflection pd4ml, InputStream is, OutputStream os, URL base) throws IOException, PageException {

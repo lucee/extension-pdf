@@ -60,7 +60,7 @@ public final class FSPDFDocument extends PDFDocument {
 	public FSPDFDocument() {}
 
 	@Override
-	public byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException, DocumentException {
+	public byte[] _render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException, DocumentException {
 		ITextRenderer renderer = new ITextRenderer();
 
 		// prepare(fontDirectory, "fs.properties");
@@ -113,7 +113,7 @@ public final class FSPDFDocument extends PDFDocument {
 		if (!Util.isEmpty(body, true)) {
 			doc = parseHTML(XMLUtil.toInputSource(body), margin, dimension, pageOffset, true);
 			URL base = getBase(pc);
-			inlineExternalImages(engine, pc, doc.getDocumentElement(), base.getHost() + ":" + base.getPort());
+			toLocalSource(engine, pc, doc.getDocumentElement(), base.getHost() + ":" + base.getPort());
 			createPDF(pc, renderer, doc, os, base);
 		}
 		// srcfile

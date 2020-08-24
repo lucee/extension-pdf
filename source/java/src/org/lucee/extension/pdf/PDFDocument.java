@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -52,6 +54,7 @@ import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
+import lucee.runtime.util.ResourceUtil;
 
 public abstract class PDFDocument {
 
@@ -159,10 +162,12 @@ public abstract class PDFDocument {
 	protected File fontDirectory;
 	private int pageOffset;
 	private int pages;
+	private List<Resource> tempFiles = new ArrayList<>();
 
 	public static int TYPE_NONE = 0;
 	public static int TYPE_PD4ML = 1; // AKA "classic"
 	public static int TYPE_FS = 2; // AKA "modern"
+	private static long id = 0;
 
 	public PDFDocument() {
 		engine = CFMLEngineFactory.getInstance();
@@ -348,7 +353,26 @@ public abstract class PDFDocument {
 		return body;
 	}
 
-	public abstract byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws Exception;
+	public abstract byte[] _render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws Exception;
+
+	public final byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws Exception {
+		try {
+			return _render(dimension, unitFactor, pc, generategenerateOutlines);
+		}
+		finally {
+			clean();
+		}
+	}
+
+	private void clean() {
+		for (Resource tmp: tempFiles) {
+			if (!tmp.delete() && tmp instanceof File) {
+				((File) tmp).deleteOnExit();
+			}
+
+		}
+		tempFiles.iterator();
+	}
 
 	protected final static URL getRequestURL(PageContext pc) {
 		if (pc == null) return null;
@@ -707,20 +731,13 @@ public abstract class PDFDocument {
 		return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(url, -1, true);
 	}
 
-	protected static void inlineExternalImages(CFMLEngine engine, PageContext pc, Node n, String hostPort) {
+	protected void toLocalSource(CFMLEngine engine, PageContext pc, Node n, String hostPort) {
 		if (n.getNodeName().equalsIgnoreCase("img") && n instanceof Element) {
 			Element e = (Element) n;
 			String src = e.getAttribute("src");
 			try {
-				// inline local images
-				if (src.startsWith("http://") || src.startsWith("https://")) {
-					e.setAttribute("src", toBase64(engine, new URL(src)));
-				}
-				// improve file path
-				else {
-					Resource res = engine.getCastUtil().toResource(src, null);
-					if (res != null) e.setAttribute("src", toBase64(engine, res));
-				}
+				Resource res = engine.getCastUtil().toResource(src, null);
+				if (res != null) e.setAttribute("src", toLocalSource(engine, res));
 			}
 			catch (Exception mue) {}
 		}
@@ -728,12 +745,12 @@ public abstract class PDFDocument {
 			NodeList children = n.getChildNodes();
 			int len = children.getLength();
 			for (int i = 0; i < len; i++) {
-				inlineExternalImages(engine, pc, children.item(i), hostPort);
+				toLocalSource(engine, pc, children.item(i), hostPort);
 			}
 		}
 	}
 
-	protected static String toBase64(CFMLEngine engine, URL url) {
+	protected String toLocalSource(CFMLEngine engine, URL url) {
 		try {
 			String name = url.getFile();
 			String expType = null;
@@ -753,7 +770,22 @@ public abstract class PDFDocument {
 		return url.toExternalForm();
 	}
 
-	protected static String toBase64(CFMLEngine engine, Resource res) {
+	protected String toLocalSource(CFMLEngine engine, Resource res) {
+		// local URL Path
+		try {
+			if (!(res instanceof File)) {
+				ResourceUtil util = engine.getResourceUtil();
+				String ext = util.getExtension(res, "tmp");
+				Resource tmp = util.getTempDirectory().getRealResource(uid() + "." + ext);
+				engine.getIOUtil().copy(res, tmp);
+				res = tmp;
+				tempFiles.add(tmp);
+			}
+			return ((File) res).toURI().toURL().toString();
+		}
+		catch (Exception e) {}
+
+		// local base 64
 		try {
 			String name = res.getName();
 			String expType = null;
@@ -773,15 +805,18 @@ public abstract class PDFDocument {
 		}
 		catch (Exception e) {}
 
+		// simply cleaned path
 		try {
-			if (res instanceof File) {
-				return ((File) res).toURI().toURL().toString();
-			}
 			return res.getCanonicalPath();
 		}
 		catch (Exception e) {
 			return res.getAbsolutePath();
 		}
+	}
+
+	private synchronized static String uid() {
+		if (id < 0) id = 0;
+		return Long.toString(++id, Character.MAX_RADIX);
 	}
 
 }
