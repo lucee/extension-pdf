@@ -514,7 +514,7 @@ Manipulates existing PDF documents. The following list describes some of the tas
 		<attribute>
 			<type>string</type>
 			<name>action</name>
-			<values>addWatermark,deletePages,getInfo,merge,protect,read,removeWatermark,setInfo,thumbnail,write</values>
+			<values>addHeader, addFooter, addWatermark, deletePages, extractText, getInfo, merge, open, removePassword, protect, read, removeWatermark, setInfo, thumbnail, write</values>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 			<description>action to take</description>
