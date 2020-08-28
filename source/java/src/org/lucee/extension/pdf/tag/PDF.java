@@ -312,8 +312,9 @@ public class PDF extends BodyTagImpl {
 		else if ("addheader".equals(strAction)) action = ACTION_ADD_HEADER;
 		else if ("addfooter".equals(strAction)) action = ACTION_ADD_FOOTER;
 
-		else throw engine.getExceptionUtil().createApplicationException("invalid action definition [" + strAction + "], valid actions definitions are "
-				+ "[addheader,addfooter,addWatermark,deletePages,getInfo,merge,protect,read,removeWatermark,setInfo,thumbnail,write]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid PDF action [" + strAction + "], supported actions are "
+				+ "[addheader, addfooter, addWatermark, deletePages, extractText, getInfo, merge, open, "
+				+ "removePassword, protect, read, removeWatermark, setInfo, thumbnail, write]");
 
 	}
 
