@@ -38,7 +38,6 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.util.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.img.PDF2ImageICEpdf;
-import org.omg.CORBA.portable.ApplicationException;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
@@ -94,7 +93,7 @@ public class PDFUtil {
 	 * 
 	 * @param strPermission
 	 * @return
-	 * @throws ApplicationException
+	 * @throws PageException
 	 */
 	public static int toPermission(String strPermission) throws PageException {
 		strPermission = strPermission.trim().toLowerCase();
