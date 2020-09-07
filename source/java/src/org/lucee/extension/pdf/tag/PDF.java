@@ -236,8 +236,8 @@ public class PDF extends BodyTagImpl {
 		else if ("uppercase-roman".equals(numberformat)) this.numberformat = NUMBERFORMAT_UPPERCASEROMAN;
 		else if ("uppercaseroman".equals(numberformat)) this.numberformat = NUMBERFORMAT_UPPERCASEROMAN;
 
-		else throw engine.getExceptionUtil().createApplicationException(
-				"Invalid numberformat [" + numberformat + "], supported numberformats are " + "[numeric, lowercaseroman, uppercaseroman]");
+		else throw engine.getExceptionUtil()
+				.createApplicationException("Invalid numberformat [" + numberformat + "], supported numberformats are " + "[numeric, lowercaseroman, uppercaseroman]");
 
 	}
 
@@ -312,9 +312,9 @@ public class PDF extends BodyTagImpl {
 		else if ("addheader".equals(strAction)) action = ACTION_ADD_HEADER;
 		else if ("addfooter".equals(strAction)) action = ACTION_ADD_FOOTER;
 
-		else throw engine.getExceptionUtil().createApplicationException("Invalid PDF action [" + strAction + "], supported actions are "
-				+ "[addHeader, addFooter, addWatermark, deletePages, extractText, getInfo, merge, open, "
-				+ "removePassword, protect, read, removeWatermark, setInfo, thumbnail, write]");
+		else throw engine.getExceptionUtil().createApplicationException(
+				"Invalid PDF action [" + strAction + "], supported actions are " + "[addHeader, addFooter, addWatermark, deletePages, extractText, getInfo, merge, open, "
+						+ "removePassword, protect, read, removeWatermark, setInfo, thumbnail, write]");
 
 	}
 
@@ -596,8 +596,7 @@ public class PDF extends BodyTagImpl {
 		else if ("incremental".equals(strSaveOption)) saveOption = SAVE_OPTION_INCREMENTAL;
 		else if ("linear".equals(strSaveOption)) saveOption = SAVE_OPTION_LINEAR;
 
-		else throw engine.getExceptionUtil()
-				.createApplicationException("Invalid saveOption [" + strSaveOption + "], supported saveOptions are " + "[full, linear, incremental]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid saveOption [" + strSaveOption + "], supported saveOptions are " + "[full, linear, incremental]");
 	}
 
 	/**
@@ -918,7 +917,7 @@ public class PDF extends BodyTagImpl {
 		doc.setPages(pages);
 
 		// scale
-		if (scale < 1) throw engine.getExceptionUtil().createApplicationException("Attribute [scale] should be at least 1, was [" + scale + "] );
+		if (scale < 1) throw engine.getExceptionUtil().createApplicationException("Attribute [scale] should be at least 1, was [" + scale + "]");
 
 		// destination
 		if (destination == null) destination = engine.getResourceUtil().toResourceNotExisting(pageContext, "thumbnails");

@@ -217,7 +217,6 @@ public class PDFByReflection {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-
 		invoke(pd4mlMark, "setAreaHeight", mark.getAreaHeight());
 		invoke(pd4mlMark, "setHtmlTemplate", mark.getHtmlTemplate());
 		return pd4mlMark;

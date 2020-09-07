@@ -341,7 +341,6 @@ public class PDFUtil {
 		// PDFTextStripper textStripper=new PDFTextStripper();
 		int p;
 		StringBuilder sb = new StringBuilder();
-
 		PDFTextStripper stripper = new PDFTextStripper();
 
 		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");

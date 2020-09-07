@@ -20,8 +20,6 @@
 package org.lucee.extension.pdf.tag;
 
 import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.tagext.BodyContent;
-import javax.servlet.jsp.tagext.BodyTag;
 import javax.servlet.jsp.tagext.Tag;
 
 import lucee.loader.engine.CFMLEngine;
@@ -89,7 +87,7 @@ public abstract class TagImpl implements Tag {
 	 * @param tagName
 	 * @param attributeName
 	 * @param attribute
-	 * @throws ApplicationException
+	 * @throws PageException
 	 */
 	public void required(String tagName, String actionName, String attributeName, Object attribute) throws PageException {
 		if (attribute == null) throw engine.getExceptionUtil()

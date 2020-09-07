@@ -22,13 +22,6 @@ package org.lucee.extension.pdf.tag;
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.tagext.BodyContent;
 import javax.servlet.jsp.tagext.BodyTag;
-import javax.servlet.jsp.tagext.Tag;
-
-import lucee.loader.engine.CFMLEngine;
-import lucee.loader.engine.CFMLEngineFactory;
-import lucee.loader.util.Util;
-import lucee.runtime.PageContext;
-import lucee.runtime.exp.PageException;
 
 /**
  * Implementation of the Tag

@@ -21,13 +21,6 @@ package org.lucee.extension.pdf.img;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.Set;
-
-import lucee.commons.io.res.Resource;
-import lucee.loader.engine.CFMLEngine;
-import lucee.loader.engine.CFMLEngineFactory;
-import lucee.runtime.exp.PageException;
 
 import org.icepdf.core.pobjects.Catalog;
 import org.icepdf.core.pobjects.Document;
@@ -35,6 +28,9 @@ import org.icepdf.core.pobjects.PDimension;
 import org.icepdf.core.pobjects.PRectangle;
 import org.icepdf.core.pobjects.Page;
 import org.icepdf.core.util.GraphicsRenderingHints;
+
+import lucee.loader.engine.CFMLEngineFactory;
+import lucee.runtime.exp.PageException;
 
 public class PDF2ImageICEpdf extends PDF2Image {
 

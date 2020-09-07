@@ -122,7 +122,6 @@ public final class FSPDFDocument extends PDFDocument {
 
 			// mimetype
 			if (mimeType == MIMETYPE_OTHER) {
-				ContentType ct = CFMLEngineFactory.getInstance().getResourceUtil().getContentType(srcfile);
 				setMimetype(CFMLEngineFactory.getInstance().getResourceUtil().getContentType(srcfile));
 			}
 			InputStream is = srcfile.getInputStream();
@@ -188,7 +187,6 @@ public final class FSPDFDocument extends PDFDocument {
 			if (mimeType == MIMETYPE_TEXT_HTML || mimeType == MIMETYPE_OTHER) {
 				InputSource input = new InputSource(engine.getIOUtil().getReader(is, charset));
 				Document doc = parseHTML(input, margin, dim, pageOffset, true);
-				String raw = XMLUtil.toString(doc, false, true, null, null, null);
 				createPDF(pc, renderer, doc, os, base);
 			}
 			// text

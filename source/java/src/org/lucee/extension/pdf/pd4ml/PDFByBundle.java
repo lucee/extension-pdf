@@ -21,16 +21,13 @@ package org.lucee.extension.pdf.pd4ml;
 
 import java.awt.Dimension;
 import java.awt.Insets;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.URL;
-import java.net.URLClassLoader;
 
 import org.lucee.extension.pdf.PDFPageMark;
 
-import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.config.Config;
@@ -38,7 +35,6 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.util.Cast;
 import lucee.runtime.util.ClassUtil;
 import lucee.runtime.util.IO;
-import lucee.runtime.util.ResourceUtil;
 
 public class PDFByBundle {
 

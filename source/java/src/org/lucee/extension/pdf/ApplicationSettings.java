@@ -1,8 +1,6 @@
 package org.lucee.extension.pdf;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
 
 import org.lucee.extension.pdf.util.FontsJarExtractor;
 

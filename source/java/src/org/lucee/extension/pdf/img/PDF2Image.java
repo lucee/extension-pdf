@@ -20,7 +20,6 @@ package org.lucee.extension.pdf.img;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.Set;
 
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngineFactory;

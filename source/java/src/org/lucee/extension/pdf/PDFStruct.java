@@ -51,6 +51,8 @@ import lucee.runtime.type.dt.DateTime;
 
 public class PDFStruct extends StructSupport implements Struct {
 
+	private static final long serialVersionUID = -5513632004089290888L;
+
 	private byte[] barr;
 	private final String password;
 	private Resource resource;
