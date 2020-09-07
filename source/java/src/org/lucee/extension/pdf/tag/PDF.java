@@ -237,7 +237,7 @@ public class PDF extends BodyTagImpl {
 		else if ("uppercaseroman".equals(numberformat)) this.numberformat = NUMBERFORMAT_UPPERCASEROMAN;
 
 		else throw engine.getExceptionUtil().createApplicationException(
-				"invalid nuberformat definition [" + numberformat + "], valid numberformat definitions are " + "[numeric,lowercaseroman,uppercaseroman]");
+				"Invalid numberformat [" + numberformat + "], supported numberformats are " + "[numeric, lowercaseroman, uppercaseroman]");
 
 	}
 
@@ -251,7 +251,7 @@ public class PDF extends BodyTagImpl {
 		// else if("justified".equals(align)) this.align=Element.ALIGN_JUSTIFIED;
 		// else if("justify".equals(align)) this.align=Element.ALIGN_JUSTIFIED;
 
-		else throw engine.getExceptionUtil().createApplicationException("invalid align value [" + align + "], valid align values are [center,left,right]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid align value [" + align + "], valid align values are [center, left, right]");
 
 	}
 
@@ -312,8 +312,9 @@ public class PDF extends BodyTagImpl {
 		else if ("addheader".equals(strAction)) action = ACTION_ADD_HEADER;
 		else if ("addfooter".equals(strAction)) action = ACTION_ADD_FOOTER;
 
-		else throw engine.getExceptionUtil().createApplicationException("invalid action definition [" + strAction + "], valid actions definitions are "
-				+ "[addheader,addfooter,addWatermark,deletePages,getInfo,merge,protect,read,removeWatermark,setInfo,thumbnail,write]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid PDF action [" + strAction + "], supported actions are "
+				+ "[addHeader, addFooter, addWatermark, deletePages, extractText, getInfo, merge, open, "
+				+ "removePassword, protect, read, removeWatermark, setInfo, thumbnail, write]");
 
 	}
 
@@ -325,7 +326,7 @@ public class PDF extends BodyTagImpl {
 		else if ("plain".equals(strType)) type = TYPE_STRING;
 		else if ("xml".equals(strType)) type = TYPE_XML;
 
-		else throw engine.getExceptionUtil().createApplicationException("invalid type definition [" + strType + "], valid type definitions are " + "[string,xml]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid type [" + strType + "], supported types are " + "[string, xml]");
 
 	}
 
@@ -402,7 +403,7 @@ public class PDF extends BodyTagImpl {
 		else if ("rc4_40".equals(strEncrypt)) encrypt = PDFUtil.ENCRYPT_RC4_40;
 
 		else throw engine.getExceptionUtil()
-				.createApplicationException("invalid encrypt definition [" + strEncrypt + "], valid encrypt definitions are " + "[aes_128,none,rc4_128,rc4_128m,rc4_40]");
+				.createApplicationException("Invalid encrypt definition [" + strEncrypt + "], valid encrypt definitions are " + "[aes_128,none,rc4_128,rc4_128m,rc4_40]");
 	}
 
 	/**
@@ -432,7 +433,7 @@ public class PDF extends BodyTagImpl {
 		else if ("tif".equals(strFormat)) format = FORMAT_TIFF;
 		else if ("png".equals(strFormat)) format = FORMAT_PNG;
 
-		else throw engine.getExceptionUtil().createApplicationException("invalid format definition [" + strFormat + "], valid format definitions are " + "[jpg,tiff,png]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid format [" + strFormat + "], supported formats " + "[jpg, tiff, png]");
 	}
 
 	/**
@@ -511,7 +512,7 @@ public class PDF extends BodyTagImpl {
 	 */
 	public void setOpacity(double opacity) throws PageException {
 		if (opacity < 0 || opacity > 10) throw engine.getExceptionUtil()
-				.createApplicationException("invalid opacity definition [" + engine.getCastUtil().toString(opacity) + "], value should be in range from 0 to 10");
+				.createApplicationException("Invalid opacity definition [" + engine.getCastUtil().toString(opacity) + "], value should be in range from 0 to 10");
 		this.opacity = (float) (opacity / 10);
 	}
 
@@ -524,7 +525,7 @@ public class PDF extends BodyTagImpl {
 		if ("name".equals(strOrder)) order = ORDER_NAME;
 		else if ("time".equals(strOrder)) order = ORDER_TIME;
 
-		else throw engine.getExceptionUtil().createApplicationException("invalid order definition [" + strOrder + "], valid order definitions are " + "[name,time]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid order [" + strOrder + "], supported order definitions are " + "[name, time]");
 	}
 
 	/**
@@ -572,7 +573,7 @@ public class PDF extends BodyTagImpl {
 		if ("low".equals(strResolution)) resolution = RESOLUTION_LOW;
 		else if ("high".equals(strResolution)) resolution = RESOLUTION_HIGH;
 
-		else throw engine.getExceptionUtil().createApplicationException("invalid resolution definition [" + strResolution + "], valid resolution definitions are " + "[low,high]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid resolution [" + strResolution + "], supported resolutions are " + "[low, high]");
 	}
 
 	/**
@@ -596,7 +597,7 @@ public class PDF extends BodyTagImpl {
 		else if ("linear".equals(strSaveOption)) saveOption = SAVE_OPTION_LINEAR;
 
 		else throw engine.getExceptionUtil()
-				.createApplicationException("invalid saveOption definition [" + strSaveOption + "], valid saveOption definitions are " + "[full,linear,incremental]");
+				.createApplicationException("Invalid saveOption [" + strSaveOption + "], supported saveOptions are " + "[full, linear, incremental]");
 	}
 
 	/**
@@ -652,7 +653,7 @@ public class PDF extends BodyTagImpl {
 		else if (1.6 == version) this.version = PdfWriter.VERSION_1_6;
 
 		else throw engine.getExceptionUtil().createApplicationException(
-				"invalid version definition [" + engine.getCastUtil().toString(version) + "], valid version definitions are " + "[1.1, 1.2, 1.3, 1.4, 1.5, 1.6]");
+				"Invalid version definition [" + engine.getCastUtil().toString(version) + "], valid version definitions are " + "[1.1, 1.2, 1.3, 1.4, 1.5, 1.6]");
 	}
 
 	@Override
@@ -711,7 +712,7 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "write", "destination", destination);
 
 		if (destination != null && destination.exists() && !overwrite)
-			throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 		// PdfReader pr = doc.getPdfReader();
@@ -776,7 +777,7 @@ public class PDF extends BodyTagImpl {
 		PdfStamper stamper = null;
 		try {
 			if (destination != null && destination.exists() && !overwrite)
-				throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+				throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
 			int len = reader.getNumberOfPages();
 			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
@@ -917,7 +918,7 @@ public class PDF extends BodyTagImpl {
 		doc.setPages(pages);
 
 		// scale
-		if (scale < 1) throw engine.getExceptionUtil().createApplicationException("value of attribute scale [" + scale + "] should be at least 1");
+		if (scale < 1) throw engine.getExceptionUtil().createApplicationException("Attribute [scale] should be at least 1, was [" + scale + "] );
 
 		// destination
 		if (destination == null) destination = engine.getResourceUtil().toResourceNotExisting(pageContext, "thumbnails");
@@ -942,10 +943,10 @@ public class PDF extends BodyTagImpl {
 	private void doActionAddWatermark() throws PageException, IOException, DocumentException {
 		required("pdf", "addWatermark", "source", source);
 		if (copyFrom == null && image == null)
-			throw engine.getExceptionUtil().createApplicationException("at least one of the following attributes must be defined " + "[copyFrom,image]");
+			throw engine.getExceptionUtil().createApplicationException("at least one of the following attributes is required " + "[copyFrom, image]");
 
 		if (destination != null && destination.exists() && !overwrite)
-			throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
 		// image
 		Image img = null;
@@ -973,7 +974,7 @@ public class PDF extends BodyTagImpl {
 		if (!Util.isEmpty(position)) {
 			int index = position.indexOf(',');
 			if (index == -1) throw engine.getExceptionUtil().createApplicationException(
-					"attribute [position] has an invalid value [" + position + "]," + "value should follow one of the following pattern [40,50], [40,] or [,50]");
+					"Attribute [position] has an invalid value [" + position + "]," + "value should follow one of the following pattern [40,50], [40,] or [,50]");
 			String strX = position.substring(0, index).trim();
 			String strY = position.substring(index + 1).trim();
 			if (!Util.isEmpty(strX)) x = engine.getCastUtil().toIntValue(strX);
@@ -1049,7 +1050,7 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "removeWatermark", "source", source);
 
 		if (destination != null && destination.exists() && !overwrite)
-			throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
 		BufferedImage bi = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = bi.createGraphics();
@@ -1067,7 +1068,7 @@ public class PDF extends BodyTagImpl {
 		if (destination == null) {
 			destIsSource = true;
 			destination = doc.getResource();
-			if (destination == null) throw engine.getExceptionUtil().createApplicationException("source is not based on a resource, destination file is required");
+			if (destination == null) throw engine.getExceptionUtil().createApplicationException("Source is not based on a resource, attribute [destination] file is required");
 		}
 		else destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 
@@ -1119,7 +1120,7 @@ public class PDF extends BodyTagImpl {
 		doc.setPages(pages);
 
 		if (destination == null && Util.isEmpty(name)) {
-			if (doc.getResource() == null) throw engine.getExceptionUtil().createApplicationException("source is not based on a resource, destination attribute is required");
+			if (doc.getResource() == null) throw engine.getExceptionUtil().createApplicationException("Source is not based on a resource, attribute [destination] is required");
 			destination = doc.getResource();
 		}
 		else if (destination != null && destination.exists() && !overwrite)
@@ -1154,10 +1155,10 @@ public class PDF extends BodyTagImpl {
 	private void doActionMerge() throws PageException, PageException, IOException, DocumentException {
 
 		if (source == null && params == null && directory == null) throw engine.getExceptionUtil()
-				.createApplicationException("at least one of the following constellation must be defined" + " attribute source, attribute directory or cfpdfparam child tags");
+				.createApplicationException("At least one of the following combinations is required, attribute source, attribute directory or cfpdfparam child tags");
 		if (destination == null && Util.isEmpty(name, true))
-			throw engine.getExceptionUtil().createApplicationException("at least one of the following attributes must be defined " + "[destination,name]");
-		if (destination != null && !overwrite) throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
+		if (destination != null && !overwrite) throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
 		ArrayList docs = new ArrayList();
 		PDFStruct doc;
@@ -1188,8 +1189,8 @@ public class PDF extends BodyTagImpl {
 
 		// params
 		if (directory != null && !directory.isDirectory()) {
-			if (!directory.exists()) throw engine.getExceptionUtil().createApplicationException("defined attribute directory does not exist");
-			throw engine.getExceptionUtil().createApplicationException("defined attribute directory is not a directory");
+			if (!directory.exists()) throw engine.getExceptionUtil().createApplicationException("Attribute [directory] does not exist");
+			throw engine.getExceptionUtil().createApplicationException("Attribute [directory] is not a directory");
 		}
 
 		if (params != null) {
@@ -1232,7 +1233,7 @@ public class PDF extends BodyTagImpl {
 		}
 
 		int doclen = docs.size();
-		if (doclen == 0) throw engine.getExceptionUtil().createApplicationException("you have to define at leat 1 pdf file");
+		if (doclen == 0) throw engine.getExceptionUtil().createApplicationException("You must define at least 1 PDF file when merging");
 
 		// output
 		OutputStream os = null;
@@ -1287,16 +1288,16 @@ public class PDF extends BodyTagImpl {
 		required("pdf", protect ? "protect" : "open", "source", source);
 
 		if (protect && Util.isEmpty(newUserPassword) && Util.isEmpty(newOwnerPassword))
-			throw engine.getExceptionUtil().createApplicationException("at least one of the following attributes must be defined [newUserPassword,newOwnerPassword]");
+			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [newUserPassword, newOwnerPassword]");
 		if (!protect) required("pdf", "open", "password", password);
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 
 		if (destination == null) {
 			destination = doc.getResource();
-			if (destination == null) throw engine.getExceptionUtil().createApplicationException("source is not based on a resource, destination file is required");
+			if (destination == null) throw engine.getExceptionUtil().createApplicationException("Source is not based on a resource, destination file is required");
 		}
-		else if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+		else if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
 
 		boolean destIsSource = doc.getResource() != null && destination.equals(doc.getResource());
 
@@ -1331,10 +1332,10 @@ public class PDF extends BodyTagImpl {
 		OutputStream os = null;
 		try {
 			if (destination == null) {
-				if (doc.getResource() == null) throw engine.getExceptionUtil().createApplicationException("source is not based on a resource, destination file is required");
+				if (doc.getResource() == null) throw engine.getExceptionUtil().createApplicationException("Source is not based on a resource, destination file is required");
 				destination = doc.getResource();
 			}
-			else if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+			else if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
 
 			PdfStamper stamp = new PdfStamper(pr, os = destination.getOutputStream());
 			HashMap moreInfo = new HashMap();
@@ -1437,7 +1438,7 @@ public class PDF extends BodyTagImpl {
 				if (!res.isFile()) {
 					Resource res2 = engine.getResourceUtil().toResourceNotExisting(pageContext, str);
 					if (res2.isFile()) res = res2;
-					else throw engine.getExceptionUtil().createApplicationException("variable, file or directory " + res + " not exist");
+					else throw engine.getExceptionUtil().createApplicationException("variable, file or directory [" + res + "] does not exist");
 				}
 				return new PDFStruct(res, password);
 			}
@@ -1488,7 +1489,7 @@ public class PDF extends BodyTagImpl {
 					if (sb.length() > 0) sb.append(", ");
 					sb.append(it.next());
 				}
-				throw engine.getExceptionUtil().createApplicationException("font family [" + family + "] is not available, available font families are [" + sb + "]");
+				throw engine.getExceptionUtil().createApplicationException("Font family [" + family + "] is not available, available font families are [" + sb + "]");
 			}
 			f.setFamily(lc);
 		}
