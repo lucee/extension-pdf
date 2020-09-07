@@ -99,8 +99,8 @@ public class PDF extends BodyTagImpl {
 	private static final int SAVE_OPTION_INCREMENTAL = 1;
 	private static final int SAVE_OPTION_LINEAR = 2;
 
-	private static final int TYPE_STRING = 1;
-	private static final int TYPE_XML = 2;
+	public static final int TYPE_STRING = 1;
+	public static final int TYPE_XML = 2;
 
 	private static final int NUMBERFORMAT_LOWERCASEROMAN = 1;
 	private static final int NUMBERFORMAT_NUMERIC = 2;

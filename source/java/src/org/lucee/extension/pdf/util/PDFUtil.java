@@ -38,6 +38,7 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.util.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.img.PDF2ImageICEpdf;
+import org.lucee.extension.pdf.tag.PDF;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
@@ -343,7 +344,7 @@ public class PDFUtil {
 		StringBuilder sb = new StringBuilder();
 		PDFTextStripper stripper = new PDFTextStripper();
 
-		if(type == 2){
+		if (type == PDF.TYPE_XML) {
 			sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 			sb.append("<DocText>");
 			sb.append("<TextPerPage>");
@@ -352,19 +353,18 @@ public class PDFUtil {
 		while (it.hasNext()) {
 			PDDocument document = new PDDocument();
 			p = it.next();
-			if(type == 2) sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
+			if (type == PDF.TYPE_XML) sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
 			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
 			document.addPage((PDPage) pdDoc.getDocumentCatalog().getAllPages().get(p - 1));
 			String text = stripper.getText(document);
 			System.out.println("text:" + text);
 			sb.append(text);
-			if(type == 2) sb.append("</page>");
+			if (type == PDF.TYPE_XML) sb.append("</page>");
 		}
-		if(type == 2){
+		if (type == PDF.TYPE_XML) {
 			sb.append("</TextPerPage>");
 			sb.append("</DocText>");
 		}
-		
 
 		// print.o(pages);
 
