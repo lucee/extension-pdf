@@ -1157,7 +1157,8 @@ public class PDF extends BodyTagImpl {
 				.createApplicationException("At least one of the following combinations is required, attribute source, attribute directory or cfpdfparam child tags");
 		if (destination == null && Util.isEmpty(name, true))
 			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
-		if (destination != null && !overwrite) throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
 		ArrayList docs = new ArrayList();
 		PDFStruct doc;
