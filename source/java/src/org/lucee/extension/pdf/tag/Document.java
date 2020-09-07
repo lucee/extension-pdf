@@ -646,7 +646,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	@Override
 	public int doStartTag() throws PageException {
-		if (fontdir == null) getPDFDocument().setFontDirectory(applicationSettings.getFontDirectory());
+		if (fontdir == null) getPDFDocument().setFontDirectory(getApplicationSettings().getFontDirectory());
 		/*
 		 * Struct cfdoc = engine.getCreationUtil().createStruct(); // TODO make a read only struct
 		 * cfdoc.setEL("currentpagenumber", "{currentpagenumber}"); cfdoc.setEL("totalpagecount",
