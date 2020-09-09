@@ -276,7 +276,7 @@ public abstract class PDFDocument {
 		strOrientation = strOrientation.trim();
 		if ("portrait".equalsIgnoreCase(strOrientation)) setOrientation(ORIENTATION_PORTRAIT);
 		else if ("landscape".equalsIgnoreCase(strOrientation)) setOrientation(ORIENTATION_LANDSCAPE);
-		else throw engine.getExceptionUtil().createApplicationException("invalid orientation [" + strOrientation + "], valid orientations are [portrait,landscape]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid orientation [" + strOrientation + "], valid orientations are [portrait, landscape]");
 	}
 
 	/**
@@ -332,7 +332,7 @@ public abstract class PDFDocument {
 	 * @throws PDFException
 	 */
 	public final void setSrc(String src) throws PageException {
-		if (srcfile != null) throw engine.getExceptionUtil().createApplicationException("You cannot specify both the src and srcfile attributes");
+		if (srcfile != null) throw engine.getExceptionUtil().createApplicationException("You cannot specify both the [src] and [srcfile] attributes");
 		this.src = src;
 	}
 
@@ -341,7 +341,7 @@ public abstract class PDFDocument {
 	 * @throws PDFException
 	 */
 	public final void setSrcfile(Resource srcfile) throws PageException {
-		if (src != null) throw engine.getExceptionUtil().createApplicationException("You cannot specify both the src and srcfile attributes");
+		if (src != null) throw engine.getExceptionUtil().createApplicationException("You cannot specify both the [src] and [srcfile] attributes");
 		this.srcfile = srcfile;
 	}
 
