@@ -8,6 +8,11 @@
     <li><a href="modern_mixed_orientation.cfm">Modern engine, mixed orientation</a></li> --->
   </ul>
 
+  <div style="display: flex;">
+    <div style="text-align: center; width: 50%">Actual PDF Output</div>
+    <div style="text-align: center; width: 50%">Expected Output (screenshot)</div>
+  </div>
+
   <script>
     var body = document.querySelector('body');
 
