@@ -1,9 +1,9 @@
 <html>
 <body>
   <ul>
-    <li><a href="classic_basic.cfm">Classic engine, basic</a></li>
-    <li><a href="modern_basic.cfm">Modern engine, basic</a></li>
-    <li><a href="modern_section.cfm">Modern engine, with sections</a></li>
+    <li><a href="test_cases/classic_basic.cfm">Classic engine, basic</a></li>
+    <li><a href="test_cases/modern_basic.cfm">Modern engine, basic</a></li>
+    <li><a href="test_cases/modern_section.cfm">Modern engine, with sections</a></li>
     <!--- <li><a href="classic_mixed_orientation.cfm">Classic engine, mixed orientation</a></li>
     <li><a href="modern_mixed_orientation.cfm">Modern engine, mixed orientation</a></li> --->
   </ul>
@@ -33,6 +33,7 @@
       img.src = `expected_output/${imgName}`;
       img.style.display = 'inline-block';
       img.style.width = '50%';
+      img.style.maxWidth = '800px';
       div.appendChild(img);
 
       body.append(div);
