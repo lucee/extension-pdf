@@ -735,6 +735,7 @@ public class PDF extends BodyTagImpl {
 				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
 			}
 		}
+		this.overwrite = true;
 		this.info = doc.getInfo();
 		doActionSetInfo();
 	}
