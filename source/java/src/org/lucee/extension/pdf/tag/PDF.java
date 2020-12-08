@@ -900,6 +900,9 @@ public class PDF extends BodyTagImpl {
 	}
 
 	private void doActionThumbnail() throws PageException, IOException, DocumentException {
+		
+		throw engine.getExceptionUtil().createApplicationException("PDF action thumbnail is not implemented");
+		/*
 		required("pdf", "thumbnail", "source", source);
 
 		PDFStruct doc = toPDFDocument(source, password, null);
@@ -936,6 +939,7 @@ public class PDF extends BodyTagImpl {
 
 		// MUST password
 		PDFUtil.writeImages(doc.getRaw(), doc.getPages(), destination, imagePrefix, format, scale, overwrite, resolution == RESOLUTION_HIGH, transparent);
+		*/
 
 	}
 
