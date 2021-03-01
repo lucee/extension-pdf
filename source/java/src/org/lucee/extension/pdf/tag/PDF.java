@@ -251,7 +251,7 @@ public class PDF extends BodyTagImpl {
 		// else if("justified".equals(align)) this.align=Element.ALIGN_JUSTIFIED;
 		// else if("justify".equals(align)) this.align=Element.ALIGN_JUSTIFIED;
 
-		else throw engine.getExceptionUtil().createApplicationException("Invalid align value [" + align + "], valid align values are [center, left, right]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid PDF [align] value [" + align + "], supported align values are [center, left, right]");
 
 	}
 
@@ -403,7 +403,7 @@ public class PDF extends BodyTagImpl {
 		else if ("rc4_40".equals(strEncrypt)) encrypt = PDFUtil.ENCRYPT_RC4_40;
 
 		else throw engine.getExceptionUtil()
-				.createApplicationException("Invalid encrypt definition [" + strEncrypt + "], valid encrypt definitions are " + "[aes_128,none,rc4_128,rc4_128m,rc4_40]");
+				.createApplicationException("Invalid PDF encrypt [" + strEncrypt + "], supported [encrypt] types are " + "[aes_128, none, rc4_128, rc4_128m, rc4_40]");
 	}
 
 	/**
@@ -512,7 +512,7 @@ public class PDF extends BodyTagImpl {
 	 */
 	public void setOpacity(double opacity) throws PageException {
 		if (opacity < 0 || opacity > 10) throw engine.getExceptionUtil()
-				.createApplicationException("Invalid opacity definition [" + engine.getCastUtil().toString(opacity) + "], value should be in range from 0 to 10");
+				.createApplicationException("Invalid PDF opacity definition [" + engine.getCastUtil().toString(opacity) + "], value should be in range from 0 to 10");
 		this.opacity = (float) (opacity / 10);
 	}
 
@@ -573,7 +573,7 @@ public class PDF extends BodyTagImpl {
 		if ("low".equals(strResolution)) resolution = RESOLUTION_LOW;
 		else if ("high".equals(strResolution)) resolution = RESOLUTION_HIGH;
 
-		else throw engine.getExceptionUtil().createApplicationException("Invalid resolution [" + strResolution + "], supported resolutions are " + "[low, high]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid PDF resolution [" + strResolution + "], supported resolutions are " + "[low, high]");
 	}
 
 	/**
@@ -596,7 +596,7 @@ public class PDF extends BodyTagImpl {
 		else if ("incremental".equals(strSaveOption)) saveOption = SAVE_OPTION_INCREMENTAL;
 		else if ("linear".equals(strSaveOption)) saveOption = SAVE_OPTION_LINEAR;
 
-		else throw engine.getExceptionUtil().createApplicationException("Invalid saveOption [" + strSaveOption + "], supported saveOptions are " + "[full, linear, incremental]");
+		else throw engine.getExceptionUtil().createApplicationException("Invalid PDF saveOption [" + strSaveOption + "], supported saveOptions are " + "[full, linear, incremental]");
 	}
 
 	/**
@@ -652,7 +652,7 @@ public class PDF extends BodyTagImpl {
 		else if (1.6 == version) this.version = PdfWriter.VERSION_1_6;
 
 		else throw engine.getExceptionUtil().createApplicationException(
-				"Invalid version definition [" + engine.getCastUtil().toString(version) + "], valid version definitions are " + "[1.1, 1.2, 1.3, 1.4, 1.5, 1.6]");
+				"Invalid PDF [version] specified [" + engine.getCastUtil().toString(version) + "], supported versions are " + "[1.1, 1.2, 1.3, 1.4, 1.5, 1.6]");
 	}
 
 	@Override
@@ -901,6 +901,9 @@ public class PDF extends BodyTagImpl {
 	}
 
 	private void doActionThumbnail() throws PageException, IOException, DocumentException {
+		
+		throw engine.getExceptionUtil().createApplicationException("PDF action [thumbnail] is not implemented");
+		/*
 		required("pdf", "thumbnail", "source", source);
 
 		PDFStruct doc = toPDFDocument(source, password, null);
@@ -937,13 +940,14 @@ public class PDF extends BodyTagImpl {
 
 		// MUST password
 		PDFUtil.writeImages(doc.getRaw(), doc.getPages(), destination, imagePrefix, format, scale, overwrite, resolution == RESOLUTION_HIGH, transparent);
+		*/
 
 	}
 
 	private void doActionAddWatermark() throws PageException, IOException, DocumentException {
 		required("pdf", "addWatermark", "source", source);
 		if (copyFrom == null && image == null)
-			throw engine.getExceptionUtil().createApplicationException("at least one of the following attributes is required " + "[copyFrom, image]");
+			throw engine.getExceptionUtil().createApplicationException("PDF action [addWaterMark] requires one of the following attributes " + "[copyFrom, image]");
 
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
@@ -1068,7 +1072,7 @@ public class PDF extends BodyTagImpl {
 		if (destination == null) {
 			destIsSource = true;
 			destination = doc.getResource();
-			if (destination == null) throw engine.getExceptionUtil().createApplicationException("Source is not based on a resource, attribute [destination] file is required");
+			if (destination == null) throw engine.getExceptionUtil().createApplicationException("PDF Source is not based on a resource, attribute [destination] file is required");
 		}
 		else destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 
@@ -1124,7 +1128,7 @@ public class PDF extends BodyTagImpl {
 			destination = doc.getResource();
 		}
 		else if (destination != null && destination.exists() && !overwrite)
-			throw engine.getExceptionUtil().createApplicationException("destination file [" + destination + "] already exists");
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
 		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 
@@ -1155,7 +1159,7 @@ public class PDF extends BodyTagImpl {
 	private void doActionMerge() throws PageException, PageException, IOException, DocumentException {
 
 		if (source == null && params == null && directory == null) throw engine.getExceptionUtil()
-				.createApplicationException("At least one of the following combinations is required, attribute source, attribute directory or cfpdfparam child tags");
+				.createApplicationException("At least one of the following combinations is required, attribute [source], attribute [directory] or [cfpdfparam] child tags");
 		if (destination == null && Util.isEmpty(name, true))
 			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
 		if (destination != null && destination.exists() && !overwrite)
@@ -1234,7 +1238,7 @@ public class PDF extends BodyTagImpl {
 		}
 
 		int doclen = docs.size();
-		if (doclen == 0) throw engine.getExceptionUtil().createApplicationException("You must define at least 1 PDF file when merging");
+		if (doclen == 0) throw engine.getExceptionUtil().createApplicationException("PDF action [merge] requires at least 1 PDF file when merging");
 
 		// output
 		OutputStream os = null;
