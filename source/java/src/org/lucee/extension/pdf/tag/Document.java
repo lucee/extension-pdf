@@ -479,8 +479,16 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		this.attrBookmark = bookmark;
 	}
 
+	public boolean getBookmark() {
+		return this.attrBookmark;
+	}
+	
 	public void setHtmlbookmark(boolean bookmark) {
 		this.attrHtmlbookmark = bookmark;
+	}
+	
+	public boolean getHtmlBookmark() {
+		return this.attrHtmlbookmark;
 	}
 
 	/**
@@ -704,8 +712,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				}
 
 			}
-			doBookmarks = _document.getBookmark();
-			doHtmlBookmarks = _document.getHtmlBookmark();
+			doBookmarks = getBookmark();
+			doHtmlBookmarks = getHtmlBookmark();
 		}
 		// only if there is no documentsection, we are interested in the content from document
 		if (documents.size() == 0) {
