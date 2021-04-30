@@ -736,8 +736,11 @@ public abstract class PDFDocument {
 			Element e = (Element) n;
 			String src = e.getAttribute("src");
 			try {
-				Resource res = engine.getCastUtil().toResource(src, null);
-				if (res != null) e.setAttribute("src", toLocalSource(engine, res));
+				if( !engine.getStringUtil().startsWithIgnoreCase(src.trim(), "data:image") ){
+					Resource res = engine.getCastUtil().toResource(src, null);
+					if (res != null) e.setAttribute("src", toLocalSource(engine, res));
+				}
+				else e.setAttribute("src", src.trim());
 			}
 			catch (Exception mue) {}
 		}
