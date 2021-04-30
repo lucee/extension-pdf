@@ -597,7 +597,8 @@ public abstract class PDFDocument {
 							try {
 								return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(href);
 							}
-							catch (MalformedURLException e) {}
+							catch (MalformedURLException e) {
+							}
 						}
 					}
 
@@ -736,13 +737,14 @@ public abstract class PDFDocument {
 			Element e = (Element) n;
 			String src = e.getAttribute("src");
 			try {
-				if( !engine.getStringUtil().startsWithIgnoreCase(src.trim(), "data:image") ){
+				if (!engine.getStringUtil().startsWithIgnoreCase(src.trim(), "data:image")) {
 					Resource res = engine.getCastUtil().toResource(src, null);
 					if (res != null) e.setAttribute("src", toLocalSource(engine, res));
 				}
-				else e.setAttribute("src", src.trim());
+				else e.setAttribute("src", engine.getStringUtil().replace(src.trim(), ";base64, ", ";base64,", false, true));
 			}
-			catch (Exception mue) {}
+			catch (Exception mue) {
+			}
 		}
 		else {
 			NodeList children = n.getChildNodes();
@@ -769,7 +771,8 @@ public abstract class PDFDocument {
 				}
 			}
 		}
-		catch (Exception e) {}
+		catch (Exception e) {
+		}
 		return url.toExternalForm();
 	}
 
@@ -786,7 +789,8 @@ public abstract class PDFDocument {
 			}
 			return ((File) res).toURI().toURL().toString();
 		}
-		catch (Exception e) {}
+		catch (Exception e) {
+		}
 
 		// local base 64
 		try {
@@ -806,7 +810,8 @@ public abstract class PDFDocument {
 				}
 			}
 		}
-		catch (Exception e) {}
+		catch (Exception e) {
+		}
 
 		// simply cleaned path
 		try {
