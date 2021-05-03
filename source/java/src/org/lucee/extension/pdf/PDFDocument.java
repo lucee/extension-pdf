@@ -741,7 +741,7 @@ public abstract class PDFDocument {
 					Resource res = engine.getCastUtil().toResource(src, null);
 					if (res != null) e.setAttribute("src", toLocalSource(engine, res));
 				}
-				else e.setAttribute("src", engine.getStringUtil().replace(src.trim(), ";base64, ", ";base64,", false, true));
+				else e.setAttribute("src", cleanBase64Image(src));
 			}
 			catch (Exception mue) {
 			}
@@ -753,6 +753,10 @@ public abstract class PDFDocument {
 				toLocalSource(engine, pc, children.item(i), hostPort);
 			}
 		}
+	}
+
+	private static String cleanBase64Image(String src) {
+		return src.trim().replaceAll(";base64,\\s+", ";base64,");
 	}
 
 	protected String toLocalSource(CFMLEngine engine, URL url) {
