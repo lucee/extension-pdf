@@ -954,14 +954,23 @@ public class PDF extends BodyTagImpl {
 
 		// image
 		Image img = null;
+		byte[] barr;
+
 		if (image != null) {
-			// TODO lucee.runtime.img.Image ri =
-			// lucee.runtime.img.Image.createImage(pageContext,image,false,false,true,null);
-			// TODO img=Image.getInstance(ri.getBufferedImage(),null,false);
+			if(image instanceof String){
+				Resource res = engine.getResourceUtil().toResourceExisting(pageContext, (String) image);
+				img = Image.getInstance(res.getPath());
+				// TODO lucee.runtime.img.Image ri =
+				// lucee.runtime.img.Image.createImage(pageContext,image,false,false,true,null);
+				// TODO img=Image.getInstance(ri.getBufferedImage(),null,false);
+			}
+			else{
+				barr = engine.getCastUtil().toBinary(image);
+				img = Image.getInstance(barr);
+			}
 		}
 		// copy From
 		else {
-			byte[] barr;
 			try {
 				Resource res = copyFrom instanceof String ? engine.getResourceUtil().toResourceExisting(pageContext, (String) copyFrom) : engine.getCastUtil().toResource(copyFrom);
 				barr = PDFUtil.toBytes(res);
@@ -995,9 +1004,10 @@ public class PDF extends BodyTagImpl {
 		if (bookmarks != null) master.addAll(bookmarks);
 
 		// output
-		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
+		boolean destIsSource = false;
+		if(destination != null && doc.getResource() != null && destination.equals(doc.getResource())) destIsSource = true;
 		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource) {
+		if (!Util.isEmpty(name) || destIsSource || destination == null) {
 			os = new ByteArrayOutputStream();
 		}
 		else if (destination != null) {
@@ -1043,8 +1053,9 @@ public class PDF extends BodyTagImpl {
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
 				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
+				else if(doc.getResource() != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination specify means addWatermark to source file
 				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
+					pageContext.setVariable(name, ((ByteArrayOutputStream) os).toByteArray());
 				}
 			}
 		}
