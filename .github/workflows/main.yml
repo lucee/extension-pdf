@@ -1,14 +1,16 @@
 # This workflow will build a Java project with Ant
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-ant
 
-name: Build Extension
+name: Java CI
 
-on: [push, pull_request]
+on: [push, pull_request,workflow_dispatch]
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
+    env:
+      luceeVersion: 6.0.0.95-SNAPSHOT
 
     steps:
     - uses: actions/checkout@v2
@@ -17,10 +19,36 @@ jobs:
       with:
         java-version: '11'
         distribution: 'adopt'
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: lucee-script-runner-maven-cache
+    - name: Cache Lucee files
+      uses: actions/cache@v2
+      with:
+        path: _actions/zspitzer/lucee-script-engine-runner/main/lucee-download-cache
+        key: lucee-downloads-${{ env.luceeVersion }}
+        restore-keys: |
+          lucee-downloads
     - name: Build with Ant
       run: ant -noinput -verbose -buildfile build.xml
-    - name: Save extension as build Artifact
+    - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: pdf-extension
+        name: pdf-lex
         path: dist/*.lex
+    - name: Checkout Lucee
+      uses: actions/checkout@v2
+      with:
+        repository: lucee/lucee
+        path: lucee
+    - name: Run Lucee Test Suite
+      uses: zspitzer/lucee-script-engine-runner@main
+      with:
+        webroot: ${{ github.workspace }}/lucee/test
+        execute: /bootstrap-tests.cfm
+        luceeVersion: ${{ env.luceeVersion }}
+        extensionDir: ${{ github.workspace }}/dist
+      env:
+        testLabels: pdf
