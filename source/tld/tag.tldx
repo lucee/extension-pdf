@@ -61,7 +61,8 @@
 			<name>fontdirectory</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<description>directory that contains addional font files (.ttf) and a pd4fonts.properties to describe them.</description>
+			<description>directory that contains addional font files (.ttf) and a pd4fonts.properties to describe them.
+			It will not be supported on the old engine (PD4ML).</description>
 		</attribute>
 
 		<attribute>
