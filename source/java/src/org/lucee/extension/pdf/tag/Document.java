@@ -241,6 +241,17 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
+	 * Return the number of the document's explicit (or implicit) engine type.
+	 */
+	public int getType() {
+		if (_document instanceof PD4MLPDFDocument) {
+			return PDFDocument.TYPE_PD4ML;
+		} else {
+			return PDFDocument.TYPE_FS;
+		}
+	}
+
+	/**
 	 * set the value proxyserver Host name or IP address of a proxy server.
 	 *
 	 * @param proxyserver value to set

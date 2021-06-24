@@ -56,7 +56,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 			second = true;
 			if (_document == null) {
 				second = false;
-				_document = PDFDocument.newInstance(doc.getApplicationSettings().getType());
+				_document = PDFDocument.newInstance(doc.getType());
 			}
 
 		}
