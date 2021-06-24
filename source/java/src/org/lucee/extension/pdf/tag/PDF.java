@@ -1160,6 +1160,7 @@ public class PDF extends BodyTagImpl {
 
 		if (source == null && params == null && directory == null) throw engine.getExceptionUtil()
 				.createApplicationException("At least one of the following combinations is required, attribute [source], attribute [directory] or [cfpdfparam] child tags");
+		if (source != null && directory != null) throw engine.getExceptionUtil().createApplicationException("You cant't use attributes [source,directory] together, must specify one of them");
 		if (destination == null && Util.isEmpty(name, true))
 			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
 		if (destination != null && destination.exists() && !overwrite)
@@ -1168,6 +1169,7 @@ public class PDF extends BodyTagImpl {
 		ArrayList docs = new ArrayList();
 		PDFStruct doc;
 		boolean isListing = false;
+		boolean destIsSource = false;
 
 		// source
 		if (source != null) {
@@ -1176,6 +1178,7 @@ public class PDF extends BodyTagImpl {
 				int len = arr.size();
 				for (int i = 1; i <= len; i++) {
 					docs.add(doc = toPDFDocument(arr.getE(i), password, null));
+					if(doc.getResource() != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 					doc.setPages(pages);
 				}
 			}
@@ -1183,6 +1186,7 @@ public class PDF extends BodyTagImpl {
 				String[] sources = engine.getListUtil().toStringArrayTrim(engine.getListUtil().toArrayRemoveEmpty((String) source, ","));
 				for (int i = 0; i < sources.length; i++) {
 					docs.add(doc = toPDFDocument(sources[i], password, null));
+					if(doc.getResource() != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 					doc.setPages(pages);
 				}
 			}
@@ -1190,20 +1194,19 @@ public class PDF extends BodyTagImpl {
 
 		}
 
-		boolean destIsSource = false;
-
-		// params
+		// directory
 		if (directory != null && !directory.isDirectory()) {
 			if (!directory.exists()) throw engine.getExceptionUtil().createApplicationException("Attribute [directory] does not exist");
 			throw engine.getExceptionUtil().createApplicationException("Attribute [directory] is not a directory");
 		}
-
+		// params
 		if (params != null) {
 			Iterator it = params.iterator();
 			PDFParamBean param;
 			while (it.hasNext()) {
 				param = (PDFParamBean) it.next();
 				docs.add(doc = toPDFDocument(param.getSource(), param.getPassword(), directory));
+				if(doc.getResource() != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 				doc.setPages(param.getPages());
 			}
 		}
