@@ -742,6 +742,7 @@ public class PDF extends BodyTagImpl {
 
 	private void doActionAddHeaderFooter(boolean isHeader) throws PageException, IOException, DocumentException {
 		required("pdf", "write", "source", source);
+		if (text == null) throw engine.getExceptionUtil().createApplicationException("when PDF action is [addHeader or addFooter], It requires a attribute [text]");
 		// required("pdf", "write", "destination", destination);
 
 		/*
@@ -768,7 +769,7 @@ public class PDF extends BodyTagImpl {
 		// output stream
 		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource) {
+		if (!Util.isEmpty(name) || destIsSource || destination == null) {
 			os = new ByteArrayOutputStream();
 		}
 		else if (destination != null) {
@@ -781,7 +782,7 @@ public class PDF extends BodyTagImpl {
 
 			int len = reader.getNumberOfPages();
 			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
-			stamper = new PdfStamper(reader, destination.getOutputStream());
+			stamper = new PdfStamper(reader, os);
 			if (font == null) font = getDefaultFont();
 			for (int p = 1; p <= len; p++) {
 				if (pageSet != null && !pageSet.contains(p)) continue;
@@ -820,6 +821,7 @@ public class PDF extends BodyTagImpl {
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
 				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
+				else if(doc.getResource() != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination specify means add header or footer to source file
 				if (!Util.isEmpty(name)) {
 					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
 				}
