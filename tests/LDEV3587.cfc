@@ -17,7 +17,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase"{
                 try {
                     res = "Added header to source file";
                     pdf action="addHeader" text="test context" source="#variables.file#";
-                    writeDump(test);
                 }
                 catch(any e) {
                     res = e.message;
