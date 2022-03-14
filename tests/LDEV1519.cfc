@@ -4,10 +4,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase"  labels="pdf"{
             echo("<H1>I am a watermark test</H1>");
         }
        
-        local.img =  ImageNew("", 100,100,"rgb","Red");
         pdf action = "addWaterMark"
             source ="test"
-            image="#img#"
+            image="#getDirectoryFromPath(getCurrentTemplatePath())#LDEV1519/image.jpg"
             pages="1"
             name="watermarkedPDF"
             overwrite="true"
