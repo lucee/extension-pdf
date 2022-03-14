@@ -13,7 +13,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
     function run( testResults , testBox ) {
         describe( "test case for LDEV-3587", function() {
-            it(title = "cfpdf addheader without desstination and name attribute, addheader to source file ", body = function( currentSpec ) {
+            it(title = "cfpdf addheader without destination and name attribute, addheader to source file ", body = function( currentSpec ) {
                 try {
                     res = "Added header to source file";
                     pdf action="addHeader" text="test context" source="#variables.file#";
