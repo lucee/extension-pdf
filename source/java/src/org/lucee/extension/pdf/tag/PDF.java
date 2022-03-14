@@ -1039,10 +1039,10 @@ public class PDF extends BodyTagImpl {
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
 				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
-				else if(doc.getResource() != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination specify means addWatermark to source file
 				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, ((ByteArrayOutputStream) os).toByteArray());
+					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
 				}
+				else if(destination == null && doc.getResource() != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination and name attribute specify means addWatermark to source file
 			}
 		}
 	}
