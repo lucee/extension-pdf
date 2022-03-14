@@ -1,6 +1,6 @@
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
     function run( testResults, testBox ) {
-        describe("Testcase for LDEV-3781", function() {
+        describe("Testcase for LDEV-3575 & LDEV-1500", function() {
             it( title="LDEV-3575, cfdocument with orientation and fontdirectory attribute", body=function( currentSpec ) {
                 try {
                     document format="pdf" orientation="landscape" fontdirectory="#getDirectoryFromPath(getCurrentTemplatePath())#" name="local.test3575" {
