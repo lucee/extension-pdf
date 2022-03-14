@@ -31,11 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.pdfbox.exceptions.CryptographyException;
-import org.apache.pdfbox.exceptions.InvalidPasswordException;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.util.PDFTextStripper;
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.img.PDF2ImageICEpdf;
 import org.lucee.extension.pdf.tag.PDF;
@@ -331,13 +329,13 @@ public class PDFUtil {
 		// overwrite, goodQuality, transparent);
 	}
 
-	public static Object extractText(PDFStruct doc, Set<Integer> pageNumbers, int type) throws IOException, CryptographyException, InvalidPasswordException {
+	public static Object extractText(PDFStruct doc, Set<Integer> pageNumbers, int type) throws IOException, InvalidPasswordException {
 		PDDocument pdDoc = doc.toPDDocument();
 		// PDDocument newDocument = new PDDocument();
 		// List pages = pdDoc.getDocumentCatalog().getAllPages();
 		// pages.
 		// pdDoc.getDocumentCatalog().
-		int n = pdDoc.getPageCount();
+		int n = pdDoc.getNumberOfPages();
 		Iterator<Integer> it = pageNumbers.iterator();
 		// PDFTextStripper textStripper=new PDFTextStripper();
 		int p;
@@ -355,7 +353,7 @@ public class PDFUtil {
 			p = it.next();
 			if (type == PDF.TYPE_XML) sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
 			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
-			document.addPage((PDPage) pdDoc.getDocumentCatalog().getAllPages().get(p - 1));
+			document.addPage(pdDoc.getDocumentCatalog().getPages().get(p - 1));
 			String text = stripper.getText(document);
 			System.out.println("text:" + text);
 			sb.append(text);
