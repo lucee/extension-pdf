@@ -149,6 +149,7 @@
 			<rtexprvalue>true</rtexprvalue>
 			<description>is the orientation landscape or portrait</description>
 			<default>portrait</default>
+			<values>portrait,landscape</values>
 		</attribute>
 		<attribute>
 			<type>boolean</type>
