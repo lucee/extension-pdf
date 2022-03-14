@@ -25,6 +25,7 @@ import lucee.runtime.exp.PageException;
 public class XMLUtil {
 
 	public static final short UNDEFINED_NODE = -1;
+	private static TransformerFactory transformerFactory;
 
 	public static Element getRootElement(Node node) {
 		Document doc = null;
@@ -58,7 +59,8 @@ public class XMLUtil {
 					if (filter == null || filter.equals(n.getLocalName())) rtn.add(n);
 				}
 			}
-			catch (Exception t) {}
+			catch (Exception t) {
+			}
 		}
 		return rtn;
 	}
@@ -72,9 +74,8 @@ public class XMLUtil {
 		XMLReader reader = new Parser();
 		reader.setFeature(Parser.namespacesFeature, true);
 		reader.setFeature(Parser.namespacePrefixesFeature, true);
-
 		try {
-			Transformer transformer = TransformerFactory.newInstance().newTransformer();
+			Transformer transformer = getTransformerFactory().newTransformer();
 
 			DOMResult result = new DOMResult();
 			transformer.transform(new SAXSource(reader, xml), result);
@@ -83,6 +84,20 @@ public class XMLUtil {
 		catch (Exception e) {
 			throw new SAXException(e);
 		}
+	}
+
+	public static TransformerFactory getTransformerFactory() {
+		if (transformerFactory == null) {
+			try {
+				Class<?> clazz = CFMLEngineFactory.getInstance().getClassUtil().loadClass("lucee.runtime.text.xml.XMLUtil");
+				transformerFactory = (TransformerFactory) clazz.getMethod("getTransformerFactory", new Class[0]).invoke(null, new Object[0]);
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				transformerFactory = TransformerFactory.newInstance();
+			}
+		}
+		return transformerFactory;
 	}
 
 	// toString(node, omitXMLDecl, indent, publicId, systemId, encoding);

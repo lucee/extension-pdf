@@ -34,8 +34,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.pdfbox.exceptions.CryptographyException;
-import org.apache.pdfbox.exceptions.InvalidPasswordException;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.util.PDFUtil;
 
@@ -596,7 +594,8 @@ public class PDF extends BodyTagImpl {
 		else if ("incremental".equals(strSaveOption)) saveOption = SAVE_OPTION_INCREMENTAL;
 		else if ("linear".equals(strSaveOption)) saveOption = SAVE_OPTION_LINEAR;
 
-		else throw engine.getExceptionUtil().createApplicationException("Invalid PDF saveOption [" + strSaveOption + "], supported saveOptions are " + "[full, linear, incremental]");
+		else throw engine.getExceptionUtil()
+				.createApplicationException("Invalid PDF saveOption [" + strSaveOption + "], supported saveOptions are " + "[full, linear, incremental]");
 	}
 
 	/**
@@ -815,7 +814,8 @@ public class PDF extends BodyTagImpl {
 			try {
 				if (stamper != null) stamper.close();
 			}
-			catch (IOException ioe) {}
+			catch (IOException ioe) {
+			}
 			;
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
@@ -901,46 +901,32 @@ public class PDF extends BodyTagImpl {
 	}
 
 	private void doActionThumbnail() throws PageException, IOException, DocumentException {
-		
+
 		throw engine.getExceptionUtil().createApplicationException("PDF action [thumbnail] is not implemented");
 		/*
-		required("pdf", "thumbnail", "source", source);
-
-		PDFStruct doc = toPDFDocument(source, password, null);
-		PdfReader pr = doc.getPdfReader();
-		boolean isEnc = pr.isEncrypted();
-		pr.close();
-		if (isEnc) {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			// PDFUtil.concat(new PDFDocument[]{doc}, baos, true, true, true, (char)0);
-			PDFUtil.encrypt(doc, baos, null, null, 0, PDFUtil.ENCRYPT_NONE);
-			baos.close();
-			doc = new PDFStruct(baos.toByteArray(), doc.getResource(), null);
-		}
-
-		doc.setPages(pages);
-
-		// scale
-		if (scale < 1) throw engine.getExceptionUtil().createApplicationException("Attribute [scale] should be at least 1, was [" + scale + "]");
-
-		// destination
-		if (destination == null) destination = engine.getResourceUtil().toResourceNotExisting(pageContext, "thumbnails");
-
-		// imagePrefix
-		if (imagePrefix == null) {
-			Resource res = doc.getResource();
-			if (res != null) {
-				String n = res.getName();
-				int index = n.lastIndexOf('.');
-				if (index != -1) imagePrefix = n.substring(0, index);
-				else imagePrefix = n;
-			}
-			else imagePrefix = "memory";
-		}
-
-		// MUST password
-		PDFUtil.writeImages(doc.getRaw(), doc.getPages(), destination, imagePrefix, format, scale, overwrite, resolution == RESOLUTION_HIGH, transparent);
-		*/
+		 * required("pdf", "thumbnail", "source", source);
+		 * 
+		 * PDFStruct doc = toPDFDocument(source, password, null); PdfReader pr = doc.getPdfReader(); boolean
+		 * isEnc = pr.isEncrypted(); pr.close(); if (isEnc) { ByteArrayOutputStream baos = new
+		 * ByteArrayOutputStream(); // PDFUtil.concat(new PDFDocument[]{doc}, baos, true, true, true,
+		 * (char)0); PDFUtil.encrypt(doc, baos, null, null, 0, PDFUtil.ENCRYPT_NONE); baos.close(); doc =
+		 * new PDFStruct(baos.toByteArray(), doc.getResource(), null); }
+		 * 
+		 * doc.setPages(pages);
+		 * 
+		 * // scale if (scale < 1) throw engine.getExceptionUtil().
+		 * createApplicationException("Attribute [scale] should be at least 1, was [" + scale + "]");
+		 * 
+		 * // destination if (destination == null) destination =
+		 * engine.getResourceUtil().toResourceNotExisting(pageContext, "thumbnails");
+		 * 
+		 * // imagePrefix if (imagePrefix == null) { Resource res = doc.getResource(); if (res != null) {
+		 * String n = res.getName(); int index = n.lastIndexOf('.'); if (index != -1) imagePrefix =
+		 * n.substring(0, index); else imagePrefix = n; } else imagePrefix = "memory"; }
+		 * 
+		 * // MUST password PDFUtil.writeImages(doc.getRaw(), doc.getPages(), destination, imagePrefix,
+		 * format, scale, overwrite, resolution == RESOLUTION_HIGH, transparent);
+		 */
 
 	}
 
@@ -1409,7 +1395,7 @@ public class PDF extends BodyTagImpl {
 
 	}
 
-	private void doActionExtractText() throws PageException, IOException, CryptographyException, InvalidPasswordException {
+	private void doActionExtractText() throws PageException, IOException {
 		required("pdf", "extractText", "name", name, true);
 		required("pdf", "extractText", "source", source);
 		PDFStruct doc = toPDFDocument(source, password, null);
@@ -1446,7 +1432,8 @@ public class PDF extends BodyTagImpl {
 			try {
 				obj = pageContext.getVariable(str);
 			}
-			catch (PageException pe) {}
+			catch (PageException pe) {
+			}
 			if (obj != null) return toPDFDocument(obj, password, directory, false);
 
 			if (directory != null) {
