@@ -369,8 +369,9 @@ public class PDFStruct extends StructSupport implements Struct {
 			else doc = Loader.loadPDF((File) resource);
 		}
 		else {
-			if (password != null) doc = Loader.loadPDF(new ByteArrayInputStream(PDFUtil.toBytes(resource), 0, barr.length), password);
-			else doc = Loader.loadPDF(new ByteArrayInputStream(PDFUtil.toBytes(resource), 0, barr.length));
+			barr = PDFUtil.toBytes(resource);
+			if (password != null) doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length), password);
+			else doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length));
 		}
 		return doc;
 
