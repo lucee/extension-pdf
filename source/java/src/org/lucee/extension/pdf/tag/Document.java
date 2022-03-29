@@ -64,6 +64,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private Resource filename = null;
 	private boolean overwrite = false;
 	private String name = null;
+	private String saveAsName = null;
 	private Dimension pagetype = PDFDocument.PAGETYPE_LETTER;
 	private double pageheight = 0;
 	private double pagewidth = 0;
@@ -120,6 +121,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		filename = null;
 		overwrite = false;
 		name = null;
+		saveAsName = null;
 		pagetype = PDFDocument.PAGETYPE_LETTER;
 		pageheight = 0;
 		pagewidth = 0;
@@ -283,7 +285,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	public void setSaveasname(String saveAsName) {
-		// TODO impl
+		this.saveAsName = saveAsName;
 	}
 
 	/**
@@ -743,6 +745,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			if (rsp.isCommitted())
 				throw engine.getExceptionUtil().createApplicationException("content is already flushed", "you can't rewrite head of response after part of the page is flushed");
 			rsp.setContentType("application/pdf");
+			if (!Util.isEmpty(saveAsName, true)) rsp.setHeader("Content-Disposition", "inline; filename=\"" + saveAsName + "\"");
 
 			OutputStream os = getOutputStream();
 			try {
