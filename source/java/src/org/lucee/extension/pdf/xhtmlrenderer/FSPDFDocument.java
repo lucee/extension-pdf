@@ -44,6 +44,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import com.lowagie.text.DocumentException;
+import com.lowagie.text.pdf.BaseFont;
 
 import lucee.commons.io.res.ContentType;
 import lucee.commons.net.http.HTTPResponse;
@@ -67,7 +68,17 @@ public final class FSPDFDocument extends PDFDocument {
 
 		// fonts
 		ITextFontResolver resolver = renderer.getFontResolver();
-		resolver.addFontDirectory(fontDirectory.getCanonicalPath(), fontembed);
+		File[] children = fontDirectory.listFiles();
+		for (File child: children) {
+			try {
+				resolver.addFont(child.getAbsolutePath(), BaseFont.IDENTITY_H, fontembed);
+			}
+			catch (Exception e) {
+				// e.printStackTrace();
+			}
+		}
+
+		// resolver.addFontDirectory(fontDirectory.getCanonicalPath(), fontembed);
 
 		// margin
 		double mt = margintop;
