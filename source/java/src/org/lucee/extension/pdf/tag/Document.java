@@ -103,6 +103,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private double attrMarginright = -1;
 	private double attrMargintop = -1;
 	private String attrMimetype = null;
+	private String attrOrientation = null;
 	private String attrProxyHost = null;
 	private String attrProxyPassword = null;
 	private double attrProxyPort = 80;
@@ -151,6 +152,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		attrMarginright = -1;
 		attrMargintop = -1;
 		attrMimetype = null;
+		attrOrientation = null;
 		attrProxyHost = null;
 		attrProxyPassword = null;
 		attrProxyPort = 80;
@@ -192,6 +194,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			_document.setMarginright(attrMarginright);
 			if (attrMimetype != null) {
 				_document.setMimetype(attrMimetype);
+			}
+			if (attrOrientation != null) {
+				_document.setOrientation(attrOrientation);
 			}
 			if (attrProxyHost != null) {
 				_document.setProxyserver(attrProxyHost);
@@ -988,7 +993,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @param orientation the orientation to set @throws PageException
 	 */
 	public void setOrientation(String strOrientation) throws PageException {
-		getPDFDocument().setOrientation(strOrientation);
+		this.attrOrientation = strOrientation;
 	}
 
 	public static String trimAndLower(String str) {
