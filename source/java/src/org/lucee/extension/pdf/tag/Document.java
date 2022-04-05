@@ -750,6 +750,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			if (rsp.isCommitted())
 				throw engine.getExceptionUtil().createApplicationException("content is already flushed", "you can't rewrite head of response after part of the page is flushed");
 			rsp.setContentType("application/pdf");
+			rsp.setContentLength(pdf.length);
 			if (!Util.isEmpty(saveAsName, true)) rsp.setHeader("Content-Disposition", "inline; filename=\"" + saveAsName + "\"");
 
 			OutputStream os = getOutputStream();
