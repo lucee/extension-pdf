@@ -26,22 +26,21 @@ component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				pdf action="thumbnail" source="#variables.file#" overwrite="true" destination="#variables.thumbnaildir#";
 				var imgFiles = directoryList( path="#variables.thumbnaildir#", listInfo="path");
 				expect(arrayLen(imgFiles)).toBe(5);
-				expect(arrayEvery(imgFiles, (e) => { return isImageFile(e)})).toBeTrue();
-
+				expect(arrayEvery(imgFiles, (e) => { return listLast(e,".") == "jpg"})).toBeTrue();
 			});
 
 			it(title="CFPDF action=thumbnail with http resource", body=function( currentSpec ) {
 				pdf action="thumbnail" source="https://github.com/lucee/Lucee/raw/master/test/tickets/LDEV1774/test.pdf" overwrite="true" destination="#variables.thumbnaildir#";
 				var imgFiles = directoryList( path="#variables.thumbnaildir#", listInfo="path");
 				expect(arrayLen(imgFiles)).toBe(8);
-				expect(arrayEvery(imgFiles, (e) => { return isImageFile(e)})).toBeTrue();
+				expect(arrayEvery(imgFiles, (e) => { return listLast(e,".") == "jpg"})).toBeTrue();
 			});
 
 			it(title="CFPDF action=thumbnail with pdf binary variable", body=function( currentSpec ) {
 				pdf action="thumbnail" source="#res#" overwrite="true" destination="#variables.thumbnaildir#";
 				var imgFiles = directoryList( path="#variables.thumbnaildir#", listInfo="path");
 				expect(arrayLen(imgFiles)).toBe(5);
-				expect(arrayEvery(imgFiles, (e) => { return isImageFile(e)})).toBeTrue();
+				expect(arrayEvery(imgFiles, (e) => { return listLast(e,".") == "jpg"})).toBeTrue();
 			});
 
 			it(title="CFPDF action=thumbnail - pages attribute", body=function( currentSpec ) {
