@@ -1,42 +1,30 @@
-component  extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
+component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
-	function beforeAll(){
-		afterAll();
-		variables.uri = createURI("LDEV3015");
-		directoryCreate("#variables.uri#/pdf");
+	function beforeAll() {
+		variables.path = getDirectoryFromPath(getCurrentTemplatePath()) & "LDEV3015";
+		if (!directoryExists(variables.path)) directoryCreate("#variables.path#");
 	}
 
-	function afterAll(){
-		variables.uri = createURI("LDEV3015");
-		if(directoryExists("#variables.uri#/pdf")){
-			directoryDelete("#variables.uri#/pdf", true)
-		}
-	}
-
-	function run ( testResults , testbox ) {
+	function run( testResults , testbox ) {
 		describe( "Testcase for LDEV-3015" ,function () {
-			it( title = "Checkig action = extracttext with pdf without style", body = function ( currentSpec ){
-				local.result = _InternalRequest(
-					template : "#uri#\test.cfm",
-					forms : { scene = 1 }
-				);
-				getContent = xmlSearch(result.filecontent,"/DocText/TextPerPage/page");
-				expect(trim(getcontent[1].xmlText)).toBe("This is PDF example document for the test without font styles.");
+			it( title = "Checking action = extracttext with pdf without style", body = function ( currentSpec ) {
+				cfdocument(format="pdf", filename="#variables.path#/withoutStyle.pdf", overwrite="true") {
+					writeOutput("<p>This is PDF example document for the test without font styles.<p>");
+				}
+				cfpdf(action = "extracttext", type="string", name="local.extractResult", source="#variables.path#/withoutStyle.pdf");
+				expect(trim(extractResult)).toBe("This is PDF example document for the test without font styles.");
 			});
-			
-			it( title = "Checkig action = extracttext with pdf with style", body=function ( currentSpec ){
-				local.result = _InternalRequest(
-					template : "#uri#\test.cfm",
-					forms : {scene = 2}
-				);
-				getContentOne = xmlSearch(result.filecontent,"/DocText/TextPerPage/page");
-				expect(trim(getContentOne[1].xmlText)).toBe("This is PDF example document for the test with font styles.");
+			it( title = "Checking action = extracttext with pdf with style", body=function ( currentSpec ) {	
+				cfdocument(format="pdf", filename="#variables.path#/withStyle.pdf", overwrite="true") {
+					writeOutput("<p>This is <strong>PDF example</strong> document for <small>the test</small> with font styles.</p>");
+				}
+				cfpdf(action = "extracttext", type="string", name="local.extractResult", source="#variables.path#/withStyle.pdf");
+				expect(trim(local.extractResult)).toBe("This is PDF example document for the test with font styles.");
 			});
 		});
 	}
 
-	private string function createURI(string calledName){
-		var baseURI="/test/#listLast(getDirectoryFromPath(getCurrenttemplatepath()),"\/")#/";
-		return baseURI&""&calledName;
+	function afterAll() {
+		if (directoryExists(variables.path)) directoryDelete(variables.path,true);
 	}
 }
