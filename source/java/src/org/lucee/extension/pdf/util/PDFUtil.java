@@ -20,7 +20,9 @@
 package org.lucee.extension.pdf.util;
 
 import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import java.util.Set;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.img.PDF2ImageICEpdf;
@@ -376,5 +379,31 @@ public class PDFUtil {
 
 		return sb.toString();
 		// return pdDoc.getDocumentCatalog().getAllPages().get(2);
+	}
+
+	public static void thumbnail(PageContext pc, PDFStruct doc, String destination, Set<Integer> pageNumbers, String format, String imagePrefix, int scale) throws IOException {
+
+		CFMLEngine engine = CFMLEngineFactory.getInstance();
+
+		PDDocument pdDoc = doc.toPDDocument();
+		int n = pdDoc.getNumberOfPages();
+		Iterator<Integer> it = pageNumbers.iterator();
+		int p;
+
+		PDFRenderer pdfRender = new PDFRenderer(pdDoc);
+
+		while (it.hasNext()) {
+			p = it.next();
+
+			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+
+			// thumbnail image file destination
+			String imageDestination = destination + "/" + imagePrefix + "_page_" + p + "." + format;
+
+			BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
+			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), engine.getResourceUtil().toResourceNotExisting(pc, imageDestination), true);
+		}
 	}
 }

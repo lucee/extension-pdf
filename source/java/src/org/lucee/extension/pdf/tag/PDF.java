@@ -903,33 +903,34 @@ public class PDF extends BodyTagImpl {
 	}
 
 	private void doActionThumbnail() throws PageException, IOException, DocumentException {
+		required("pdf", "thumbnail", "source", source);
 
-		throw engine.getExceptionUtil().createApplicationException("PDF action [thumbnail] is not implemented");
-		/*
-		 * required("pdf", "thumbnail", "source", source);
-		 * 
-		 * PDFStruct doc = toPDFDocument(source, password, null); PdfReader pr = doc.getPdfReader(); boolean
-		 * isEnc = pr.isEncrypted(); pr.close(); if (isEnc) { ByteArrayOutputStream baos = new
-		 * ByteArrayOutputStream(); // PDFUtil.concat(new PDFDocument[]{doc}, baos, true, true, true,
-		 * (char)0); PDFUtil.encrypt(doc, baos, null, null, 0, PDFUtil.ENCRYPT_NONE); baos.close(); doc =
-		 * new PDFStruct(baos.toByteArray(), doc.getResource(), null); }
-		 * 
-		 * doc.setPages(pages);
-		 * 
-		 * // scale if (scale < 1) throw engine.getExceptionUtil().
-		 * createApplicationException("Attribute [scale] should be at least 1, was [" + scale + "]");
-		 * 
-		 * // destination if (destination == null) destination =
-		 * engine.getResourceUtil().toResourceNotExisting(pageContext, "thumbnails");
-		 * 
-		 * // imagePrefix if (imagePrefix == null) { Resource res = doc.getResource(); if (res != null) {
-		 * String n = res.getName(); int index = n.lastIndexOf('.'); if (index != -1) imagePrefix =
-		 * n.substring(0, index); else imagePrefix = n; } else imagePrefix = "memory"; }
-		 * 
-		 * // MUST password PDFUtil.writeImages(doc.getRaw(), doc.getPages(), destination, imagePrefix,
-		 * format, scale, overwrite, resolution == RESOLUTION_HIGH, transparent);
-		 */
+		// scale
+		if (scale < 1 || scale > 100) throw engine.getExceptionUtil().createApplicationException("Attribute [scale] the value [" + scale + "] must between the range 1 to 100");
+		
+		// destination
+		if (destination == null) destination = engine.getResourceUtil().toResourceNotExisting(pageContext, "thumbnails");
+		
+		if (destination.isFile()) throw engine.getExceptionUtil().createApplicationException("The attribute [destination] for the tag [cfpdf] is not a directory");
 
+		if (destination.exists()) {
+		 	if (!overwrite) throw engine.getExceptionUtil().createApplicationException("Destination directory [" + destination + "] already exists");
+		}
+		else destination.mkdirs();
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+		PdfReader reader = doc.getPdfReader();
+		int len = reader.getNumberOfPages();
+
+		// pages
+		if (pages == null) pages = "1-" + len + "";
+		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
+
+		// imagePrefix
+		Resource resource;
+		if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? resource.getName(): "thumbnail";
+
+		PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale);
 	}
 
 	private void doActionAddWatermark() throws PageException, IOException, DocumentException {
