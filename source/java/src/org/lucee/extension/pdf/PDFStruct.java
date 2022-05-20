@@ -221,15 +221,28 @@ public class PDFStruct extends StructSupport implements Struct {
 	public PdfReader getPdfReader() throws PageException {
 		try {
 			if (barr != null) {
-				if (password != null) return new PdfReader(barr, password.getBytes());
-				return new PdfReader(barr);
+				if (password != null) return unlockPdf(new PdfReader(barr, password.getBytes()));
+				return unlockPdf(new PdfReader(barr));
 			}
-			if (password != null) return new PdfReader(PDFUtil.toBytes(resource), password.getBytes());
-			return new PdfReader(PDFUtil.toBytes(resource));
+			if (password != null) return unlockPdf(new PdfReader(PDFUtil.toBytes(resource), password.getBytes()));
+			return unlockPdf(new PdfReader(PDFUtil.toBytes(resource)));
 		}
 		catch (IOException ioe) {
 			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("can not load file" + password + " [" + resource + "]", ioe.getMessage());
 		}
+	}
+	
+	public static PdfReader unlockPdf(PdfReader reader) {
+		if (reader == null) {
+			return reader;
+		}
+		try {
+			java.lang.reflect.Field f = reader.getClass().getDeclaredField("encrypted");
+			f.setAccessible(true);
+			f.set(reader, false);
+		}
+		catch (Exception e) {/* ignore */ }
+		return reader;
 	}
 
 	private String getFilePath() {
