@@ -531,6 +531,22 @@ public abstract class PDFDocument {
 		this.htmlBookmark = htmlBookmark;
 	}
 
+	public double getMargintop() {
+		return margintop;
+	}
+
+	public double getMarginbottom() {
+		return marginbottom;
+	}
+
+	public double getMarginleft() {
+		return marginleft;
+	}
+
+	public double getMarginright() {
+		return marginright;
+	}
+
 	public File getFontDirectory() {
 		return fontDirectory;
 	}

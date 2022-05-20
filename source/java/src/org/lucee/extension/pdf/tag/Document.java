@@ -648,6 +648,22 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			document.setOrientation(getPDFDocument().getOrientation());
 		}
 
+		if (document.getMargintop() == -1) {
+			document.setMargintop(getPDFDocument().getMargintop());
+		}
+
+		if (document.getMarginbottom() == -1) {
+			document.setMarginbottom(getPDFDocument().getMarginbottom());
+		}
+
+		if (document.getMarginleft() == -1) {
+			document.setMarginleft(getPDFDocument().getMarginleft());
+		}
+		
+		if (document.getMarginright() == -1) {
+			document.setMarginright(getPDFDocument().getMarginright());
+		}
+
 		documents.add(document);
 	}
 
