@@ -357,8 +357,8 @@ public class PDFUtil {
 			if (type == PDF.TYPE_XML) sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
 			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
 			document.addPage(pdDoc.getDocumentCatalog().getPages().get(p - 1));
+			stripper.setSortByPosition(true);
 			String text = stripper.getText(document);
-			System.out.println("text:" + text);
 			sb.append(text);
 			if (type == PDF.TYPE_XML) sb.append("</page>");
 		}
