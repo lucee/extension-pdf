@@ -233,7 +233,7 @@ public class PDFStruct extends StructSupport implements Struct {
 	}
 	
 	public static PdfReader unlockPdf(PdfReader reader) {
-		if (reader == null) {
+		if (reader == null || reader.isOpenedWithFullPermissions()) {
 			return reader;
 		}
 		try {
