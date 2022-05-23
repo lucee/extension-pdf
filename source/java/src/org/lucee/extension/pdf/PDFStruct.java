@@ -228,12 +228,12 @@ public class PDFStruct extends StructSupport implements Struct {
 			return unlockPdf(new PdfReader(PDFUtil.toBytes(resource)));
 		}
 		catch (IOException ioe) {
-			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("can not load file" + password + " [" + resource + "]", ioe.getMessage());
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("can not load file " + password + " [" + resource + "]", ioe.getMessage());
 		}
 	}
 	
 	public static PdfReader unlockPdf(PdfReader reader) {
-		if (reader == null) {
+		if (reader == null || reader.isOpenedWithFullPermissions()) {
 			return reader;
 		}
 		try {
