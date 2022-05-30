@@ -22,7 +22,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect(isPDFFile("#path#merged.pdf")).toBeTrue();
 			});
 			it( title="cfpdf merge with destination attribute and cfpdfparam pdf file as source", body=function( currentSpec ) {
-				pdf action="merge" destination="#path#ParamMerged.pdf" overwrite="yes" {
+				pdf action="merge" destination="#path#paramMerged.pdf" overwrite="yes" {
 					pdfparam source="#path#pdfFileone.pdf";
 					pdfparam source="#path#pdfFiletwo.pdf";
 				}
@@ -49,7 +49,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect(isPDFFile("#path#merged2.pdf")).toBeTrue();
 			});
 			it( title="cfpdf merge with destination attribute and cfpdfparam pdf variable as source", body=function( currentSpec ) {
-				pdf action="merge" destination="#path#ParamMerged2.pdf" overwrite="yes" {
+				pdf action="merge" destination="#path#paramMerged2.pdf" overwrite="yes" {
 					pdfparam source="pdfVarone";
 					pdfparam source="pdfVartwo";
 				}
