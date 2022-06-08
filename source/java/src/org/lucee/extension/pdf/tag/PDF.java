@@ -1186,7 +1186,7 @@ public class PDF extends BodyTagImpl {
 				String[] sources = engine.getListUtil().toStringArrayTrim(engine.getListUtil().toArrayRemoveEmpty((String) source, ","));
 				for (int i = 0; i < sources.length; i++) {
 					docs.add(doc = toPDFDocument(sources[i], password, null));
-					if(doc.getResource() != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
+					if(doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 					doc.setPages(pages);
 				}
 			}
@@ -1206,7 +1206,7 @@ public class PDF extends BodyTagImpl {
 			while (it.hasNext()) {
 				param = (PDFParamBean) it.next();
 				docs.add(doc = toPDFDocument(param.getSource(), param.getPassword(), directory));
-				if(doc.getResource() != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
+				if(doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 				doc.setPages(param.getPages());
 			}
 		}
