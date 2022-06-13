@@ -366,7 +366,8 @@ public class PDF extends BodyTagImpl {
 	/**
 	 * @param destination the destination to set
 	 */
-	public void setDestination(String destination) {
+	public void setDestination(String destination) throws PageException {
+		if (engine.getStringUtil().isEmpty(destination, true)) throw engine.getExceptionUtil().createApplicationException("Attribute [destination] has an invalid value [" + destination + "], it cannot be empty value");
 		this.destination = engine.getResourceUtil().toResourceNotExisting(pageContext, destination);
 	}
 
