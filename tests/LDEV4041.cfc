@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf"{
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true{
 	function run( testResults, testBox ) {
 		describe("Testcase for LDEV-4041", function( currentSpec ) {
 			it(title="cfpdf action=read with the AES-256 encrypted pdf file", body=function( currentSpec )  {
