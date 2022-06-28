@@ -1161,7 +1161,7 @@ public class PDF extends BodyTagImpl {
 
 		if (source == null && params == null && directory == null) throw engine.getExceptionUtil()
 				.createApplicationException("At least one of the following combinations is required, attribute [source], attribute [directory] or [cfpdfparam] child tags");
-		if (source != null && directory != null) throw engine.getExceptionUtil().createApplicationException("You cant't use attributes [source,directory] together, must specify one of them");
+		if (source != null && directory != null) throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [source, directory] at the same time, only specify one");
 		if (destination == null && Util.isEmpty(name, true))
 			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
 		if (destination != null && destination.exists() && !overwrite)
@@ -1340,14 +1340,14 @@ public class PDF extends BodyTagImpl {
 		PdfReader pr = doc.getPdfReader();
 		OutputStream os = new ByteArrayOutputStream();
 
-		if (destination != null && name != null) throw engine.getExceptionUtil().createApplicationException("you cannot use attributes[destination,name] together, must specify one of them");
+		if (destination != null && name != null) throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [destination, name] at the same time, only specify one");
 
 		try {
 			if (destination == null) {
 				if (Util.isEmpty(name)) {
 					if (doc.getResource() != null) destination = doc.getResource();
 					else if (source instanceof String && doc.getResource() == null) name = (String) source;
-					else throw engine.getExceptionUtil().createApplicationException("PDF [source] is not based on a resource or string variable value, must specify one of the following attribute [destination,name]");
+					else throw engine.getExceptionUtil().createApplicationException("PDF attribute [source] is not a resource (file) or variable, you must specify one of the following attributes [destination, name]");
 				}
 			}
 			else if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
