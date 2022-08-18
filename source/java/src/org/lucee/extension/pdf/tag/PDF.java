@@ -921,17 +921,23 @@ public class PDF extends BodyTagImpl {
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 		PdfReader reader = doc.getPdfReader();
-		int len = reader.getNumberOfPages();
 
-		// pages
-		if (pages == null) pages = "1-" + len + "";
-		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
+		try {
+			int len = reader.getNumberOfPages();
 
-		// imagePrefix
-		Resource resource;
-		if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? resource.getName(): "thumbnail";
+			// pages
+			if (pages == null) pages = "1-" + len + "";
+			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale);
+			// imagePrefix
+			Resource resource;
+			if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? resource.getName(): "thumbnail";
+
+			PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale);
+		}
+		finally {
+			reader.close();
+		}
 	}
 
 	private void doActionAddWatermark() throws PageException, IOException, DocumentException {
@@ -1420,11 +1426,19 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "extractText", "source", source);
 		PDFStruct doc = toPDFDocument(source, password, null);
 		PdfReader reader = doc.getPdfReader();
-		int len = reader.getNumberOfPages();
-		if (pages == null) pages = "1-" + len + "";
-		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type));
+		try {
+			int len = reader.getNumberOfPages();
+
+			// pages
+			if (pages == null) pages = "1-" + len + "";
+			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
+
+			pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type));
+		}
+		finally {
+			reader.close();
+		}
 	}
 
 	private Object allowed(boolean encrypted, int permissions, int permission) {
