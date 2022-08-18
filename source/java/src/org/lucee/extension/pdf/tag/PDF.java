@@ -931,7 +931,7 @@ public class PDF extends BodyTagImpl {
 
 			// imagePrefix
 			Resource resource;
-			if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? resource.getName(): "thumbnail";
+			if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? getName(resource.getName()): "thumbnail";
 
 			PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale);
 		}
@@ -1553,6 +1553,12 @@ public class PDF extends BodyTagImpl {
 		Font font = new Font(Font.COURIER);
 		font.setSize(10);
 		return font;
+	}
+
+	private static String getName(String strFileName) {
+		int pos = strFileName.lastIndexOf('.');
+		if (pos == -1) return strFileName;
+		return strFileName.substring(0, pos);
 	}
 
 }
