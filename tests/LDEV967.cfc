@@ -26,7 +26,6 @@ component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				pdf action="thumbnail" source="#variables.file#" overwrite="true" destination="#variables.thumbnaildir#";
 				var imgFiles = directoryList( path="#variables.thumbnaildir#", listInfo="name");
 				imgFiles.sort("text");
-				systemOutput( imgFiles, true );
 				expect(arrayLen(imgFiles)).toBe(5);
 				expect(imgFiles[1]).toBe("test967_page_1.jpg");
 				expect(arrayEvery(imgFiles, (e) => { return listLast(e,".") == "jpg"})).toBeTrue();
@@ -56,7 +55,6 @@ component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				pdf action="thumbnail" source="#res#" overwrite="true" destination="#variables.thumbnaildir#" imageprefix="thumbImage";
 				var imgFiles = directoryList( path="#variables.thumbnaildir#", listInfo="name");
 				imgFiles.sort("text");
-				systemOutput( imgFiles, true );
 				expect(imgFiles[1]).toBe("thumbImage_page_1.jpg");
 				expect(arrayEvery(imgFiles, (e) => { return find("thumbImage", e)})).toBeTrue();
 			});
