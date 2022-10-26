@@ -1428,7 +1428,7 @@ public class PDF extends BodyTagImpl {
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
 
-		if(!Util.isEmpty(name, true)) pageContext.setVariable(name,PDFUtil.extractText(doc, pageSet, type, destination));
+		if(!Util.isEmpty(name, true)) pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type, destination));
 		else PDFUtil.extractText(doc, pageSet, type, destination);
 	}
 
