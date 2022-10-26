@@ -332,18 +332,20 @@ public class PDFUtil {
 		// overwrite, goodQuality, transparent);
 	}
 
-	public static Object extractText(PDFStruct doc, Set<Integer> pageNumbers, int type) throws IOException, InvalidPasswordException {
+	public static Object extractText(PDFStruct doc, Set<Integer> pageNumbers, int type, Resource destination) throws IOException, InvalidPasswordException {
 		PDDocument pdDoc = doc.toPDDocument();
 		// PDDocument newDocument = new PDDocument();
 		// List pages = pdDoc.getDocumentCatalog().getAllPages();
 		// pages.
 		// pdDoc.getDocumentCatalog().
+		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		int n = pdDoc.getNumberOfPages();
 		Iterator<Integer> it = pageNumbers.iterator();
 		// PDFTextStripper textStripper=new PDFTextStripper();
 		int p;
 		StringBuilder sb = new StringBuilder();
 		PDFTextStripper stripper = new PDFTextStripper();
+		if (destination != null) stripper.setLineSeparator(" ");
 
 		if (type == PDF.TYPE_XML) {
 			sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
@@ -377,6 +379,7 @@ public class PDFUtil {
 		// StringWriter writer = new StringWriter();
 		// stripper.writeText(document, writer);
 
+		if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(sb.toString().getBytes("UTF-8")), destination, true);
 		return sb.toString();
 		// return pdDoc.getDocumentCatalog().getAllPages().get(2);
 	}
