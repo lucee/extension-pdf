@@ -10,7 +10,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 		}
 	}
 
-
 	function run( testResults , testBox ) {
 		describe( "testcase for LDEV-4245", function() {
 
