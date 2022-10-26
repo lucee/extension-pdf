@@ -20,12 +20,12 @@ jobs:
         java-version: '11'
         distribution: 'adopt'
     - name: Cache Maven packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.m2
         key: lucee-script-runner-maven-cache
     - name: Cache Lucee files
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: _actions/lucee/script-runner/main/lucee-download-cache
         key: lucee-downloads-${{ env.luceeVersion }}
