@@ -961,15 +961,7 @@ public class PDF extends BodyTagImpl {
 		}
 		// copy From
 		else {
-			try {
-				Resource res = copyFrom instanceof String ? engine.getResourceUtil().toResourceExisting(pageContext, (String) copyFrom) : engine.getCastUtil().toResource(copyFrom);
-				barr = PDFUtil.toBytes(res);
-			}
-			catch (PageException ee) {
-				barr = engine.getCastUtil().toBinary(copyFrom);
-			}
-			img = Image.getInstance(PDFUtil.toImage(barr, 1), null, false);
-
+			img = Image.getInstance(PDFUtil.toImage(toPDFDocument(copyFrom, password, null)), null, false);
 		}
 
 		// position
