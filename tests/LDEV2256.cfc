@@ -16,14 +16,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
     function run( testResults , testBox ) {
         describe( "Testcase for LDEV-2256", function() {
-            it( title="Checking the cfpdf copyFrom - pdf file as input with an image on pdf content", body = function( currentSpec ) {
+            it( title="Checking the cfpdf copyFrom - pdf with an image on pdf content", body = function( currentSpec ) {
                 pdf action="addwatermark" source="#variables.dir#/main.pdf" copyFrom="#variables.dir#/copyFrom.pdf" name="name";
 
-                expect(isPDFObject(name)).toBeTrue();
-            });
-
-            it( title="Checking the cfpdf copyFrom - pdf variable as input with an image on pdf content", body = function( currentSpec ) {
-                pdf action="addwatermark" source="#variables.dir#/main.pdf" copyFrom="#copyFrom#" name="name";
                 expect(isPDFObject(name)).toBeTrue();
             });
         });
