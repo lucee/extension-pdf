@@ -322,8 +322,8 @@ public class PDFUtil {
 		return baos.toByteArray();
 	}
 
-	public static BufferedImage toImage(PDFStruct doc) throws PageException, IOException {
-		return new PDFRenderer(doc.toPDDocument()).renderImage(0, 1); // 0 is page number, 1 is scale
+	public static BufferedImage toImage(byte[] input, int page) throws PageException, IOException {
+		return new PDF2ImageICEpdf().toImage(input, page);
 	}
 
 	public static void writeImages(byte[] input, Set pages, Resource outputDirectory, String prefix, String format, int scale, boolean overwrite, boolean goodQuality,
