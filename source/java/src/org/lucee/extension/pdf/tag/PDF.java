@@ -974,8 +974,8 @@ public class PDF extends BodyTagImpl {
 			catch (PageException ee) {
 				barr = engine.getCastUtil().toBinary(copyFrom);
 			}
-			img = Image.getInstance(PDFUtil.toImage(barr, 1), null, false);
 
+			img = Image.getInstance(PDFUtil.toImage(new PDFStruct(barr, password)), null, false);
 		}
 
 		// position
