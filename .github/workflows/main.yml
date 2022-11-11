@@ -3,7 +3,12 @@
 
 name: Java CI
 
-on: [push, pull_request,workflow_dispatch]
+on: 
+  push:
+    branches:
+      - '**' # thus ignoring tagging
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
