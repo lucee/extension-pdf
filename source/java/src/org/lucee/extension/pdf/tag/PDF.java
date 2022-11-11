@@ -921,17 +921,23 @@ public class PDF extends BodyTagImpl {
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 		PdfReader reader = doc.getPdfReader();
-		int len = reader.getNumberOfPages();
 
-		// pages
-		if (pages == null) pages = "1-" + len + "";
-		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
+		try {
+			int len = reader.getNumberOfPages();
 
-		// imagePrefix
-		Resource resource;
-		if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? resource.getName(): "thumbnail";
+			// pages
+			if (pages == null) pages = "1-" + len + "";
+			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale);
+			// imagePrefix
+			Resource resource;
+			if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? getName(resource.getName()): "thumbnail";
+
+			PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale);
+		}
+		finally {
+			reader.close();
+		}
 	}
 
 	private void doActionAddWatermark() throws PageException, IOException, DocumentException {
@@ -968,8 +974,8 @@ public class PDF extends BodyTagImpl {
 			catch (PageException ee) {
 				barr = engine.getCastUtil().toBinary(copyFrom);
 			}
-			img = Image.getInstance(PDFUtil.toImage(barr, 1), null, false);
 
+			img = Image.getInstance(PDFUtil.toImage(new PDFStruct(barr, password)), null, false);
 		}
 
 		// position
@@ -1419,17 +1425,19 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "extractText", "source", source);
 		PDFStruct doc = toPDFDocument(source, password, null);
 		PdfReader reader = doc.getPdfReader();
-		int len = reader.getNumberOfPages();
-		if (pages == null) pages = "1-" + len + "";
-		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		if (destination == null && Util.isEmpty(name, true))
-			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
-		if (destination != null && destination.exists() && !overwrite)
-			throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
+		try {
+			int len = reader.getNumberOfPages();
 
-		if(!Util.isEmpty(name, true)) pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type, destination));
-		else PDFUtil.extractText(doc, pageSet, type, destination);
+			// pages
+			if (pages == null) pages = "1-" + len + "";
+			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
+
+			pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type));
+		}
+		finally {
+			reader.close();
+		}
 	}
 
 	private Object allowed(boolean encrypted, int permissions, int permission) {
@@ -1544,6 +1552,12 @@ public class PDF extends BodyTagImpl {
 		Font font = new Font(Font.COURIER);
 		font.setSize(10);
 		return font;
+	}
+
+	private static String getName(String strFileName) {
+		int pos = strFileName.lastIndexOf('.');
+		if (pos == -1) return strFileName;
+		return strFileName.substring(0, pos);
 	}
 
 }
