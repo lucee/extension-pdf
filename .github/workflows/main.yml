@@ -18,7 +18,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         java-version: '11'
-        distribution: 'adopt'
+        distribution: 'temurin'
     - name: Cache Maven packages
       uses: actions/cache@v3
       with:
@@ -27,7 +27,7 @@ jobs:
     - name: Cache Lucee files
       uses: actions/cache@v3
       with:
-        path: _actions/lucee/script-runner/main/lucee-download-cache
+        path: ~/_actions/lucee/script-runner/main/lucee-download-cache
         key: lucee-downloads-${{ env.luceeVersion }}
         restore-keys: |
           lucee-downloads
