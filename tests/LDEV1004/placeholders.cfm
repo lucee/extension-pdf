@@ -1,5 +1,6 @@
+<cfparam name="url.type">
 <!--- https://dev.lucee.org/t/cfdocument-error-on-total-page-count/2102 --->
-<cfdocument format="pdf">
+<cfdocument format="pdf" type="#url.type#">
     <cfdocumentitem type="header" evalatprint="false">
         <table width="100%" border="0" cellpadding="0" cellspacing="0">
             <strong><tr><td align="right"><cfoutput>#cfdocument.currentSectionPageNumber# of</strong>
