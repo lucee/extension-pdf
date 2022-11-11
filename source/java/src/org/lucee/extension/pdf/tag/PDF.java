@@ -1433,7 +1433,13 @@ public class PDF extends BodyTagImpl {
 			if (pages == null) pages = "1-" + len + "";
 			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-			pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type));
+			if (destination == null && Util.isEmpty(name, true))
+			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
+			if (destination != null && destination.exists() && !overwrite)
+				throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
+
+			if(!Util.isEmpty(name, true)) pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type, destination));
+			else PDFUtil.extractText(doc, pageSet, type, destination);
 		}
 		finally {
 			reader.close();
