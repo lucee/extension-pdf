@@ -22,7 +22,9 @@ jobs:
     - name: Cache Maven packages
       uses: actions/cache@v3
       with:
-        path: ~/.m2
+        path: |
+          ~/.m2/repository/*
+          !~/.m2/repository/org/lucee/lucee/
         key: lucee-script-runner-maven-cache
     - name: Cache Lucee files
       uses: actions/cache@v3
