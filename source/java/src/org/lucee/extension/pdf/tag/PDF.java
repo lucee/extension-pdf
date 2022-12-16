@@ -743,6 +743,9 @@ public class PDF extends BodyTagImpl {
 	private void doActionAddHeaderFooter(boolean isHeader) throws PageException, IOException, DocumentException {
 		required("pdf", "write", "source", source);
 		if (text == null) throw engine.getExceptionUtil().createApplicationException("when PDF action is [addHeader or addFooter], It requires a attribute [text]");
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 		// required("pdf", "write", "destination", destination);
 
 		/*
@@ -777,9 +780,6 @@ public class PDF extends BodyTagImpl {
 		}
 		PdfStamper stamper = null;
 		try {
-			if (destination != null && destination.exists() && !overwrite)
-				throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
-
 			int len = reader.getNumberOfPages();
 			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 			stamper = new PdfStamper(reader, os);
