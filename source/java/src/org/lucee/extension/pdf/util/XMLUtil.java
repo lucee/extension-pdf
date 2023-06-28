@@ -6,7 +6,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.sax.SAXSource;
 
@@ -75,7 +77,7 @@ public class XMLUtil {
 		reader.setFeature(Parser.namespacesFeature, true);
 		reader.setFeature(Parser.namespacePrefixesFeature, true);
 		try {
-			Transformer transformer = getTransformerFactory().newTransformer();
+			Transformer transformer = getTransformer();
 
 			DOMResult result = new DOMResult();
 			transformer.transform(new SAXSource(reader, xml), result);
@@ -83,6 +85,15 @@ public class XMLUtil {
 		}
 		catch (Exception e) {
 			throw new SAXException(e);
+		}
+	}
+
+	public static Transformer getTransformer() throws TransformerConfigurationException, TransformerFactoryConfigurationError {
+		try {
+			return getTransformerFactory().newTransformer();
+		}
+		catch (Exception e) {
+			return TransformerFactory.newInstance().newTransformer();
 		}
 	}
 
