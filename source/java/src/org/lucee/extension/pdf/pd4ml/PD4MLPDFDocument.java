@@ -32,6 +32,8 @@ import java.io.StringReader;
 import java.net.URL;
 
 import org.lucee.extension.pdf.PDFDocument;
+import org.lucee.extension.pdf.pd4ml.lib.PDFBy;
+import org.lucee.extension.pdf.pd4ml.lib.PDFByFactory;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.XMLUtil;
 import org.w3c.dom.Document;
@@ -71,7 +73,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 	@Override
 	public byte[] _render(Dimension dimension, double unitFactor, PageContext pc, boolean generateOutlines) throws PageException, IOException {
 		ConfigWeb config = pc.getConfig();
-		PDFByReflection pd4ml = new PDFByReflection(config);
+		PDFBy pd4ml = PDFByFactory.getInstance(config);
 		pd4ml.generateOutlines(generateOutlines);
 		pd4ml.enableTableBreaks(true);
 		pd4ml.interpolateImages(true);
@@ -111,7 +113,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 		return baos.toByteArray();
 	}
 
-	private void content(PDFByReflection pd4ml, PageContext pc, OutputStream os) throws PageException, IOException {
+	private void content(PDFBy pd4ml, PageContext pc, OutputStream os) throws PageException, IOException {
 		ConfigWeb config = pc.getConfig();
 
 		if (fontDirectory != null) {
@@ -128,7 +130,8 @@ public final class PD4MLPDFDocument extends PDFDocument {
 			try {
 				body = beautifyHTML(pc, new InputSource(new StringReader(body)), base);
 			}
-			catch (Exception e) {}
+			catch (Exception e) {
+			}
 			pd4ml.render(body, os, base);
 
 		}
@@ -232,7 +235,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 		toLocalSource(CFMLEngineFactory.getInstance(), pc, xml.getDocumentElement(), base.getHost() + ":" + base.getPort());
 	}
 
-	private void render(PageContext pc, PDFByReflection pd4ml, InputStream is, OutputStream os, URL base) throws IOException, PageException {
+	private void render(PageContext pc, PDFBy pd4ml, InputStream is, OutputStream os, URL base) throws IOException, PageException {
 		try {
 
 			// text/html

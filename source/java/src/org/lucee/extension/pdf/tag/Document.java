@@ -232,7 +232,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				return existing;
 			}
 		}
-		catch (Exception e) {}
+		catch (Exception e) {
+		}
 		return null;
 	}
 
@@ -659,7 +660,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		if (document.getMarginleft() == -1) {
 			document.setMarginleft(getPDFDocument().getMarginleft());
 		}
-		
+
 		if (document.getMarginright() == -1) {
 			document.setMarginright(getPDFDocument().getMarginright());
 		}
@@ -681,7 +682,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	@Override
-	public void doInitBody() {}
+	public void doInitBody() {
+	}
 
 	@Override
 	public int doAfterBody() throws PageException {

@@ -17,7 +17,7 @@
 * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 * 
 **/
-package org.lucee.extension.pdf.pd4ml;
+package org.lucee.extension.pdf.pd4ml.lib;
 
 import java.awt.Dimension;
 import java.awt.Insets;
@@ -42,9 +42,9 @@ import lucee.runtime.util.ClassUtil;
 import lucee.runtime.util.IO;
 import lucee.runtime.util.ResourceUtil;
 
-public class PDFByReflection {
+class PDFByInnerReflection implements PDFBy {
 
-	private final Object pd4ml;
+	private Object pd4ml;
 	private CFMLEngine engine;
 	private Cast caster;
 	private static Class pd4mlClass;
@@ -52,7 +52,7 @@ public class PDFByReflection {
 	private static Class pd4mlMarkClass;
 	// private final boolean isEvaluation;
 
-	public PDFByReflection(Config config) throws PageException {
+	public PDFByInnerReflection(Config config) throws PageException {
 		engine = CFMLEngineFactory.getInstance();
 		caster = engine.getCastUtil();
 		ClassUtil util = engine.getClassUtil();
@@ -122,72 +122,102 @@ public class PDFByReflection {
 				classLoader = new URLClassLoader(urls, parent);
 			}
 			if (pd4mlClass == null) pd4mlClass = util.loadClass(classLoader, "org.zefer.pd4ml.PD4ML");
-			pd4ml = util.loadInstance(pd4mlClass);
 
 		}
 		catch (Exception e) {
 			throw caster.toPageException(e);
 		}
-		pd4mlClass = pd4ml.getClass();
 	}
 
+	private PDFByInnerReflection(CFMLEngine engine, Cast caster, Object instance) {
+		this.engine = engine;
+		this.caster = caster;
+		pd4mlClass = instance.getClass();
+		pd4ml = instance;
+	}
+
+	@Override
+	public PDFBy newInstance() throws PageException {
+		try {
+			return new PDFByInnerReflection(engine, caster, CFMLEngineFactory.getInstance().getClassUtil().loadInstance(pd4mlClass));
+		}
+		catch (Exception e) {
+			throw caster.toPageException(e);
+		}
+	}
+
+	@Override
 	public void enableTableBreaks(boolean b) throws PageException {
 		invoke(pd4ml, "enableTableBreaks", b);
 	}
 
+	@Override
 	public void interpolateImages(boolean b) throws PageException {
 		invoke(pd4ml, "interpolateImages", b);
 	}
 
+	@Override
 	public void adjustHtmlWidth() throws PageException {
 		invoke(pd4ml, "adjustHtmlWidth");
 	}
 
+	@Override
 	public void setPageInsets(Insets insets) throws PageException {
 		invoke(pd4ml, "setPageInsets", insets);
 	}
 
+	@Override
 	public void setPageSize(Dimension dimension) throws PageException {
 		invoke(pd4ml, "setPageSize", dimension);
 	}
 
+	@Override
 	public void setPageHeader(PDFPageMark header) throws PageException {
 		invoke(pd4ml, "setPageHeader", toPD4PageMark(header));
 	}
 
+	@Override
 	public void generateOutlines(boolean flag) throws PageException {
 		invoke(pd4ml, "generateOutlines", new Object[] { caster.toBoolean(flag) }, new Class[] { boolean.class });
 	}
 
+	@Override
 	public void useTTF(String pathToFontDirs, boolean embed) throws PageException {
 		invoke(pd4ml, "useTTF", new Object[] { pathToFontDirs, caster.toBoolean(embed) }, new Class[] { String.class, boolean.class });
 	}
 
+	@Override
 	public boolean isPro() throws PageException {
 		return CFMLEngineFactory.getInstance().getCastUtil().toBooleanValue(invoke(pd4ml, "isPro", new Object[] {}, new Class[] {}));
 	}
 
+	@Override
 	public void overrideDocumentEncoding(String encoding) throws PageException {
 		invoke(pd4ml, "overrideDocumentEncoding", new Object[] { encoding }, new Class[] { String.class });
 	}
 
+	@Override
 	public void setDefaultTTFs(String string, String string2, String string3) throws PageException {
 		invoke(pd4ml, "setDefaultTTFs", new Object[] { string, string2, string3 }, new Class[] { String.class, String.class, String.class });
 	}
 
+	@Override
 	public void setPageFooter(PDFPageMark footer) throws PageException {
 		// if(isEvaluation) return;
 		invoke(pd4ml, "setPageFooter", toPD4PageMark(footer));
 	}
 
+	@Override
 	public void render(InputStreamReader reader, OutputStream os) throws PageException {
 		invoke(pd4ml, "render", new Object[] { reader, os }, new Class[] { reader.getClass(), OutputStream.class });
 	}
 
+	@Override
 	public BufferedImage[] renderAsImages(URL url, int width, int height) throws PageException {
 		return (BufferedImage[]) invoke(pd4ml, "renderAsImages", new Object[] { url, width, height }, new Class[] { URL.class, int.class, int.class });
 	}
 
+	@Override
 	public void render(String str, OutputStream os, URL base) throws PageException {
 		// setEvaluationFooter();
 

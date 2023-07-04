@@ -154,6 +154,7 @@ start-bundles: false
         <exclude name="**/jsp-*"/>
         <exclude name="**/lucee.jar"/>
         <exclude name="**/org.apache.felix.framework-*"/>
+        <exclude name="**/pd4ml*.jar"/>
       </fileset>
     </copy>
 
