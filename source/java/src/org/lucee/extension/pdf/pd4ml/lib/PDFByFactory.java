@@ -17,8 +17,9 @@ public class PDFByFactory {
 						instance = new PDFByReflection(config);
 						log.info("PDF", "using PD4ML via reflection from system Classloader");
 					}
-					catch (NoClassDefFoundError err) {
-						log.error("PDF", err);
+					catch (Throwable t) {
+						if (t instanceof ThreadDeath) throw (ThreadDeath) t;
+						log.error("PDF", t);
 						instance = new PDFByInnerReflection(config);
 						log.info("PDF", "using PD4ML via reflection from bundled version");
 					}
