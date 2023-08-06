@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       luceeVersion: light-6.0.0.451-BETA
-
+      luceeVersionQuery: 0/all/light
     steps:
     - uses: actions/checkout@v3
     - name: Set up JDK 11
@@ -27,17 +27,13 @@ jobs:
     - name: Cache Maven packages
       uses: actions/cache@v3
       with:
-        path: |
-          ~/.m2/repository/*
-          !~/.m2/repository/org/lucee/lucee/
+        path: ~/.m2
         key: lucee-script-runner-maven-cache
     - name: Cache Lucee files
       uses: actions/cache@v3
       with:
         path: ~/work/_actions/lucee/script-runner/main/lucee-download-cache
-        key: lucee-downloads-${{ env.luceeVersion }}
-        restore-keys: |
-          lucee-downloads
+        key: lucee-downloads
     - name: Build with Ant
       run: ant -noinput -verbose -buildfile build.xml
     - name: Upload Artifact
@@ -56,8 +52,8 @@ jobs:
         webroot: ${{ github.workspace }}/lucee/test
         execute: /bootstrap-tests.cfm
         luceeVersion: ${{ env.luceeVersion }}
-        extensionDir: ${{ github.workspace }}/dist
-        extensions:
+        luceeVersionQuery: ${{ env.luceeVersionQuery }}
+        extensionDir: ${{ github.workspace }}/dist        
       env:
         testLabels: pdf
         testAdditional: ${{ github.workspace }}/tests
