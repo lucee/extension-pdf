@@ -33,8 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPageTree;
+import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.graphics.PDXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
@@ -408,5 +413,34 @@ public class PDFUtil {
 			ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
 			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), engine.getResourceUtil().toResourceNotExisting(pc, imageDestination), true);
 		}
+	}
+
+	public static void extractImages(PageContext pc,PDFStruct doc, Set<Integer> pageNumbers,Resource destination, String imagePrefix, String format) throws IOException, InvalidPasswordException,PageException {
+
+		PDDocument pdDoc = doc.toPDDocument();
+		int n = pdDoc.getNumberOfPages();
+		Iterator<Integer> it = pageNumbers.iterator();
+		int p;
+		PDPageTree pages= pdDoc.getPages();
+		int i = 1;
+		while (it.hasNext()) {
+			p = it.next();
+			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+			PDResources pdResources = pages.get(p - 1).getResources();
+			for (COSName name : pdResources.getXObjectNames()) {
+				PDXObject o = pdResources.getXObject(name);
+					if (o instanceof PDImageXObject) {
+						PDImageXObject image = (PDImageXObject)o;
+						String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
+						CFMLEngine engine = CFMLEngineFactory.getInstance();
+						Resource res = engine.getResourceUtil().toResourceNotExisting(pc,filename);
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						ImageIO.write(image.getImage(), format, baos); 
+						CFMLEngineFactory.getInstance().getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()),res.getOutputStream(),true, true);
+						i++;
+				}
+			}
+		}
+
 	}
 }
