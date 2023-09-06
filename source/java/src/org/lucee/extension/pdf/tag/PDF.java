@@ -940,7 +940,7 @@ public class PDF extends BodyTagImpl {
 			Resource resource;
 			if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? getName(resource.getName()): "thumbnail";
 
-			PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale);
+			PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale, overwrite);
 		}
 		finally {
 			reader.close();

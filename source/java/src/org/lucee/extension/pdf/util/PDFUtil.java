@@ -389,7 +389,7 @@ public class PDFUtil {
 		// return pdDoc.getDocumentCatalog().getAllPages().get(2);
 	}
 
-	public static void thumbnail(PageContext pc, PDFStruct doc, String destination, Set<Integer> pageNumbers, String format, String imagePrefix, int scale) throws IOException {
+	public static void thumbnail(PageContext pc, PDFStruct doc, String destination, Set<Integer> pageNumbers, String format, String imagePrefix, int scale, boolean overwrite) throws IOException {
 
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 
@@ -411,7 +411,9 @@ public class PDFUtil {
 			BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
-			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), engine.getResourceUtil().toResourceNotExisting(pc, imageDestination), true);
+			Resource res = engine.getResourceUtil().toResourceNotExisting(pc, imageDestination);
+			if (res.exists() && !overwrite) throw new RuntimeException("Thumbnail image file already exists [" + imageDestination + "] and overwrite was false");
+			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res, true);
 		}
 	}
 
