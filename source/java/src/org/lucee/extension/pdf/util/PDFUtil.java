@@ -415,7 +415,7 @@ public class PDFUtil {
 		}
 	}
 
-	public static void extractImages(PageContext pc,PDFStruct doc, Set<Integer> pageNumbers,Resource destination, String imagePrefix, String format) throws IOException, InvalidPasswordException,PageException {
+	public static void extractImages(PageContext pc,PDFStruct doc, Set<Integer> pageNumbers,Resource destination, String imagePrefix, String format, boolean overwrite) throws IOException, InvalidPasswordException,PageException {
 
 		PDDocument pdDoc = doc.toPDDocument();
 		int n = pdDoc.getNumberOfPages();
@@ -434,6 +434,7 @@ public class PDFUtil {
 						String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
 						CFMLEngine engine = CFMLEngineFactory.getInstance();
 						Resource res = engine.getResourceUtil().toResourceNotExisting(pc,filename);
+						if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						ImageIO.write(image.getImage(), format, baos); 
 						CFMLEngineFactory.getInstance().getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()),res.getOutputStream(),true, true);

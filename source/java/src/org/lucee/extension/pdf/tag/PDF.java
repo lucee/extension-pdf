@@ -1464,7 +1464,7 @@ public class PDF extends BodyTagImpl {
 		if (pages == null || pages.equals("*")) pages = "1-" + len + "";
 		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		PDFUtil.extractImages(pageContext,doc,pageSet,destination,imagePrefix, format);
+		PDFUtil.extractImages(pageContext,doc,pageSet,destination,imagePrefix, format, overwrite);
 	}
 
 	private Object allowed(boolean encrypted, int permissions, int permission) {

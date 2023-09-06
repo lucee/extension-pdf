@@ -57,7 +57,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			it( title="cfpdf extractImages, pdf with no images", body=function( currentSpec ) {
 				pdf action="extractImages" source="#outputDir#noImages.pdf"
 					overwrite="true" format="png" imageprefix="no-image" password=""
-					destination = "#outputDir#";
+					destination="#outputDir#";
 
 				var imageFiles = directoryList( path=outputDir, filter="no-image*.png" );
 
@@ -67,7 +67,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			it( title="cfpdf extractImages, pdf with 2 images, 1 per page", body=function( currentSpec ) {
 				pdf action="extractImages" source="#outputDir#withImages.pdf" pages="*"
 					overwrite="true" format="png" imageprefix="two-image" password=""
-					destination = "#outputDir#";
+					destination="#outputDir#";
 
 				var imageFiles = directoryList( path=outputDir, filter="two-image*.png" );
 
@@ -81,7 +81,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			it( title="cfpdf extractImages, pdf with 2 images, 1 per page, only from page 2", body=function( currentSpec ) {
 				pdf action="extractImages" source="#outputDir#withImages.pdf" pages="2"
 					overwrite="true" format="png" imageprefix="page-image" password=""
-					destination = "#outputDir#";
+					destination="#outputDir#";
 
 				var imageFiles = directoryList( path=outputDir, filter="page-image*.png" );
 
@@ -89,13 +89,19 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				var imgInfo = ImageInfo( imageFiles[ 1 ] );
 				expect( imgInfo.height ).toBe( 222 );
 				expect( imgInfo.width ).toBe( 222 );
+
+				expect(function(){
+					pdf action="extractImages" source="#outputDir#withImages.pdf" pages="2"
+						overwrite="false" format="png" imageprefix="page-image" password=""
+						destination="#outputDir#";
+				}).toThrow(); // overwrite="false" and images already exist
 			});
 
 			it( title="cfpdf extractImages, invalid image format", body=function( currentSpec ) {
 				expect(function(){
 					pdf action="extractImages" source="#outputDir#withImages.pdf" pages="2"
 						overwrite="true" format="monkey" imageprefix="invalid-image" password=""
-						destination = "#outputDir#";
+						destination="#outputDir#";
 				}).toThrow();
 			});
 
