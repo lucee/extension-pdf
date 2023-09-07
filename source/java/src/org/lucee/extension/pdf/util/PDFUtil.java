@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -429,11 +430,20 @@ public class PDFUtil {
 			p = it.next();
 			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
 			PDResources pdResources = pages.get(p - 1).getResources();
+
+			// workjaround, getXObjectNames() returns images in reverse order
+			ArrayList<COSName> xObjectNamesReversed = new ArrayList<>();
 			for (COSName name : pdResources.getXObjectNames()) {
+				xObjectNamesReversed.add(name);
+			}
+			Collections.reverse(xObjectNamesReversed);
+
+			for (COSName name : xObjectNamesReversed) {
 				PDXObject o = pdResources.getXObject(name);
+				
 					if (o instanceof PDImageXObject) {
 						PDImageXObject image = (PDImageXObject)o;
-						String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
+						String filename = destination + "/" + imagePrefix + "-" + i + "-" + "." + format;
 						CFMLEngine engine = CFMLEngineFactory.getInstance();
 						Resource res = engine.getResourceUtil().toResourceNotExisting(pc,filename);
 						if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");

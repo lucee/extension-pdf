@@ -7,12 +7,15 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 		var img1file = getTempFile( variables.outputDir, "ldev3048-1", "png" );
 		var img2file = getTempFile( variables.outputDir, "ldev3048-2", "png" );
+		var img3file = getTempFile( variables.outputDir, "ldev3048-3", "png" );
 
 		var img1  = ImageNew("", 111, 111, "rgb", "red");
 		var img2  = ImageNew("", 222, 222, "rgb", "yellow");
+		var img3  = ImageNew("", 333, 333, "rgb", "green");
 
 		imageWrite(img1, img1file, true);
 		imageWrite(img2, img2file, true);
+		imageWrite(img3, img3file, true);
 
 		if (!directoryExists(variables.outputDir)) directoryCreate(variables.outputDir);
 		document fileName="#variables.outputDir#noImages.pdf" name="pdfVar" overwrite=true {
@@ -39,6 +42,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				</div>
 				<div id="pageTwo" class="start-on-new-page">
 					<img src="#img2File#">
+					<img src="#img3File#">
 				</div>
 			</body>
 			</html>
@@ -47,6 +51,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 		}
 		fileDelete(img1File);
 		fileDelete(img2File);
+		fileDelete(img3File);
 	}
 
 
@@ -71,7 +76,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 				var imageFiles = directoryList( path=outputDir, filter="two-image*.png" );
 
-				expect( len( imageFiles ) ).toBe( 2 );
+				expect( len( imageFiles ) ).toBe( 3 );
 				var imgInfo = ImageInfo( imageFiles[ 1 ] );
 				expect( imgInfo.height ).toBe( 111 );
 				expect( imgInfo.width ).toBe( 111 );
@@ -85,7 +90,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 				var imageFiles = directoryList( path=outputDir, filter="page-image*.png" );
 
-				expect( len( imageFiles ) ).toBe( 1 );
+				expect( len( imageFiles ) ).toBe( 2 );
 				var imgInfo = ImageInfo( imageFiles[ 1 ] );
 				expect( imgInfo.height ).toBe( 222 );
 				expect( imgInfo.width ).toBe( 222 );
