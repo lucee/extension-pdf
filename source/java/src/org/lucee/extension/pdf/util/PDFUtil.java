@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,8 +34,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPageTree;
+import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.graphics.PDXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
@@ -384,7 +390,7 @@ public class PDFUtil {
 		// return pdDoc.getDocumentCatalog().getAllPages().get(2);
 	}
 
-	public static void thumbnail(PageContext pc, PDFStruct doc, String destination, Set<Integer> pageNumbers, String format, String imagePrefix, int scale) throws IOException {
+	public static void thumbnail(PageContext pc, PDFStruct doc, String destination, Set<Integer> pageNumbers, String format, String imagePrefix, int scale, boolean overwrite) throws IOException {
 
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 
@@ -406,7 +412,48 @@ public class PDFUtil {
 			BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
-			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), engine.getResourceUtil().toResourceNotExisting(pc, imageDestination), true);
+			Resource res = engine.getResourceUtil().toResourceNotExisting(pc, imageDestination);
+			if (res.exists() && !overwrite) throw new RuntimeException("Thumbnail image file already exists [" + imageDestination + "] and overwrite was false");
+			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res, true);
 		}
+	}
+
+	public static void extractImages(PageContext pc,PDFStruct doc, Set<Integer> pageNumbers,Resource destination, String imagePrefix, String format, boolean overwrite) throws IOException, InvalidPasswordException,PageException {
+
+		PDDocument pdDoc = doc.toPDDocument();
+		int n = pdDoc.getNumberOfPages();
+		Iterator<Integer> it = pageNumbers.iterator();
+		int p;
+		PDPageTree pages= pdDoc.getPages();
+		int i = 1;
+		while (it.hasNext()) {
+			p = it.next();
+			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+			PDResources pdResources = pages.get(p - 1).getResources();
+
+			// workjaround, getXObjectNames() returns images in reverse order
+			ArrayList<COSName> xObjectNamesReversed = new ArrayList<>();
+			for (COSName name : pdResources.getXObjectNames()) {
+				xObjectNamesReversed.add(name);
+			}
+			Collections.reverse(xObjectNamesReversed);
+
+			for (COSName name : xObjectNamesReversed) {
+				PDXObject o = pdResources.getXObject(name);
+				
+					if (o instanceof PDImageXObject) {
+						PDImageXObject image = (PDImageXObject)o;
+						String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
+						CFMLEngine engine = CFMLEngineFactory.getInstance();
+						Resource res = engine.getResourceUtil().toResourceNotExisting(pc,filename);
+						if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						ImageIO.write(image.getImage(), format, baos); 
+						CFMLEngineFactory.getInstance().getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()),res.getOutputStream(),true, true);
+						i++;
+				}
+			}
+		}
+
 	}
 }
