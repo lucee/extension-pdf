@@ -114,7 +114,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	function afterAll() {
-		return;
 		if ( directoryExists( variables.outputDir ) )
 			directoryDelete(variables.outputDir, true);
 	}
