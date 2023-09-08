@@ -77,7 +77,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				var imageFiles = directoryList( path=outputDir, filter="two-image*.png" );
 
 				expect( len( imageFiles ) ).toBe( 3 );
-				var imgInfo = ImageInfo( imageFiles[ 1 ] );
+				var imgInfo = ImageInfo( outputDir & "two-image-1.png" );
 				expect( imgInfo.height ).toBe( 111 );
 				expect( imgInfo.width ).toBe( 111 );
 
@@ -91,7 +91,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				var imageFiles = directoryList( path=outputDir, filter="page-image*.png" );
 
 				expect( len( imageFiles ) ).toBe( 2 );
-				var imgInfo = ImageInfo( imageFiles[ 1 ] );
+				var imgInfo = ImageInfo( outputDir & "page-image-1.png" );
 				expect( imgInfo.height ).toBe( 222 );
 				expect( imgInfo.width ).toBe( 222 );
 
@@ -114,6 +114,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	function afterAll() {
+		return;
 		if ( directoryExists( variables.outputDir ) )
 			directoryDelete(variables.outputDir, true);
 	}

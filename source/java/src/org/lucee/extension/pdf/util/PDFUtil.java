@@ -443,7 +443,7 @@ public class PDFUtil {
 				
 					if (o instanceof PDImageXObject) {
 						PDImageXObject image = (PDImageXObject)o;
-						String filename = destination + "/" + imagePrefix + "-" + i + "-" + "." + format;
+						String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
 						CFMLEngine engine = CFMLEngineFactory.getInstance();
 						Resource res = engine.getResourceUtil().toResourceNotExisting(pc,filename);
 						if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");
