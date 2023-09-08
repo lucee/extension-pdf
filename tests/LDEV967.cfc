@@ -65,6 +65,18 @@ component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect(arrayEvery(imgFiles, (e) => { return listLast(e,".") == "png"})).toBeTrue();
 			});
 
+			it(title="CFPDF action=thumbnail - overwrite false", body=function( currentSpec ) {
+				pdf action="thumbnail" source="#res#" overwrite="true" destination="#variables.thumbnaildir#" imageprefix="thumbImage";
+				var imgFiles = directoryList( path="#variables.thumbnaildir#", listInfo="name");
+				imgFiles.sort("text");
+				expect(imgFiles[1]).toBe("thumbImage_page_1.jpg");
+				expect(arrayEvery(imgFiles, (e) => { return find("thumbImage", e)})).toBeTrue();
+
+				expect(function(){
+					pdf action="thumbnail" source="#res#" overwrite="false" destination="#variables.thumbnaildir#" imageprefix="thumbImage";
+				}).toThrow(); // overwite is false and file exists
+			});
+
 		});
 	}
 

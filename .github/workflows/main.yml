@@ -53,7 +53,8 @@ jobs:
         execute: /bootstrap-tests.cfm
         luceeVersion: ${{ env.luceeVersion }}
         luceeVersionQuery: ${{ env.luceeVersionQuery }}
-        extensionDir: ${{ github.workspace }}/dist        
+        extensionDir: ${{ github.workspace }}/dist
+        extensions: B737ABC4-D43F-4D91-8E8E973E37C40D1B # image-ext for tests
       env:
         testLabels: pdf
         testAdditional: ${{ github.workspace }}/tests
