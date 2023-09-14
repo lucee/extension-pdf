@@ -292,7 +292,7 @@ public class PDF extends BodyTagImpl {
 		else if ("get_info".equals(strAction)) action = ACTION_GET_INFO;
 		else if ("merge".equals(strAction)) action = ACTION_MERGE;
 		else if ("open".equals(strAction)) action = ACTION_OPEN;
-		else if ("removePassword".equals(strAction)) action = ACTION_OPEN;
+		else if ("removepassword".equals(strAction)) action = ACTION_OPEN;
 		// else if("processddx".equals(strAction)) action=ACTION_PROCESSDDX;
 		// else if("process-ddx".equals(strAction)) action=ACTION_PROCESSDDX;
 		// else if("process_ddx".equals(strAction)) action=ACTION_PROCESSDDX;
