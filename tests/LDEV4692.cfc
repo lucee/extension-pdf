@@ -22,6 +22,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				pdf action="protect" source="#testPdf#" destination="#testPdf#" newUserPassword="#variables.password#" overwrite="true";
 				pdf action="extractText" source="#testPdf#" name="local.extractedText" password="#variables.password#";
 				expect( extractedText ).toInclude( testCode );
+				expect(function(){
+					pdf action="extractText" source="#testPdf#" name="local.extractedText";
+				}).toThrow(); // no password
 
 				pdf action="removePassword" source="#testPdf#" destination="#testPdf#" password="#variables.password#" overwrite="true";
 				pdf action="extractText" source="#testPdf#" name="local.extractedText";
