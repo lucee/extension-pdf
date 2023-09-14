@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.util.PDFUtil;
 
@@ -82,6 +83,7 @@ public class PDF extends BodyTagImpl {
 	private static final int ACTION_ADD_HEADER = 12;
 	private static final int ACTION_ADD_FOOTER = 13;
 	private static final int ACTION_OPEN = 14;
+	private static final int ACTION_EXTRACT_IMAGES = 15;
 
 	private static final String FORMAT_JPG = "jpg";
 	private static final String FORMAT_TIFF = "tiff";
@@ -290,7 +292,7 @@ public class PDF extends BodyTagImpl {
 		else if ("get_info".equals(strAction)) action = ACTION_GET_INFO;
 		else if ("merge".equals(strAction)) action = ACTION_MERGE;
 		else if ("open".equals(strAction)) action = ACTION_OPEN;
-		else if ("removePassword".equals(strAction)) action = ACTION_OPEN;
+		else if ("removepassword".equals(strAction)) action = ACTION_OPEN;
 		// else if("processddx".equals(strAction)) action=ACTION_PROCESSDDX;
 		// else if("process-ddx".equals(strAction)) action=ACTION_PROCESSDDX;
 		// else if("process_ddx".equals(strAction)) action=ACTION_PROCESSDDX;
@@ -309,9 +311,12 @@ public class PDF extends BodyTagImpl {
 		else if ("extract_text".equals(strAction)) action = ACTION_EXTRACT_TEXT;
 		else if ("addheader".equals(strAction)) action = ACTION_ADD_HEADER;
 		else if ("addfooter".equals(strAction)) action = ACTION_ADD_FOOTER;
+		else if ("extractimages".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
+		else if ("extract-images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
+		else if ("extract_images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 
 		else throw engine.getExceptionUtil().createApplicationException(
-				"Invalid PDF action [" + strAction + "], supported actions are " + "[addHeader, addFooter, addWatermark, deletePages, extractText, getInfo, merge, open, "
+				"Invalid PDF action [" + strAction + "], supported actions are " + "[addHeader, addFooter, addWatermark, deletePages, extractText, extractImage, getInfo, merge, open, "
 						+ "removePassword, protect, read, removeWatermark, setInfo, thumbnail, write]");
 
 	}
@@ -692,9 +697,11 @@ public class PDF extends BodyTagImpl {
 			else if (ACTION_PROTECT == action) doActionProtect(true);
 			else if (ACTION_OPEN == action) doActionProtect(false);
 			else if (ACTION_THUMBNAIL == action) doActionThumbnail();
+			else if (ACTION_EXTRACT_IMAGES == action) doActionExtractImages();
 			else if (ACTION_EXTRACT_TEXT == action) {
 				doActionExtractText();
 			}
+			
 
 			// else if(ACTION_PROCESSDDX==action) throw
 			// engine.getExceptionUtil().createApplicationException("action [processddx] not supported");
@@ -933,7 +940,7 @@ public class PDF extends BodyTagImpl {
 			Resource resource;
 			if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? getName(resource.getName()): "thumbnail";
 
-			PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale);
+			PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale, overwrite);
 		}
 		finally {
 			reader.close();
@@ -1444,6 +1451,20 @@ public class PDF extends BodyTagImpl {
 		finally {
 			reader.close();
 		}
+	}
+
+	private void doActionExtractImages() throws PageException, IOException, InvalidPasswordException {
+		required("pdf", "extractImages", "source", source);
+		required("pdf", "extractImages", "destination", destination);
+		required("pdf", "extractImages", "imagePrefix", imagePrefix);
+		required("pdf", "extractImages", "format", format);
+		PDFStruct doc = toPDFDocument(source, password, null);
+		PdfReader reader = doc.getPdfReader();
+		int len = reader.getNumberOfPages();
+		if (pages == null || pages.equals("*")) pages = "1-" + len + "";
+		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
+
+		PDFUtil.extractImages(pageContext,doc,pageSet,destination,imagePrefix, format, overwrite);
 	}
 
 	private Object allowed(boolean encrypted, int permissions, int permission) {

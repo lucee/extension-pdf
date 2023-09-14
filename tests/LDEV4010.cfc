@@ -34,10 +34,18 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 				expect(isPDFObject(mergedPdfVar)).toBeTrue();
 			});
-			it( title="cfpdf merge with name attribute and cfpdfparam pdf file as source", body=function( currentSpec ) {
+			it( title="cfpdf merge with name attribute and two cfpdfparam pdf files as source", body=function( currentSpec ) {
 				pdf action="merge" name="local.paramMergedPdfVar" {
 					pdfparam source="#path#pdfFileone.pdf";
 					pdfparam source="#path#pdfFiletwo.pdf";
+				}
+
+				expect(isPDFObject(paramMergedPdfVar)).toBeTrue();
+			});
+
+			it( title="cfpdf merge with name attribute and single cfpdfparam pdf file as source", body=function( currentSpec ) {
+				pdf action="merge" name="local.paramMergedPdfVar" {
+					pdfparam source="#path#pdfFileone.pdf";
 				}
 
 				expect(isPDFObject(paramMergedPdfVar)).toBeTrue();
