@@ -44,7 +44,6 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
-import org.lucee.extension.pdf.img.PDF2ImageICEpdf;
 import org.lucee.extension.pdf.tag.PDF;
 
 import com.lowagie.text.Document;

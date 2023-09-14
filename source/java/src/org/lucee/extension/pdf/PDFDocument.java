@@ -33,7 +33,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.icepdf.core.exceptions.PDFException;
 import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
 import org.lucee.extension.pdf.util.Margin;
 import org.lucee.extension.pdf.util.XMLUtil;
@@ -329,7 +328,7 @@ public abstract class PDFDocument {
 
 	/**
 	 * @param src
-	 * @throws PDFException
+	 * @throws PageException
 	 */
 	public final void setSrc(String src) throws PageException {
 		if (srcfile != null) throw engine.getExceptionUtil().createApplicationException("You cannot specify both the [src] and [srcfile] attributes");
@@ -338,7 +337,7 @@ public abstract class PDFDocument {
 
 	/**
 	 * @param srcfile the srcfile to set
-	 * @throws PDFException
+	 * @throws PageException
 	 */
 	public final void setSrcfile(Resource srcfile) throws PageException {
 		if (src != null) throw engine.getExceptionUtil().createApplicationException("You cannot specify both the [src] and [srcfile] attributes");
