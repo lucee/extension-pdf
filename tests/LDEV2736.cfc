@@ -16,12 +16,17 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
     function run( testResults , testBox ) {
         describe( "Testcase for LDEV-2736", function() {
-            it( title="cfpdf - removewatermark didn't work", body = function( currentSpec ) {
+            it( title="cfpdf - removewatermark check required params", body = function( currentSpec ) {
                 pdf action="addwatermark" source="#variables.dir#/main.pdf" copyFrom="#variables.dir#/copyFrom.pdf" name="local.name";
 
                 expect( function(){
                     pdf action="removewatermark" source="#variables.dir#/main.pdf";  //needs name or destination
                 }).toThrow();
+
+            });
+
+            it( title="cfpdf - removewatermark didn't work", body = function( currentSpec ) {
+                pdf action="addwatermark" source="#variables.dir#/main.pdf" copyFrom="#variables.dir#/copyFrom.pdf" name="local.name";
 
                 pdf action="removewatermark" source="#variables.dir#/main.pdf" name="local.out";
                 expect( isPDFObject( out ) ).toBeTrue();
