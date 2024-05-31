@@ -1,4 +1,4 @@
-name: Java CI - Lucee latest
+name: Java CI - Lucee 6.0
 
 on: 
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       luceeVersion: light-6.0.0.451-BETA
-      luceeVersionQuery: 0/all/light
+      luceeVersionQuery: 6.0/all/light
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 11
