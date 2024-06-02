@@ -1070,6 +1070,11 @@ public class PDF extends BodyTagImpl {
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
+		
+		if (destination == null && name == null) throw engine.getExceptionUtil().createApplicationException("One of the following attributes [destination, name] is required");
+		
+		if (destination != null && name != null) throw engine.getExceptionUtil().createApplicationException("Both attributes [destination, name] cannot be defined at the same time");
+
 		BufferedImage bi = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = bi.createGraphics();
 		g.setBackground(Color.BLACK);
