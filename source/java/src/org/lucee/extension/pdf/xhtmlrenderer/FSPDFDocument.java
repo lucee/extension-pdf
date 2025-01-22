@@ -243,7 +243,7 @@ public final class FSPDFDocument extends PDFDocument {
 		//renderer.setDocument(doc, base == null ? null : base.toExternalForm());
 		//renderer.layout();
 		//renderer.createPDF(os);
-		renderer.withW3cDocument(doc, null);
+		renderer.withW3cDocument(doc, base == null ? null : base.toExternalForm());
 		renderer.toStream(os);
 		renderer.run();
 	}

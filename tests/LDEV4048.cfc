@@ -2,16 +2,40 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function beforeAll() {
 		variables.path = getDirectoryFromPath(getCurrentTemplatePath()) & "LDEV4048";
-		afterAll();
-		if (!directoryExists(variables.path)) directoryCreate(variables.path);
+		variables.useExisting = true; // hack while we can't yet produce a PDF!
+		if (!variables.useExisting){
+			if (!directoryExists(variables.path)) 
+				directoryCreate(variables.path);
+		} else {
+			afterAll();
+		}
+	}
+
+	
+	function afterAll() {
+		if (!variables.useExisting && directoryExists(variables.path)) 
+			directoryDelete(variables.path, true);
 	}
 
 	function run( testResults, testBox ) {
 		describe("Testcase for LDEV-4041", function( currentSpec ) {
 			beforeEach(function( currentSpec ){
-				cfdocument( format="PDF", filename="#variables.path#/test.pdf", overwrite="true", name="variables.PDFvar"){
-					writeoutput("test pdf");
-				};
+				if ( variables.useExisting ){
+					var dest = "LDEV4048\test.pdf";
+					if ( FileExists( dest ) )
+						FileDelete( dest );
+					fileCopy( "LDEV4048\src.pdf", dest );
+					variables.PDFvar = fileReadBinary( dest );
+				} else {
+					cfdocument( format="PDF", filename="#variables.path#/test.pdf", overwrite="true", name="variables.PDFvar"){
+						writeoutput("test pdf");
+					};
+				}
+			});
+			it(title="cfpdf getinfo", body=function( currentSpec )  {
+				pdf action="getInfo" source="#variables.path#/test.pdf" name="local.pdfInfo";
+				systemOutput(pdfInfo, true);
+				expect(pdfinfo.author).toBe("lucee");
 			});
 			// pdf file as source
 			it(title="cfpdf setinfo with pdf file as source without destination and name attribute", body=function( currentSpec )  {
@@ -70,7 +94,4 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 		});
 	}
 
-	function afterAll() {
-		if (directoryExists(variables.path)) directoryDelete(variables.path, true);
-	}
 }
