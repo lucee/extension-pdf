@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageTree;
@@ -43,6 +44,8 @@ import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
+
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.tag.PDF;
 
@@ -319,6 +322,26 @@ public class PDFUtil {
 			return new PdfReader(toBytes(res));
 		}
 		throw engine.getExceptionUtil().createCasterException(value, PdfReader.class);
+	}
+
+	public static PDDocument toPDDocument(PageContext pc, Object value, String password) throws IOException, PageException {
+		if (value instanceof PDDocument) return (PDDocument) value;
+		//if (value instanceof PDFStruct) return ((PDFStruct) value).getPdfReader(); // TODO
+		CFMLEngine engine = CFMLEngineFactory.getInstance();
+		if (engine.getDecisionUtil().isBinary(value)) {
+			if (password != null) return Loader.loadPDF(new RandomAccessReadBuffer(engine.getCastUtil().toBinary(value)), password);
+			return Loader.loadPDF(new RandomAccessReadBuffer(engine.getCastUtil().toBinary(value)));
+		}
+		if (value instanceof Resource) {
+			if (password != null) return Loader.loadPDF(new RandomAccessReadBuffer(toBytes((Resource) value)), password);
+			return Loader.loadPDF(new RandomAccessReadBuffer(toBytes((Resource) value)));
+		}
+		if (value instanceof String) {
+			Resource res = engine.getResourceUtil().toResourceExisting(pc, (String) value);
+			if (password != null) return Loader.loadPDF(new RandomAccessReadBuffer(toBytes(res)), password);
+			return Loader.loadPDF(new RandomAccessReadBuffer(toBytes(res)));
+		}
+		throw engine.getExceptionUtil().createCasterException(value, PDDocument.class);
 	}
 
 	public static byte[] toBytes(Resource res) throws IOException {

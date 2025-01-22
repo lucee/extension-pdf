@@ -35,7 +35,7 @@ public final class IsPDFObject extends BIF implements Function {
 
 	public static boolean call(PageContext pc, Object value) {
 		try {
-			PDFUtil.toPdfReader(pc, value, null);
+			PDFUtil.toPDDocument(pc, value, null);
 		}
 		catch (Exception e) {
 			return false;
