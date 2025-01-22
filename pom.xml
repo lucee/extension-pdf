@@ -64,11 +64,6 @@
             <version>3.0.1</version><!-- waiting on OSGI PR https://github.com/rototor/pdfbox-graphics2d/pull/61  -->
         </dependency>
         <dependency>
-            <groupId>org.apache.pdfbox</groupId>
-            <artifactId>xmpbox</artifactId>
-            <version>3.0.3</version>
-        </dependency>
-        <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcutil-jdk18on</artifactId>
             <version>1.80</version>

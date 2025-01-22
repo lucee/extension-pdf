@@ -79,7 +79,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pdf-lex-${{ matrix.lucee.version }}
+          name: extension-pdf-lex-${{ matrix.lucee.version }}
           path: target/*.lex
 
       - name: Checkout Lucee
