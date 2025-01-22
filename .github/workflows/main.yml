@@ -16,30 +16,19 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
+
       - name: Cache Maven packages
+        if: always()
         uses: actions/cache@v3
         with:
           path: ~/.m2
           key: lucee-script-runner-maven-cache
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
 
       - name: Extract version number
         id: extract-version
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "::set-output name=VERSION::$VERSION"
-
-      - name: Cache Lucee files
-        uses: actions/cache@v4
-        with:
-          path: ~/work/_actions/lucee/script-runner/main/lucee-download-cache
-          key: lucee-downloads
 
       - name: Import GPG key
         run: |
@@ -70,6 +59,20 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+
+      - name: Cache Lucee files
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: ~/work/_actions/lucee/script-runner/main/lucee-download-cache
+          key: lucee-downloads
+  
+      - name: Cache Maven packages
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: lucee-script-runner-maven-cache
 
       - name: Build and Install with Maven
         run: |
