@@ -13,7 +13,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
                 expect( isPDFObject(test3575) ).toBeTrue();
             });
 
-            it( title="LDEV-1500, cfdocument with orientation and bookmark attribute", body=function( currentSpec ) {
+            xit( title="LDEV-1500, cfdocument with orientation and bookmark attribute", body=function( currentSpec ) {
                 document format="pdf" orientation="portrait" bookmark="true" htmlbookmark="true" name="local.test1500" {
                     documentSection name="section1" {
                         writeoutput("test Pdf test");

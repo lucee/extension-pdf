@@ -29,6 +29,8 @@ import java.util.Set;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
+import org.apache.pdfbox.io.RandomAccessReadBufferedFile;
 import org.lucee.extension.pdf.util.PDFUtil;
 import org.lucee.extension.pdf.util.StructSupport;
 
@@ -375,8 +377,8 @@ public class PDFStruct extends StructSupport implements Struct {
 	public PDDocument toPDDocument() throws IOException {
 		PDDocument doc;
 		if (barr != null) {
-			if (password != null) doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length), password);
-			else doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length));
+			if (password != null) doc = Loader.loadPDF(new RandomAccessReadBuffer(barr), password);
+			else doc = Loader.loadPDF(new RandomAccessReadBuffer(barr));
 		}
 		else if (resource instanceof File) {
 			if (password != null) doc = Loader.loadPDF((File) resource, password);
@@ -384,8 +386,8 @@ public class PDFStruct extends StructSupport implements Struct {
 		}
 		else {
 			barr = PDFUtil.toBytes(resource);
-			if (password != null) doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length), password);
-			else doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length));
+			if (password != null) doc = Loader.loadPDF(new RandomAccessReadBuffer(barr), password);
+			else doc = Loader.loadPDF(new RandomAccessReadBuffer(barr));
 		}
 		return doc;
 
