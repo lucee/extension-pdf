@@ -61,17 +61,15 @@ jobs:
           distribution: 'adopt'
 
       - name: Cache Lucee files
-        if: always()
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/work/_actions/lucee/script-runner/main/lucee-download-cache
           key: lucee-downloads
   
       - name: Cache Maven packages
-        if: always()
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: ~/.m2
+          path: ~/.m2/repository
           key: lucee-script-runner-maven-cache
 
       - name: Build and Install with Maven
@@ -103,6 +101,19 @@ jobs:
         env:
           testLabels: pdf
           testAdditional: ${{ github.workspace }}/tests
+      - name: Cache Lucee files
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/work/_actions/lucee/script-runner/main/lucee-download-cache
+          key: lucee-downloads
+  
+      - name: Cache Maven packages
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository
+          key: lucee-script-runner-maven-cache
 
   deploy:
     runs-on: ubuntu-latest
