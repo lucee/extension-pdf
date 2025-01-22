@@ -44,6 +44,8 @@ jobs:
       testAdditional: ${{ github.workspace }}/tests
       LUCEE_TEST_VERSIONS: ${{ vars.LUCEE_TEST_VERSIONS }}
     strategy:
+      fail-fast: false
+      max-parallel: 1
       matrix:
         lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS) }}
     services:
