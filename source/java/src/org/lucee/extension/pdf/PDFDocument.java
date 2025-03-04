@@ -599,13 +599,13 @@ public abstract class PDFDocument {
 		for (int i = list.getLength() - 1; i >= 0; i--) {
 			n = list.item(i);
 			// head
-			if (n instanceof Element && ((Element) n).getNodeName().equalsIgnoreCase("head")) {
+			if (n instanceof Element && n.getNodeName().equalsIgnoreCase("head")) {
 				Element head = (Element) n;
 				NodeList _list = html.getChildNodes();
 				for (int _i = _list.getLength() - 1; _i >= 0; _i--) {
 					n = list.item(i);
 					// base
-					if (n instanceof Element && ((Element) n).getNodeName().equalsIgnoreCase("base")) {
+					if (n instanceof Element && n.getNodeName().equalsIgnoreCase("base")) {
 						Element base = (Element) n;
 						String href = base.getAttribute("href");
 						if (!Util.isEmpty(href)) {
