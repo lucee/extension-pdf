@@ -31,8 +31,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
 import org.lucee.extension.pdf.util.Margin;
 import org.lucee.extension.pdf.util.XMLUtil;
@@ -45,6 +43,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lucee.commons.io.res.ContentType;
 import lucee.commons.io.res.Resource;
 import lucee.commons.net.http.HTTPResponse;

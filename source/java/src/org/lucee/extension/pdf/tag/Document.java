@@ -31,8 +31,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletResponse;
-
 import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
@@ -47,6 +45,7 @@ import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.PdfSmartCopy;
 import com.lowagie.text.pdf.SimpleBookmark;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lucee.Info;
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;

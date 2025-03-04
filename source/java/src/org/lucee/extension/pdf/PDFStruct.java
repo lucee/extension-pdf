@@ -84,6 +84,11 @@ public class PDFStruct extends StructSupport implements Struct {
 	}
 
 	@Override
+	public boolean containsKey(PageContext pc, Key key) {
+		return getInfo().containsKey(pc, key);
+	}
+
+	@Override
 	public Collection duplicate(boolean deepCopy) {
 		PDFStruct duplicate = new PDFStruct(barr, resource, password);
 		return duplicate;
@@ -228,11 +233,11 @@ public class PDFStruct extends StructSupport implements Struct {
 			return unlockPdf(new PdfReader(PDFUtil.toBytes(resource)));
 		}
 		catch (IOException ioe) {
-			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("Error opening pdf file [" + resource 
-				+ "], error thrown [" + ioe.getMessage() + "]" );
+			throw CFMLEngineFactory.getInstance().getExceptionUtil()
+					.createApplicationException("Error opening pdf file [" + resource + "], error thrown [" + ioe.getMessage() + "]");
 		}
 	}
-	
+
 	public static PdfReader unlockPdf(PdfReader reader) {
 		if (reader == null || reader.isOpenedWithFullPermissions()) {
 			return reader;
@@ -242,7 +247,8 @@ public class PDFStruct extends StructSupport implements Struct {
 			f.setAccessible(true);
 			f.set(reader, false);
 		}
-		catch (Exception e) {/* ignore */ }
+		catch (Exception e) {
+			/* ignore */ }
 		return reader;
 	}
 

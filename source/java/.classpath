@@ -6,13 +6,10 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="libs/javax.el-api-3.0.0.jar"/>
-	<classpathentry kind="lib" path="libs/javax.servlet-api-3.1.0.jar"/>
 	<classpathentry kind="lib" path="libs/jsp-api-2.2.jar"/>
 	<classpathentry kind="lib" path="libs/org.apache.felix.framework-4.2.1.jar"/>
 	<classpathentry kind="lib" path="libs/core-3.1.0.3.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.itext-2.1.7.jar"/>
-	<classpathentry kind="lib" path="libs/lucee.jar"/>
 	<classpathentry kind="lib" path="libs/bouncycastle.mail-1.38.0.jar"/>
 	<classpathentry kind="lib" path="libs/bouncycastle.prov-1.38.0.jar"/>
 	<classpathentry kind="lib" path="libs/bouncycastle.tsp-1.38.0.jar"/>
@@ -22,5 +19,7 @@
 	<classpathentry kind="lib" path="libs/org.lucee.pdfbox-3.0.0.RC101.jar"/>
 	<classpathentry kind="lib" path="libs/org.lucee.pdfbox-fontbox-3.0.0.RC1.jar"/>
 	<classpathentry kind="lib" path="libs/pd4ml-4.0.16.jar"/>
+	<classpathentry kind="lib" path="libs/jakarta.jakartaee-api-10.0.0.jar"/>
+	<classpathentry kind="lib" path="libs/lucee-7.0.0.115-SNAPSHOT.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

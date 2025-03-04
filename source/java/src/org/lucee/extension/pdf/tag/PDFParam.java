@@ -19,8 +19,7 @@
  **/
 package org.lucee.extension.pdf.tag;
 
-import javax.servlet.jsp.tagext.Tag;
-
+import jakarta.servlet.jsp.tagext.Tag;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.exp.PageException;
 

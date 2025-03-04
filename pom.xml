@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>pdf-extension</artifactId>
-    <version>1.2.0.11-SNAPSHOT</version>
+    <version>2.0.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>PDF Extension</name>
 
@@ -14,10 +14,10 @@
         <maven.compiler.target>11</maven.compiler.target>
         <id>66E312DD-D083-27C0-64189D16753FD6F0</id>
         <bundlename>org.lucee.pdf.extension</bundlename>
-        <luceeCoreVersion>5.0.0.244-SNAPSHOT</luceeCoreVersion>
+        <luceeCoreVersion>7.0.0.110</luceeCoreVersion>
         <releaseType>server</releaseType>
         <class>org.lucee.extension.amf.AMFEngineImpl</class>
-        <label>PDF Extension</label>
+        <label>PDF Extension for Jakarta EE (Lucee 7+)</label>
         <release.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.url>
         <snapshot.url>https://oss.sonatype.org/content/repositories/snapshots/</snapshot.url>
     </properties>
@@ -65,7 +65,7 @@
         </developer>
     </developers>
 
-    <description>Core Extension to integrate the tag cfdocument into Lucee.</description>
+    <description>Lucee PDF Extension provides essential PDF manipulation tags (cfdocument, cfpdf, cfpdfparam, etc.) specifically designed for Jakarta EE environments like Tomcat 10+. This version is fully compatible with Jakarta Servlet specifications and requires Lucee 7. For Lucee 6 installations, please use PDF Extension 1.0 instead. The extension delivers the same familiar functionality while ensuring seamless operation in modern servlet containers that have migrated to the jakarta namespace.</description>
     <url>https://github.com/lucee/extension-pdf</url>
 
     <profiles>

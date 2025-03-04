@@ -140,6 +140,7 @@ start-bundles: false
       <fileset dir="${lib}">
         <include name="**/*.jar"/>
         <exclude name="**/javax.*"/>
+        <exclude name="**/jakarta.*"/>
         <exclude name="**/jsp-*"/>
         <exclude name="**/lucee.jar"/>
         <exclude name="**/org.apache.felix.framework-*"/>
