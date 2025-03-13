@@ -35,6 +35,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDDocumentInformation;
+import org.apache.pdfbox.cos.COSDictionary;
+
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.util.PDFUtil;
 
@@ -1350,7 +1354,7 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "getInfo", "source", source);
 
 		PDFStruct doc = toPDFDocument(source, password, null);
-		PdfReader pr = doc.getPdfReader();
+		PDDocument pr = doc.getPDDocument();
 		OutputStream os = new ByteArrayOutputStream();
 
 		if (destination != null && name != null) throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [destination, name] at the same time, only specify one");
@@ -1367,8 +1371,11 @@ public class PDF extends BodyTagImpl {
 
 			if (destination != null) os = destination.getOutputStream();
 
-			PdfStamper stamp = new PdfStamper(pr, os);
-			HashMap moreInfo = new HashMap();
+			//PdfStamper stamp = new PdfStamper(pr, os);
+			//PDDocumentCatalog catalog = doc.getDocumentCatalog();
+			//PDMetadata meta = catalog.getMetadata();
+			PDDocumentInformation docInfo = pr.getDocumentInformation();
+			COSDictionary moreInfo = docInfo.getCOSObject();
 
 			// Key[] keys = info.keys();
 			Iterator<Entry<Key, Object>> it = info.entryIterator();
@@ -1377,35 +1384,36 @@ public class PDF extends BodyTagImpl {
 				e = it.next();
 				if (e.getKey().equals("PageRotation") || e.getKey().equals("Pagesize")) continue;
 
-				moreInfo.put(engine.getStringUtil().ucFirst(e.getKey().getLowerString()), engine.getCastUtil().toString(e.getValue()));
+				moreInfo.setString(engine.getStringUtil().ucFirst(e.getKey().getLowerString()), engine.getCastUtil().toString(e.getValue()));
 			}
 			// author
 			Object value = info.get("author", null);
-			if (value != null) moreInfo.put("Author", engine.getCastUtil().toString(value));
+			if (value != null) moreInfo.setString("Author", engine.getCastUtil().toString(value));
 			// keywords
 			value = info.get("keywords", null);
-			if (value != null) moreInfo.put("Keywords", engine.getCastUtil().toString(value));
+			if (value != null) moreInfo.setString("Keywords", engine.getCastUtil().toString(value));
 			// title
 			value = info.get("title", null);
-			if (value != null) moreInfo.put("Title", engine.getCastUtil().toString(value));
+			if (value != null) moreInfo.setString("Title", engine.getCastUtil().toString(value));
 			// subject
 			value = info.get("subject", null);
-			if (value != null) moreInfo.put("Subject", engine.getCastUtil().toString(value));
+			if (value != null) moreInfo.setString("Subject", engine.getCastUtil().toString(value));
 			// creator
 			value = info.get("creator", null);
-			if (value != null) moreInfo.put("Creator", engine.getCastUtil().toString(value));
+			if (value != null) moreInfo.setString("Creator", engine.getCastUtil().toString(value));
 			// trapped
 			value = info.get("Trapped", null);
-			if (value != null) moreInfo.put("Trapped", engine.getCastUtil().toString(value));
+			if (value != null) moreInfo.setString("Trapped", engine.getCastUtil().toString(value));
 			// Created
 			value = info.get("Created", null);
-			if (value != null) moreInfo.put("Created", engine.getCastUtil().toString(value));
+			if (value != null) moreInfo.setString("Created", engine.getCastUtil().toString(value));
 			// Language
 			value = info.get("Language", null);
-			if (value != null) moreInfo.put("Language", engine.getCastUtil().toString(value));
+			if (value != null) moreInfo.setString("Language", engine.getCastUtil().toString(value));
 
-			stamp.setMoreInfo(moreInfo);
-			stamp.close();
+			pr.setDocumentInformation(docInfo);
+			//stamp.setMoreInfo(moreInfo);
+			//stamp.close();
 
 		}
 		finally {

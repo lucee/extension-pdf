@@ -38,8 +38,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xhtmlrenderer.pdf.ITextFontResolver;
-import org.xhtmlrenderer.pdf.ITextRenderer;
+import com.openhtmltopdf.extend.FontResolver;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -62,11 +62,15 @@ public final class FSPDFDocument extends PDFDocument {
 
 	@Override
 	public byte[] _render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException, DocumentException {
-		ITextRenderer renderer = new ITextRenderer();
+		PdfRendererBuilder builder = new PdfRendererBuilder();
 
 		// prepare(fontDirectory, "fs.properties");
 
 		// fonts
+		/* 
+
+		TODO ZZ
+
 		ITextFontResolver resolver = renderer.getFontResolver();
 		File[] children = fontDirectory.listFiles();
 		for (File child: children) {
@@ -78,6 +82,7 @@ public final class FSPDFDocument extends PDFDocument {
 			}
 		}
 
+		*/
 		// resolver.addFontDirectory(fontDirectory.getCanonicalPath(), fontembed);
 
 		// margin
@@ -104,7 +109,7 @@ public final class FSPDFDocument extends PDFDocument {
 		// content
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
-			content(renderer, pc, baos, margin, dimension, getPageOffset());
+			content(builder, pc, baos, margin, dimension, getPageOffset());
 
 		}
 		catch (Exception e) {
@@ -116,7 +121,7 @@ public final class FSPDFDocument extends PDFDocument {
 		return baos.toByteArray();
 	}
 
-	private void content(ITextRenderer renderer, PageContext pc, OutputStream os, Margin margin, Dimension dimension, int pageOffset)
+	private void content(PdfRendererBuilder renderer, PageContext pc, OutputStream os, Margin margin, Dimension dimension, int pageOffset)
 			throws PageException, IOException, SAXException, DocumentException {
 		ConfigWeb config = pc.getConfig();
 		// body
@@ -191,7 +196,7 @@ public final class FSPDFDocument extends PDFDocument {
 		}
 	}
 
-	private void render(PageContext pc, ITextRenderer renderer, InputStream is, OutputStream os, URL base, Margin margin, Dimension dim, int pageOffset)
+	private void render(PageContext pc, PdfRendererBuilder renderer, InputStream is, OutputStream os, URL base, Margin margin, Dimension dim, int pageOffset)
 			throws PageException, IOException, SAXException, DocumentException {
 		try {
 			// text/html
@@ -232,18 +237,25 @@ public final class FSPDFDocument extends PDFDocument {
 		}
 	}
 
-	private void createPDF(PageContext pc, ITextRenderer renderer, Document doc, OutputStream os, URL base) throws DocumentException, MalformedURLException {
+	private void createPDF(PageContext pc, PdfRendererBuilder renderer, Document doc, OutputStream os, URL base) throws IOException, DocumentException, MalformedURLException {
 		if (base == null) base = searchBaseURL(doc);
 		if (base == null) base = getRequestURL(pc);
-		renderer.setDocument(doc, base == null ? null : base.toExternalForm());
-		renderer.layout();
-		renderer.createPDF(os);
+		//renderer.setDocument(doc, base == null ? null : base.toExternalForm());
+		//renderer.layout();
+		//renderer.createPDF(os);
+		renderer.withW3cDocument(doc, base == null ? null : base.toExternalForm());
+		renderer.toStream(os);
+		renderer.run();
 	}
 
-	private void createPDF(ITextRenderer renderer, String xhtml, OutputStream os) throws DocumentException {
-		renderer.setDocumentFromString(xhtml);
-		renderer.layout();
-		renderer.createPDF(os);
+	private void createPDF(PdfRendererBuilder renderer, String xhtml, OutputStream os) throws IOException, DocumentException {
+		//renderer.setDocumentFromString(xhtml);
+		//renderer.layout();
+		//renderer.createPDF(os);
+
+		renderer.withHtmlContent(xhtml, null);
+		renderer.toStream(os);
+		renderer.run();
 	}
 
 	@Override

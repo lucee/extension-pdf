@@ -35,7 +35,7 @@ public final class IsPDFArchive extends BIF implements Function {
 	public static boolean call(PageContext pc, String path) throws PageException {
 		try {
 			Resource res = CFMLEngineFactory.getInstance().getResourceUtil().toResourceExisting(pc, path);
-			PDFUtil.toPdfReader(pc, res, null);
+			PDFUtil.toPDDocument(pc, res, null);
 		}
 		catch (Exception e) {
 			return false;

@@ -29,8 +29,15 @@ import java.util.Set;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
+import org.apache.pdfbox.io.RandomAccessReadBufferedFile;
 import org.lucee.extension.pdf.util.PDFUtil;
 import org.lucee.extension.pdf.util.StructSupport;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.PDDocumentInformation;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.pdmodel.PDPageTree;
+import org.apache.pdfbox.pdmodel.PDPage;
 
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.PdfWriter;
@@ -232,9 +239,38 @@ public class PDFStruct extends StructSupport implements Struct {
 				+ "], error thrown [" + ioe.getMessage() + "]" );
 		}
 	}
-	
+
+	// itext
 	public static PdfReader unlockPdf(PdfReader reader) {
 		if (reader == null || reader.isOpenedWithFullPermissions()) {
+			return reader;
+		}
+		try {
+			java.lang.reflect.Field f = reader.getClass().getDeclaredField("encrypted");
+			f.setAccessible(true);
+			f.set(reader, false);
+		}
+		catch (Exception e) {/* ignore */ }
+		return reader;
+	}
+
+	public PDDocument getPDDocument() throws PageException {
+		try {
+			if (barr != null) {
+				if (password != null) return unlockPdf(Loader.loadPDF(new RandomAccessReadBuffer(barr), password));
+				return unlockPdf(Loader.loadPDF(new RandomAccessReadBuffer(barr)));
+			}
+			if (password != null) return unlockPdf(Loader.loadPDF(new RandomAccessReadBuffer(PDFUtil.toBytes(resource)), password));
+			return unlockPdf(Loader.loadPDF(new RandomAccessReadBuffer(PDFUtil.toBytes(resource))));
+		}
+		catch (IOException ioe) {
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("Error opening pdf file [" + resource 
+				+ "], error thrown [" + ioe.getMessage() + "]" );
+		}
+	}
+
+	public static PDDocument unlockPdf(PDDocument reader) {
+		if (reader == null || reader.getCurrentAccessPermission().isOwnerPermission()) {
 			return reader;
 		}
 		try {
@@ -253,32 +289,32 @@ public class PDFStruct extends StructSupport implements Struct {
 
 	public Struct getInfo() {
 
-		PdfReader pr = null;
+		PDDocument pr = null;
 		try {
-			pr = getPdfReader();
+			pr = getPDDocument();
 			// PdfDictionary catalog = pr.getCatalog();
-			int permissions = pr.getPermissions();
+			AccessPermission permissions = pr.getCurrentAccessPermission();
 			boolean encrypted = pr.isEncrypted();
 
 			Struct info = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
 			info.setEL("FilePath", getFilePath());
 
 			// access
-			info.setEL("ChangingDocument", allowed(encrypted, permissions, PdfWriter.ALLOW_MODIFY_CONTENTS));
-			info.setEL("Commenting", allowed(encrypted, permissions, PdfWriter.ALLOW_MODIFY_ANNOTATIONS));
-			info.setEL("ContentExtraction", allowed(encrypted, permissions, PdfWriter.ALLOW_SCREENREADERS));
-			info.setEL("CopyContent", allowed(encrypted, permissions, PdfWriter.ALLOW_COPY));
-			info.setEL("DocumentAssembly", allowed(encrypted, permissions, PdfWriter.ALLOW_ASSEMBLY + PdfWriter.ALLOW_MODIFY_CONTENTS));
-			info.setEL("FillingForm", allowed(encrypted, permissions, PdfWriter.ALLOW_FILL_IN + PdfWriter.ALLOW_MODIFY_ANNOTATIONS));
-			info.setEL("Printing", allowed(encrypted, permissions, PdfWriter.ALLOW_PRINTING));
+			info.setEL("ChangingDocument", allowed(encrypted, permissions.canModify()));
+			info.setEL("Commenting", allowed(encrypted, permissions.canModifyAnnotations()));
+			info.setEL("ContentExtraction", allowed(encrypted, permissions.canExtractContent()));
+			info.setEL("CopyContent", allowed(encrypted, permissions.canExtractContent()));
+			info.setEL("DocumentAssembly", allowed(encrypted, (permissions.canAssembleDocument() && permissions.canModify())));
+			info.setEL("FillingForm", allowed(encrypted, (permissions.canFillInForm() && permissions.canModifyAnnotations())));
+			info.setEL("Printing", allowed(encrypted, permissions.canPrint()));
 			info.setEL("Secure", "");
-			info.setEL("Signing", allowed(encrypted, permissions, PdfWriter.ALLOW_MODIFY_ANNOTATIONS + PdfWriter.ALLOW_MODIFY_CONTENTS + PdfWriter.ALLOW_FILL_IN));
+			info.setEL("Signing", allowed(encrypted, (permissions.canModifyAnnotations() && permissions.canModify() && permissions.canFillInForm())));
 
 			info.setEL("Encryption", encrypted ? "Password Security" : "No Security");// MUST
 			info.setEL("TotalPages", CFMLEngineFactory.getInstance().getCastUtil().toDouble(pr.getNumberOfPages()));
-			info.setEL("Version", "1." + pr.getPdfVersion());
+			info.setEL("Version", "1." + pr.getVersion());
 			info.setEL("permissions", "" + permissions);
-			info.setEL("permiss", "" + PdfWriter.ALLOW_FILL_IN);
+			info.setEL("permiss", "" + permissions.canFillInForm());
 
 			info.setEL("Application", "");
 			info.setEL("Author", "");
@@ -305,15 +341,17 @@ public class PDFStruct extends StructSupport implements Struct {
 			Array rotation = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
 			Array pagesize1 = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
 
+			PDPageTree pages = pr.getPages();
+
 			for (int i = 1; i < total; i++) {
-				rotation.appendEL(pr.getPageRotation(i));
+				rotation.appendEL(pages.get(i).getRotation());
 			}
 
 			int count = pr.getNumberOfPages() + 1;
 
-			for (int j = 1; j < count; j++) {
-				pagesize.setEL("Height", pr.getPageSize(j).getHeight());
-				pagesize.setEL("Width", pr.getPageSize(j).getWidth());
+			for (int p = 1; p < count; p++) {
+				pagesize.setEL("Height", pages.get(p).getMediaBox().getHeight());
+				pagesize.setEL("Width", pages.get(p).getMediaBox().getWidth());
 				pagesize1.appendEL(pagesize);
 			}
 
@@ -321,7 +359,7 @@ public class PDFStruct extends StructSupport implements Struct {
 			info.setEL("Pagesize", pagesize1);
 
 			// info
-			HashMap imap = pr.getInfo();
+			COSDictionary imap = pr.getDocumentInformation().getCOSObject();
 			Iterator it = imap.entrySet().iterator();
 			Map.Entry entry;
 			while (it.hasNext()) {
@@ -334,10 +372,23 @@ public class PDFStruct extends StructSupport implements Struct {
 			throw CFMLEngineFactory.getInstance().getExceptionUtil().createPageRuntimeException(pe);
 		}
 		finally {
-			if (pr != null) pr.close();
+			if (pr != null){
+				try {
+					pr.close();
+				}
+				catch (IOException ioe){
+					throw CFMLEngineFactory.getInstance().getExceptionUtil().createPageRuntimeException(CFMLEngineFactory.getInstance().getCastUtil().toPageException(ioe));
+				}
+			} 
 		}
 	}
 
+	// PDFBOX
+	private static Object allowed(boolean encrypted, boolean permission) {
+		return (!encrypted && permission) ? "Allowed" : "Not Allowed";
+	}
+
+	// ITEXT
 	private static Object allowed(boolean encrypted, int permissions, int permission) {
 		return (!encrypted || (permissions & permission) > 0) ? "Allowed" : "Not Allowed";
 	}
@@ -375,8 +426,8 @@ public class PDFStruct extends StructSupport implements Struct {
 	public PDDocument toPDDocument() throws IOException {
 		PDDocument doc;
 		if (barr != null) {
-			if (password != null) doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length), password);
-			else doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length));
+			if (password != null) doc = Loader.loadPDF(new RandomAccessReadBuffer(barr), password);
+			else doc = Loader.loadPDF(new RandomAccessReadBuffer(barr));
 		}
 		else if (resource instanceof File) {
 			if (password != null) doc = Loader.loadPDF((File) resource, password);
@@ -384,8 +435,8 @@ public class PDFStruct extends StructSupport implements Struct {
 		}
 		else {
 			barr = PDFUtil.toBytes(resource);
-			if (password != null) doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length), password);
-			else doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length));
+			if (password != null) doc = Loader.loadPDF(new RandomAccessReadBuffer(barr), password);
+			else doc = Loader.loadPDF(new RandomAccessReadBuffer(barr));
 		}
 		return doc;
 
