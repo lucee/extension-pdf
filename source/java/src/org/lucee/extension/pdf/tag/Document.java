@@ -139,6 +139,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		this.pdf = null;
 		sectionCounter = 0;
 		selectedType = PDFDocument.TYPE_NONE;
+		encryption = PDFDocument.ENC_NONE;
 
 		attrAuthPassword = null;
 		attrAuthUser = null;
