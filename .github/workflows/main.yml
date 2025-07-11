@@ -55,13 +55,9 @@ jobs:
       testAdditional: ${{ github.workspace }}/tests
       LUCEE_TEST_VERSIONS: ${{ vars.LUCEE_TEST_VERSIONS }}
     strategy:
+      fail-fast: false
       matrix:
         lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS) }}
-    services:
-      minio:
-        image: fclairamb/minio-github-actions
-        ports:
-          - 9000:9000
     steps:
       - uses: actions/checkout@v4
 
