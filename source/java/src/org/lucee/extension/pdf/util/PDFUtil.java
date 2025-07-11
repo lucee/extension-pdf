@@ -62,6 +62,8 @@ import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.util.ListUtil;
+import lucee.runtime.type.Array;
+import lucee.runtime.type.Struct;
 
 public class PDFUtil {
 
@@ -455,4 +457,33 @@ public class PDFUtil {
 		}
 
 	}
+
+	public static Object extractBookmarks(PageContext pc, PDFStruct doc) throws IOException, InvalidPasswordException,PageException {
+		PdfReader reader = doc.getPdfReader();
+		List<HashMap<String, Object>> pdfBookmarks = SimpleBookmark.getBookmark(reader);
+		Array bookmarks = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
+		if (pdfBookmarks != null){
+			_extractBookmarks(pdfBookmarks, bookmarks);
+		}
+		return bookmarks;
+	}
+
+	 private static void _extractBookmarks(List<HashMap<String, Object>> pdfBookmarks, Array bookmarks) throws PageException {
+		for (HashMap<String, Object> bm : pdfBookmarks) {
+			Struct sct = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
+			sct.set("Title", ((String)bm.get("Title")));
+			String page = (String)bm.get("Page"); // space delimited list: pagenumber destination x-coord y-coord zoomlevel
+			String[] pageParts = page.split(" ");
+			sct.setEL("PageNumber", Integer.parseInt(pageParts[0]));
+			sct.setEL("Page", page);
+			sct.setEL("Action", ((String)bm.get("Action")));
+			//sct.setEL("bm", CFMLEngineFactory.getInstance().getCastUtil().toStruct(bm));
+			bookmarks.appendEL(sct);
+			List<HashMap<String, Object>> kids = (List<HashMap<String, Object>>) bm.get("Kids");
+			if (kids != null) {
+				_extractBookmarks(kids, bookmarks);
+			}
+		}
+	}
+
 }

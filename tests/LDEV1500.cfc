@@ -10,8 +10,8 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 						writeoutput("test Pdf tes");
 					}
 				}
-				var reader = createObject("java", "com.lowagie.text.pdf.PdfReader").init(test1500);
-				var bookmarks = createObject("java","com.lowagie.text.pdf.SimpleBookmark").getBookmark(reader);
+
+				pdf action="extractBookmarks" source="test1500" name="local.bookmarks";
 				expect(bookmarks[1].get("Title")).toBe("section1");
 				expect(bookmarks[2].get("Title")).toBe("section2");
 			});

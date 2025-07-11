@@ -84,6 +84,7 @@ public class PDF extends BodyTagImpl {
 	private static final int ACTION_ADD_FOOTER = 13;
 	private static final int ACTION_OPEN = 14;
 	private static final int ACTION_EXTRACT_IMAGES = 15;
+	private static final int ACTION_EXTRACT_BOOKMARKS = 16;
 
 	private static final String FORMAT_JPG = "jpg";
 	private static final String FORMAT_TIFF = "tiff";
@@ -314,9 +315,10 @@ public class PDF extends BodyTagImpl {
 		else if ("extractimages".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extract-images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extract_images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
+		else if ("extractbookmarks".equals(strAction)) action = ACTION_EXTRACT_BOOKMARKS;
 
 		else throw engine.getExceptionUtil().createApplicationException(
-				"Invalid PDF action [" + strAction + "], supported actions are " + "[addHeader, addFooter, addWatermark, deletePages, extractText, extractImage, getInfo, merge, open, "
+				"Invalid PDF action [" + strAction + "], supported actions are " + "[addHeader, addFooter, addWatermark, deletePages, extractBookmarks, extractImage, extractText, getInfo, merge, open, "
 						+ "removePassword, protect, read, removeWatermark, setInfo, thumbnail, write]");
 
 	}
@@ -698,9 +700,8 @@ public class PDF extends BodyTagImpl {
 			else if (ACTION_OPEN == action) doActionProtect(false);
 			else if (ACTION_THUMBNAIL == action) doActionThumbnail();
 			else if (ACTION_EXTRACT_IMAGES == action) doActionExtractImages();
-			else if (ACTION_EXTRACT_TEXT == action) {
-				doActionExtractText();
-			}
+			else if (ACTION_EXTRACT_TEXT == action) { doActionExtractText(); }
+			else if (ACTION_EXTRACT_BOOKMARKS == action) doActionExtractBookmarks();
 			
 
 			// else if(ACTION_PROCESSDDX==action) throw
@@ -1447,6 +1448,20 @@ public class PDF extends BodyTagImpl {
 
 			if(!Util.isEmpty(name, true)) pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type, destination));
 			else PDFUtil.extractText(doc, pageSet, type, destination);
+		}
+		finally {
+			reader.close();
+		}
+	}
+
+	private void doActionExtractBookmarks() throws PageException, IOException {
+		required("pdf", "extractBookmarks", "source", source);
+		PDFStruct doc = toPDFDocument(source, password, null);
+		PdfReader reader = doc.getPdfReader();
+
+		try {
+			if (Util.isEmpty(name, true)) throw engine.getExceptionUtil().createApplicationException("The [name] attribute is required");
+			pageContext.setVariable(name, PDFUtil.extractBookmarks(pageContext,doc));
 		}
 		finally {
 			reader.close();
