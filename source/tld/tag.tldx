@@ -509,12 +509,14 @@ Manipulates existing PDF documents. The following list describes some of the tas
 - Create PDF portfolios
 - Add and remove header/footer from PDF documents
 - Optimize PDF documents
+- Extract Images
+- Extract Bookmarks
 		</description>
 		<attribute-type>fixed</attribute-type>
 		<attribute>
 			<type>string</type>
 			<name>action</name>
-			<values>addHeader, addFooter, addWatermark, deletePages, extractText, getInfo, merge, open, removePassword, protect, read, removeWatermark, setInfo, thumbnail, write</values>
+			<values>addHeader, addFooter, addWatermark, deletePages, extractBookmarks, extractImage, extractText, getInfo, merge, open, removePassword, protect, read, removeWatermark, setInfo, thumbnail, write</values>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 			<description>action to take</description>
