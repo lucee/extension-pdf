@@ -1461,7 +1461,7 @@ public class PDF extends BodyTagImpl {
 
 		try {
 			if (Util.isEmpty(name, true)) throw engine.getExceptionUtil().createApplicationException("The [name] attribute is required");
-			pageContext.setVariable(name, PDFUtil.extractBookmarks(pageContext,doc));
+			pageContext.setVariable(name, PDFUtil.extractBookmarks(pageContext,reader));
 		}
 		finally {
 			reader.close();

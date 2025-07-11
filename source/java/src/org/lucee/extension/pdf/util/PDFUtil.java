@@ -458,8 +458,7 @@ public class PDFUtil {
 
 	}
 
-	public static Object extractBookmarks(PageContext pc, PDFStruct doc) throws IOException, InvalidPasswordException,PageException {
-		PdfReader reader = doc.getPdfReader();
+	public static Object extractBookmarks(PageContext pc, PdfReader reader) throws IOException, InvalidPasswordException,PageException {
 		List<HashMap<String, Object>> pdfBookmarks = SimpleBookmark.getBookmark(reader);
 		Array bookmarks = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
 		if (pdfBookmarks != null){
