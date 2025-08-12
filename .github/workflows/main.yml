@@ -55,13 +55,9 @@ jobs:
       testAdditional: ${{ github.workspace }}/tests
       LUCEE_TEST_VERSIONS: ${{ vars.LUCEE_TEST_VERSIONS }}
     strategy:
+      fail-fast: false
       matrix:
         lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS) }}
-    services:
-      minio:
-        image: fclairamb/minio-github-actions
-        ports:
-          - 9000:9000
     steps:
       - uses: actions/checkout@v4
 
@@ -96,6 +92,8 @@ jobs:
           luceeVersion: ${{ matrix.lucee.version }}
           luceeVersionQuery: ${{ matrix.lucee.query }}
           extensionDir: ${{ github.workspace }}/target
+          extensions:  B737ABC4-D43F-4D91-8E8E973E37C40D1B # image extension
+
         env:
           testLabels: pdf
           testAdditional: ${{ github.workspace }}/tests
