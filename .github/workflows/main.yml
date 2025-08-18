@@ -53,11 +53,11 @@ jobs:
     env:
       testLabels: pdf
       testAdditional: ${{ github.workspace }}/tests
-      LUCEE_TEST_VERSIONS: ${{ vars.LUCEE_TEST_VERSIONS }}
+      LUCEE_TEST_VERSIONS_JAKARTA: ${{ vars.LUCEE_TEST_VERSIONS_JAKARTA }}
     strategy:
       fail-fast: false
       matrix:
-        lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS) }}
+        lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS_JAKARTA) }}
     steps:
       - uses: actions/checkout@v4
 
