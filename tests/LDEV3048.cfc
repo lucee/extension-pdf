@@ -111,6 +111,23 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			});
 
 		});
+		
+		// Additional test case for LDEV-5819 to verify extractImage as the default action as like ACF
+		describe( "testcase for LDEV-5819", function() { 
+			it( title="cfpdf extractImage, pdf with 2 images, 1 per page", body=function( currentSpec ) {
+				pdf action="extractImage" source="#outputDir#withImages.pdf" pages="*"
+					overwrite="true" format="png" imageprefix="two-image" password=""
+					destination="#outputDir#";
+
+				var imageFiles = directoryList( path=outputDir, filter="two-image*.png" );
+
+				expect( len( imageFiles ) ).toBe( 3 );
+				var imgInfo = ImageInfo( outputDir & "two-image-1.png" );
+				expect( imgInfo.height ).toBe( 111 );
+				expect( imgInfo.width ).toBe( 111 );
+
+			});
+		});
 	}
 
 	function afterAll() {

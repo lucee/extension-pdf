@@ -312,6 +312,7 @@ public class PDF extends BodyTagImpl {
 		else if ("extract_text".equals(strAction)) action = ACTION_EXTRACT_TEXT;
 		else if ("addheader".equals(strAction)) action = ACTION_ADD_HEADER;
 		else if ("addfooter".equals(strAction)) action = ACTION_ADD_FOOTER;
+		else if ("extractimage".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extractimages".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extract-images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extract_images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;

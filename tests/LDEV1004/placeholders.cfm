@@ -1,14 +1,15 @@
 <cfparam name="url.type">
+<cfparam name="url.evalatprint">
 <!--- https://dev.lucee.org/t/cfdocument-error-on-total-page-count/2102 --->
 <cfdocument format="pdf" type="#url.type#">
-    <cfdocumentitem type="header" evalatprint="false">
+    <cfdocumentitem type="header" evalatprint="#url.evalatprint#">
         <table width="100%" border="0" cellpadding="0" cellspacing="0">
             <strong><tr><td align="right"><cfoutput>#cfdocument.currentSectionPageNumber# of</strong>
                 <strong>#cfdocument.totalSectionPageCount#</cfoutput></td></tr></strong>
         </table>
     </cfdocumentitem>
 
-    <cfdocumentitem type="footer" evalatprint="true">
+    <cfdocumentitem type="footer" evalatprint="#url.evalatprint#">
         <table width="100%" border="0" cellpadding="0" cellspacing="0">
             <strong><tr><td align="center"><cfoutput>#cfdocument.currentPageNumber# of</strong>
                 <strong>#cfdocument.totalPageCount#</cfoutput></td></tr></strong>

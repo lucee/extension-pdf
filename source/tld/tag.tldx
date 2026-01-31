@@ -513,6 +513,104 @@ Manipulates existing PDF documents. The following list describes some of the tas
 - Extract Bookmarks
 		</description>
 		<attribute-type>fixed</attribute-type>
+		<attribute-groups>
+			<group>
+				<name>merge</name>
+				<label>Merge PDF documents</label>
+				<description>`action="merge"` - Merges several PDF documents into one PDF document</description>
+				<attributes>action,source,directory,filter,ascending,order,stopOnError,destination,name,overwrite,keepBookmark,version</attributes>
+			</group>
+			<group>
+				<name>read</name>
+				<label>Read a PDF document</label>
+				<description>`action="read"` - Reads a PDF document and stores it in a variable</description>
+				<attributes>action,source,name,password</attributes>
+			</group>
+			<group>
+				<name>write</name>
+				<label>Write a PDF document</label>
+				<description>`action="write"` - Writes a PDF document to a file</description>
+				<attributes>action,source,destination,overwrite,version,flatten,encrypt,permissions,newOwnerPassword,newUserPassword</attributes>
+			</group>
+			<group>
+				<name>protect</name>
+				<label>Protect a PDF document</label>
+				<description>`action="protect"` - Encrypts and adds password protection to PDF documents</description>
+				<attributes>action,source,destination,name,overwrite,encrypt,permissions,newOwnerPassword,newUserPassword</attributes>
+			</group>
+			<group>
+				<name>removePassword</name>
+				<label>Remove password protection</label>
+				<description>`action="removePassword"` - Removes password protection from a PDF document</description>
+				<attributes>action,source,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>deletePages</name>
+				<label>Delete pages</label>
+				<description>`action="deletePages"` - Deletes pages from a PDF document</description>
+				<attributes>action,source,pages,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>thumbnail</name>
+				<label>Generate thumbnail images</label>
+				<description>`action="thumbnail"` - Generates thumbnail images from PDF document pages</description>
+				<attributes>action,source,destination,pages,format,imagePrefix,resolution,scale,transparent,overwrite,password</attributes>
+			</group>
+			<group>
+				<name>extractText</name>
+				<label>Extract text</label>
+				<description>`action="extractText"` - Extracts text from a PDF document</description>
+				<attributes>action,source,destination,name,pages,type,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>extractImage</name>
+				<label>Extract images</label>
+				<description>`action="extractImage"` - Extracts images from a PDF document</description>
+				<attributes>action,source,destination,pages,imagePrefix,format,overwrite,password</attributes>
+			</group>
+			<group>
+				<name>extractBookmarks</name>
+				<label>Extract bookmarks</label>
+				<description>`action="extractBookmarks"` - Extracts bookmarks from a PDF document</description>
+				<attributes>action,source,name,password</attributes>
+			</group>
+			<group>
+				<name>addWatermark</name>
+				<label>Add watermark</label>
+				<description>`action="addWatermark"` - Adds a watermark to PDF document pages</description>
+				<attributes>action,source,copyFrom,image,isBase64,pages,destination,name,password,overwrite,foreground,opacity,position,rotation,showOnPrint</attributes>
+			</group>
+			<group>
+				<name>removeWatermark</name>
+				<label>Remove watermark</label>
+				<description>`action="removeWatermark"` - Removes watermarks from a PDF document</description>
+				<attributes>action,source,pages,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>addHeader</name>
+				<label>Add header</label>
+				<description>`action="addHeader"` - Adds a header to PDF document pages</description>
+				<attributes>action,source,destination,name,pages,text,align,leftmargin,rightmargin,topmargin,numberformat,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>addFooter</name>
+				<label>Add footer</label>
+				<description>`action="addFooter"` - Adds a footer to PDF document pages</description>
+				<attributes>action,source,destination,name,pages,text,align,leftmargin,rightmargin,bottommargin,numberformat,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>getInfo</name>
+				<label>Get document information</label>
+				<description>`action="getInfo"` - Retrieves information about a PDF document</description>
+				<attributes>action,source,name,password</attributes>
+			</group>
+			<group>
+				<name>setInfo</name>
+				<label>Set document information</label>
+				<description>`action="setInfo"` - Sets information for a PDF document such as title, author, and keywords</description>
+				<attributes>action,source,info,destination,name,password,overwrite</attributes>
+			</group>
+		</attribute-groups>
 		<attribute>
 			<type>string</type>
 			<name>action</name>
