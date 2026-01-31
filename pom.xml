@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>pdf-extension</artifactId>
-    <version>2.0.0.1</version>
+    <version>2.0.0.2</version>
     <packaging>pom</packaging>
     <name>PDF Extension</name>
 
@@ -123,6 +123,8 @@
                                     <property name="bundleversion" value="${project.version}"/>
                                     <property name="bundlename" value="${bundlename}"/>
                                     <property name="filename" value="${project.artifactId}"/>
+                                    <property name="groupId" value="${project.groupId}"/>
+                                    <property name="artifactId" value="${project.artifactId}"/>
                                     <property name="id" value="${id}"/>
                                     <property name="srcversion" value="${maven.compiler.source}"/>
                                     <property name="trgversion" value="${maven.compiler.target}"/>
