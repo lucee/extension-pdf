@@ -9,3 +9,6 @@ target
 target/*
 *.DS_Store
 /cache
+/.claude
+/test-output
+/.claude
