@@ -614,7 +614,7 @@ Manipulates existing PDF documents. The following list describes some of the tas
 		<attribute>
 			<type>string</type>
 			<name>action</name>
-			<values>addHeader, addFooter, addWatermark, deletePages, extractBookmarks, extractImage, extractText, getInfo, merge, open, removePassword, protect, read, removeWatermark, setInfo, thumbnail, write</values>
+			<values>addAttachments, addHeader, addFooter, addStamp, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, optimize, readSignatureFields, removeAttachments, removePassword, protect, read, removeWatermark, sanitize, setInfo, thumbnail, transform, validateSignature, write</values>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 			<description>action to take</description>
@@ -852,6 +852,76 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<description>Size of the thumbnail relative to the source page. The value represents a percentage from 1 through 100.</description>
 		</attribute>
 		<attribute>
+			<type>number</type>
+			<name>hscale</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Horizontal scale factor for transform action. 1.0 = 100%, 0.5 = 50%.</description>
+		</attribute>
+		<attribute>
+			<type>number</type>
+			<name>vscale</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Vertical scale factor for transform action. 1.0 = 100%, 0.5 = 50%.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noBookmarks</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove bookmarks/outline from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noLinks</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize"|"sanitize") Remove hyperlinks from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noJavaScript</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove JavaScript from the PDF. Always removed for sanitize action.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noAttachments</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove embedded files/attachments from the PDF. Always removed for sanitize action.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noMetadata</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove document metadata (author, title, etc.) from the PDF. Always removed for sanitize action.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noThumbnails</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove page thumbnails from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noComments</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove annotations/comments from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noForms</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize"|"sanitize") Remove form fields from the PDF.</description>
+		</attribute>
+		<attribute>
 			<type>boolean</type>
 			<name>showOnPrint</name>
 			<required>false</required>
@@ -1003,8 +1073,138 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<rtexprvalue>true</rtexprvalue>
 			<description>Source PDF file to merge. You can specify a PDF variable, a cfdocument variable, or the pathname to a file.</description>
 		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>filename</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Custom filename for attachments (action="addAttachments"). If not specified, uses the source file name.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>mimetype</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>MIME type for attachments (action="addAttachments").</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>description</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Description for attachments (action="addAttachments").</description>
+		</attribute>
 	</tag>
 
+
+	<!-- PDFForm -->
+	<tag>
+		<name>PDFForm</name>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.PDFForm</tag-class>
+		<body-content>free</body-content>
+		<body-rtexprvalue>false</body-rtexprvalue>
+		<script>
+			<type>multiple</type>
+			<rtexprvalue>true</rtexprvalue>
+		</script>
+		<description>Reads and populates PDF form fields. Use action="read" to extract form field values, or action="populate" to fill in form fields.</description>
+		<attribute-type>fixed</attribute-type>
+		<attribute>
+			<type>string</type>
+			<name>action</name>
+			<values>read,populate</values>
+			<required>true</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Action to perform on the PDF form:
+- read: Reads form field values into a struct or XML
+- populate: Fills form fields with provided values</description>
+		</attribute>
+		<attribute>
+			<type>any</type>
+			<name>source</name>
+			<required>true</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Source PDF file containing form fields. Can be a file path, PDF variable, or cfdocument variable.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>result</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="read") Variable name to store the form fields as a struct.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>xmldata</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="read") Variable name to store the form fields as XML. (action="populate") XML data to populate the form with.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>password</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Password to open the PDF if it is password-protected.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>destination</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Path for the output PDF file.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>name</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Variable name to store the populated PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>overwrite</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Whether to overwrite the destination file if it exists. Default is false.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>overwritedata</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Whether to overwrite existing field values. Default is true.</description>
+		</attribute>
+	</tag>
+
+
+	<!-- PDFFormParam -->
+	<tag>
+		<name>PDFFormParam</name>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.PDFFormParam</tag-class>
+		<body-content>empty</body-content>
+		<body-rtexprvalue>false</body-rtexprvalue>
+		<script>
+			<type>multiple</type>
+			<rtexprvalue>true</rtexprvalue>
+		</script>
+		<description>Specifies a form field name/value pair for cfpdfform action="populate". Must be a child tag of cfpdfform.</description>
+		<attribute-type>fixed</attribute-type>
+		<attribute>
+			<type>string</type>
+			<name>name</name>
+			<required>true</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>The name of the form field to populate.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>value</name>
+			<required>true</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>The value to set for the form field.</description>
+		</attribute>
+	</tag>
 
 
 </taglib>

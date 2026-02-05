@@ -32,7 +32,7 @@
 	</function>
 	<!-- IsPDFObject -->
 	<function>
-		<name >IsPDFObject</name>
+		<name>IsPDFObject</name>
 		<class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.function.IsPDFObject</class>
 		<keywords>decision,pdf</keywords>
 		<description>Determines whether a value is a PDF object.</description>

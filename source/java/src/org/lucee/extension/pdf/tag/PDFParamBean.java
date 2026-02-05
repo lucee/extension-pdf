@@ -23,6 +23,9 @@ public class PDFParamBean {
 	private String pages;
 	private String password;
 	private Object source;
+	private String filename;
+	private String mimetype;
+	private String description;
 
 	/**
 	 * @return the pages
@@ -64,5 +67,47 @@ public class PDFParamBean {
 	 */
 	public void setSource(Object source) {
 		this.source = source;
+	}
+
+	/**
+	 * @return the filename
+	 */
+	public String getFilename() {
+		return filename;
+	}
+
+	/**
+	 * @param filename the filename to set
+	 */
+	public void setFilename(String filename) {
+		this.filename = filename;
+	}
+
+	/**
+	 * @return the mimetype
+	 */
+	public String getMimetype() {
+		return mimetype;
+	}
+
+	/**
+	 * @param mimetype the mimetype to set
+	 */
+	public void setMimetype(String mimetype) {
+		this.mimetype = mimetype;
+	}
+
+	/**
+	 * @return the description
+	 */
+	public String getDescription() {
+		return description;
+	}
+
+	/**
+	 * @param description the description to set
+	 */
+	public void setDescription(String description) {
+		this.description = description;
 	}
 }

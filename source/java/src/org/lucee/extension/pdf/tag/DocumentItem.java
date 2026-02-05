@@ -59,7 +59,7 @@ public final class DocumentItem extends BodyTagImpl {
 	}
 
 	/**
-	 * @param type the type to set
+	 * @param strType the type to set
 	 */
 	public void setType(String strType) throws PageException {
 		strType = Document.trimAndLower(strType);

@@ -79,4 +79,17 @@ public class PDFPageMark {
 		this.hfIndex = hfIndex;
 		return this;
 	}
+
+	/**
+	 * Get HTML content for a specific index.
+	 * Used for multi-page header/footer support.
+	 */
+	public String getHtml(int index) {
+		if (htmlTemplates.size() == 0) return "";
+		if (htmlTemplates.size() == 1) return htmlTemplates.get(0);
+		if (index < 0 || index >= htmlTemplates.size()) {
+			return htmlTemplates.get(0);
+		}
+		return htmlTemplates.get(index);
+	}
 }
