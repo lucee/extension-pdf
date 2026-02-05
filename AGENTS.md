@@ -10,8 +10,10 @@ always place generated artifacts in a separate sub directory with a `.gitignore`
 
 ## Build and test
 
+never used cmd.exe!!
+
 ```bash
-cd "d:\work\lucee-extensions\extension-pdf" && test.bat 2>&1 | tee test-output/test-run.txt
+cd "d:\work\lucee-extensions\extension-pdf" && d:/work/lucee-extensions/extension-pdf/test.bat 2>&1 | tee test-output/test-run.txt
 ```
 
 `test.bat`
