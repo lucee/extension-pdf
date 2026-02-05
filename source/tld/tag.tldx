@@ -614,7 +614,7 @@ Manipulates existing PDF documents. The following list describes some of the tas
 		<attribute>
 			<type>string</type>
 			<name>action</name>
-			<values>addAttachments, addHeader, addFooter, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, readSignatureFields, removeAttachments, removePassword, protect, read, removeWatermark, setInfo, thumbnail, transform, validateSignature, write</values>
+			<values>addAttachments, addHeader, addFooter, addStamp, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, optimize, readSignatureFields, removeAttachments, removePassword, protect, read, removeWatermark, sanitize, setInfo, thumbnail, transform, validateSignature, write</values>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 			<description>action to take</description>
@@ -864,6 +864,62 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 			<description>Vertical scale factor for transform action. 1.0 = 100%, 0.5 = 50%.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noBookmarks</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove bookmarks/outline from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noLinks</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize"|"sanitize") Remove hyperlinks from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noJavaScript</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove JavaScript from the PDF. Always removed for sanitize action.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noAttachments</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove embedded files/attachments from the PDF. Always removed for sanitize action.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noMetadata</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove document metadata (author, title, etc.) from the PDF. Always removed for sanitize action.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noThumbnails</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove page thumbnails from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noComments</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove annotations/comments from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noForms</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize"|"sanitize") Remove form fields from the PDF.</description>
 		</attribute>
 		<attribute>
 			<type>boolean</type>

@@ -72,6 +72,42 @@ Returns a struct with:
 - `allValid` (boolean)
 - `signatures` (array of signature details)
 
+#### action="optimize"
+Reduce PDF file size by removing specified elements.
+
+```cfml
+<cfpdf action="optimize" source="doc.pdf" destination="optimized.pdf"
+    noBookmarks=true noMetadata=true noJavaScript=true noAttachments=true
+    noThumbnails=true noComments=true noForms=true noLinks=true>
+```
+
+**Attributes:**
+- `noBookmarks` - Remove document outline/bookmarks
+- `noMetadata` - Remove document info (author, title, etc.)
+- `noJavaScript` - Remove embedded JavaScript
+- `noAttachments` - Remove embedded files
+- `noThumbnails` - Remove page thumbnails
+- `noComments` - Remove annotations/comments
+- `noForms` - Remove form fields
+- `noLinks` - Remove hyperlinks
+
+#### action="sanitize"
+Remove potentially dangerous elements for security.
+
+```cfml
+<cfpdf action="sanitize" source="untrusted.pdf" destination="safe.pdf">
+```
+
+Always removes: JavaScript, attachments, metadata, links with actions. Optionally removes forms with `noForms=true`.
+
+#### action="addStamp"
+Add a stamp image to PDF pages (uses same API as watermark).
+
+```cfml
+<cfpdf action="addStamp" source="doc.pdf" destination="stamped.pdf"
+    image="stamp.png" position="50,50" opacity=0.8>
+```
+
 ### New cfpdfform Tag
 
 Read and populate PDF form fields.

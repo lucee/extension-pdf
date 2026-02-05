@@ -63,8 +63,14 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline;
+import org.apache.pdfbox.pdmodel.interactive.action.PDDocumentCatalogAdditionalActions;
+import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSBase;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.util.PDFUtil;
 
@@ -107,6 +113,9 @@ public class PDF extends BodyTagImpl {
 	private static final int ACTION_READ_SIGNATURE_FIELDS = 20;
 	private static final int ACTION_REMOVE_ATTACHMENTS = 21;
 	private static final int ACTION_VALIDATE_SIGNATURE = 22;
+	private static final int ACTION_OPTIMIZE = 23;
+	private static final int ACTION_SANITIZE = 24;
+	private static final int ACTION_ADD_STAMP = 25;
 
 	private static final String FORMAT_JPG = "jpg";
 	private static final String FORMAT_TIFF = "tiff";
@@ -185,6 +194,15 @@ public class PDF extends BodyTagImpl {
 	private Struct fontStruct = null;
 	private float hscale = 1.0f;
 	private float vscale = 1.0f;
+	// optimize/sanitize options
+	private boolean noBookmarks = false;
+	private boolean noLinks = false;
+	private boolean noJavaScript = false;
+	private boolean noAttachments = false;
+	private boolean noMetadata = false;
+	private boolean noThumbnails = false;
+	private boolean noComments = false;
+	private boolean noForms = false;
 
 	@Override
 	public void release() {
@@ -238,6 +256,14 @@ public class PDF extends BodyTagImpl {
 		fontStruct = null;
 		hscale = 1.0f;
 		vscale = 1.0f;
+		noBookmarks = false;
+		noLinks = false;
+		noJavaScript = false;
+		noAttachments = false;
+		noMetadata = false;
+		noThumbnails = false;
+		noComments = false;
+		noForms = false;
 	}
 
 	public void setImageprefix(String imagePrefix) {
@@ -321,10 +347,13 @@ public class PDF extends BodyTagImpl {
 		else if ("removeattachments".equals(strAction)) action = ACTION_REMOVE_ATTACHMENTS;
 		else if ("readsignaturefields".equals(strAction)) action = ACTION_READ_SIGNATURE_FIELDS;
 		else if ("validatesignature".equals(strAction)) action = ACTION_VALIDATE_SIGNATURE;
+		else if ("optimize".equals(strAction)) action = ACTION_OPTIMIZE;
+		else if ("sanitize".equals(strAction)) action = ACTION_SANITIZE;
+		else if ("addstamp".equals(strAction)) action = ACTION_ADD_STAMP;
 
 		else throw engine.getExceptionUtil().createApplicationException(
-				"Invalid PDF action [" + strAction + "], supported actions are " + "[addAttachments, addHeader, addFooter, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, "
-						+ "readSignatureFields, removeAttachments, removePassword, protect, read, removeWatermark, setInfo, thumbnail, transform, validateSignature, write]");
+				"Invalid PDF action [" + strAction + "], supported actions are " + "[addAttachments, addHeader, addFooter, addStamp, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, optimize, "
+						+ "readSignatureFields, removeAttachments, removePassword, protect, read, removeWatermark, sanitize, setInfo, thumbnail, transform, validateSignature, write]");
 	}
 
 	public void setType(String strType) throws PageException {
@@ -540,6 +569,39 @@ public class PDF extends BodyTagImpl {
 		this.vscale = (float) vscale;
 	}
 
+	// Optimize/sanitize option setters
+	public void setNobookmarks(boolean noBookmarks) {
+		this.noBookmarks = noBookmarks;
+	}
+
+	public void setNolinks(boolean noLinks) {
+		this.noLinks = noLinks;
+	}
+
+	public void setNojavascript(boolean noJavaScript) {
+		this.noJavaScript = noJavaScript;
+	}
+
+	public void setNoattachments(boolean noAttachments) {
+		this.noAttachments = noAttachments;
+	}
+
+	public void setNometadata(boolean noMetadata) {
+		this.noMetadata = noMetadata;
+	}
+
+	public void setNothumbnails(boolean noThumbnails) {
+		this.noThumbnails = noThumbnails;
+	}
+
+	public void setNocomments(boolean noComments) {
+		this.noComments = noComments;
+	}
+
+	public void setNoforms(boolean noForms) {
+		this.noForms = noForms;
+	}
+
 	@Override
 	public int doStartTag() throws PageException {
 		return EVAL_BODY_BUFFERED;
@@ -579,6 +641,9 @@ public class PDF extends BodyTagImpl {
 			else if (ACTION_REMOVE_ATTACHMENTS == action) doActionRemoveAttachments();
 			else if (ACTION_READ_SIGNATURE_FIELDS == action) doActionReadSignatureFields();
 			else if (ACTION_VALIDATE_SIGNATURE == action) doActionValidateSignature();
+			else if (ACTION_OPTIMIZE == action) doActionOptimize();
+			else if (ACTION_SANITIZE == action) doActionSanitize();
+			else if (ACTION_ADD_STAMP == action) doActionAddStamp();
 		}
 		catch (Exception e) {
 			throw engine.getCastUtil().toPageException(e);
@@ -1645,5 +1710,192 @@ public class PDF extends BodyTagImpl {
 		}
 
 		pageContext.setVariable(name, result);
+	}
+
+	/**
+	 * Optimize a PDF by removing specified elements.
+	 * Reduces file size by stripping bookmarks, links, JavaScript, attachments, metadata, etc.
+	 */
+	private void doActionOptimize() throws PageException, IOException {
+		required("pdf", "optimize", "source", source);
+		required("pdf", "optimize", "destination", destination);
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentCatalog catalog = pdDoc.getDocumentCatalog();
+
+			// Remove bookmarks/outline
+			if (noBookmarks) {
+				catalog.setDocumentOutline(null);
+			}
+
+			// Remove JavaScript
+			if (noJavaScript) {
+				// Remove document-level JavaScript
+				COSDictionary names = (COSDictionary) catalog.getCOSObject().getDictionaryObject(COSName.NAMES);
+				if (names != null) {
+					names.removeItem(COSName.getPDFName("JavaScript"));
+				}
+				// Remove open action if it's JavaScript
+				catalog.setOpenAction(null);
+			}
+
+			// Remove attachments/embedded files
+			if (noAttachments) {
+				catalog.setNames(null); // Removes EmbeddedFiles name tree
+				PDDocumentNameDictionary nameDictionary = catalog.getNames();
+				if (nameDictionary != null) {
+					nameDictionary.setEmbeddedFiles(null);
+				}
+			}
+
+			// Remove metadata
+			if (noMetadata) {
+				pdDoc.setDocumentInformation(new PDDocumentInformation());
+				catalog.setMetadata(null);
+			}
+
+			// Remove links and annotations
+			if (noLinks || noComments) {
+				for (PDPage page : pdDoc.getPages()) {
+					List<PDAnnotation> annotations = page.getAnnotations();
+					if (annotations != null) {
+						List<PDAnnotation> toRemove = new ArrayList<>();
+						for (PDAnnotation annot : annotations) {
+							if (noLinks && annot instanceof PDAnnotationLink) {
+								toRemove.add(annot);
+							}
+							else if (noComments && !(annot instanceof PDAnnotationLink)) {
+								// Remove non-link annotations (comments, highlights, etc.)
+								toRemove.add(annot);
+							}
+						}
+						annotations.removeAll(toRemove);
+					}
+				}
+			}
+
+			// Remove forms/AcroForm
+			if (noForms) {
+				catalog.setAcroForm(null);
+			}
+
+			// Remove page thumbnails
+			if (noThumbnails) {
+				for (PDPage page : pdDoc.getPages()) {
+					page.getCOSObject().removeItem(COSName.THUMB);
+				}
+			}
+
+			// Save optimized PDF
+			OutputStream os = destination.getOutputStream();
+			try {
+				pdDoc.save(os);
+			}
+			finally {
+				Util.closeEL(os);
+			}
+		}
+	}
+
+	/**
+	 * Sanitize a PDF for security by removing potentially dangerous elements.
+	 * More aggressive than optimize - removes JavaScript, links, actions, attachments, and metadata.
+	 */
+	private void doActionSanitize() throws PageException, IOException {
+		required("pdf", "sanitize", "source", source);
+		required("pdf", "sanitize", "destination", destination);
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentCatalog catalog = pdDoc.getDocumentCatalog();
+
+			// Always remove JavaScript for sanitize
+			COSDictionary names = (COSDictionary) catalog.getCOSObject().getDictionaryObject(COSName.NAMES);
+			if (names != null) {
+				names.removeItem(COSName.getPDFName("JavaScript"));
+			}
+			catalog.setOpenAction(null);
+
+			// Always remove attachments for sanitize
+			PDDocumentNameDictionary nameDictionary = catalog.getNames();
+			if (nameDictionary != null) {
+				nameDictionary.setEmbeddedFiles(null);
+			}
+
+			// Always remove metadata for sanitize
+			pdDoc.setDocumentInformation(new PDDocumentInformation());
+			catalog.setMetadata(null);
+
+			// Remove all links and form actions
+			for (PDPage page : pdDoc.getPages()) {
+				List<PDAnnotation> annotations = page.getAnnotations();
+				if (annotations != null) {
+					List<PDAnnotation> toRemove = new ArrayList<>();
+					for (PDAnnotation annot : annotations) {
+						// Remove link annotations
+						if (annot instanceof PDAnnotationLink) {
+							toRemove.add(annot);
+						}
+						// Remove any annotation with an action
+						else if (annot.getCOSObject().containsKey(COSName.A) ||
+								 annot.getCOSObject().containsKey(COSName.AA)) {
+							toRemove.add(annot);
+						}
+					}
+					annotations.removeAll(toRemove);
+				}
+			}
+
+			// Remove form actions but keep form fields (optional based on noForms)
+			PDAcroForm acroForm = catalog.getAcroForm();
+			if (acroForm != null) {
+				if (noForms) {
+					catalog.setAcroForm(null);
+				}
+				else {
+					// Just remove actions from form
+					for (PDField field : acroForm.getFieldTree()) {
+						field.getCOSObject().removeItem(COSName.A);
+						field.getCOSObject().removeItem(COSName.AA);
+					}
+				}
+			}
+
+			// Save sanitized PDF
+			OutputStream os = destination.getOutputStream();
+			try {
+				pdDoc.save(os);
+			}
+			finally {
+				Util.closeEL(os);
+			}
+		}
+	}
+
+	/**
+	 * Add a stamp image to PDF pages (similar to watermark but as annotation).
+	 */
+	private void doActionAddStamp() throws PageException, IOException {
+		required("pdf", "addStamp", "source", source);
+		required("pdf", "addStamp", "image", image);
+
+		if (destination == null && name == null)
+			throw engine.getExceptionUtil().createApplicationException("Either [destination] or [name] is required for action addStamp");
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		// Use same approach as watermark but with stamp annotation
+		// For now, delegate to watermark implementation since stamp is essentially a positioned image
+		doActionAddWatermark();
 	}
 }
