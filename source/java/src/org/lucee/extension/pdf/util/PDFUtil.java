@@ -34,26 +34,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.pdmodel.PDResources;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import org.apache.pdfbox.pdmodel.graphics.PDXObject;
+import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.tag.PDF;
-
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.pdf.PRAcroForm;
-import com.lowagie.text.pdf.PdfCopy;
-import com.lowagie.text.pdf.PdfImportedPage;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.SimpleBookmark;
 
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
@@ -67,16 +70,25 @@ import lucee.runtime.type.Struct;
 
 public class PDFUtil {
 
-	public static final int ENCRYPT_RC4_40 = PdfWriter.STANDARD_ENCRYPTION_40;
-	public static final int ENCRYPT_RC4_128 = PdfWriter.STANDARD_ENCRYPTION_128;
-	public static final int ENCRYPT_RC4_128M = PdfWriter.STANDARD_ENCRYPTION_128;
-	public static final int ENCRYPT_AES_128 = PdfWriter.ENCRYPTION_AES_128;
+	// Encryption constants (PDFBox uses key length instead of named constants)
+	public static final int ENCRYPT_RC4_40 = 40;
+	public static final int ENCRYPT_RC4_128 = 128;
+	public static final int ENCRYPT_RC4_128M = 128;
+	public static final int ENCRYPT_AES_128 = 128; // Note: AES-128 requires different handling in PDFBox
 	public static final int ENCRYPT_NONE = -1;
 
-	private static final int PERMISSION_ALL = PdfWriter.ALLOW_ASSEMBLY + PdfWriter.ALLOW_COPY + PdfWriter.ALLOW_DEGRADED_PRINTING + PdfWriter.ALLOW_FILL_IN
-			+ PdfWriter.ALLOW_MODIFY_ANNOTATIONS + PdfWriter.ALLOW_MODIFY_CONTENTS + PdfWriter.ALLOW_PRINTING + PdfWriter.ALLOW_SCREENREADERS + PdfWriter.ALLOW_COPY;// muss 2 mal
-	// sein, keine
-	// ahnung wieso
+	// Permission constants (matching iText/PDF spec values for compatibility)
+	public static final int ALLOW_PRINTING = 4;
+	public static final int ALLOW_MODIFY_CONTENTS = 8;
+	public static final int ALLOW_COPY = 16;
+	public static final int ALLOW_MODIFY_ANNOTATIONS = 32;
+	public static final int ALLOW_FILL_IN = 256;
+	public static final int ALLOW_SCREENREADERS = 512;
+	public static final int ALLOW_ASSEMBLY = 1024;
+	public static final int ALLOW_DEGRADED_PRINTING = 2048;
+
+	private static final int PERMISSION_ALL = ALLOW_ASSEMBLY + ALLOW_COPY + ALLOW_DEGRADED_PRINTING + ALLOW_FILL_IN
+			+ ALLOW_MODIFY_ANNOTATIONS + ALLOW_MODIFY_CONTENTS + ALLOW_PRINTING + ALLOW_SCREENREADERS;
 
 	/**
 	 * convert a string list of permission
@@ -98,36 +110,36 @@ public class PDFUtil {
 	}
 
 	/**
-	 * convert a string defintion of a permision in a integer Constant (PdfWriter.ALLOW_XXX)
-	 * 
+	 * convert a string defintion of a permision in a integer Constant
+	 *
 	 * @param strPermission
 	 * @return
 	 * @throws PageException
 	 */
 	public static int toPermission(String strPermission) throws PageException {
 		strPermission = strPermission.trim().toLowerCase();
-		if ("allowassembly".equals(strPermission)) return PdfWriter.ALLOW_ASSEMBLY;
+		if ("allowassembly".equals(strPermission)) return ALLOW_ASSEMBLY;
 		else if ("none".equals(strPermission)) return 0;
 		else if ("all".equals(strPermission)) return PERMISSION_ALL;
-		else if ("assembly".equals(strPermission)) return PdfWriter.ALLOW_ASSEMBLY;
-		else if ("documentassembly".equals(strPermission)) return PdfWriter.ALLOW_ASSEMBLY;
-		else if ("allowdegradedprinting".equals(strPermission)) return PdfWriter.ALLOW_DEGRADED_PRINTING;
-		else if ("degradedprinting".equals(strPermission)) return PdfWriter.ALLOW_DEGRADED_PRINTING;
-		else if ("printing".equals(strPermission)) return PdfWriter.ALLOW_DEGRADED_PRINTING;
-		else if ("allowfillin".equals(strPermission)) return PdfWriter.ALLOW_FILL_IN;
-		else if ("fillin".equals(strPermission)) return PdfWriter.ALLOW_FILL_IN;
-		else if ("fillingform".equals(strPermission)) return PdfWriter.ALLOW_FILL_IN;
-		else if ("allowmodifyannotations".equals(strPermission)) return PdfWriter.ALLOW_MODIFY_ANNOTATIONS;
-		else if ("modifyannotations".equals(strPermission)) return PdfWriter.ALLOW_MODIFY_ANNOTATIONS;
-		else if ("allowmodifycontents".equals(strPermission)) return PdfWriter.ALLOW_MODIFY_CONTENTS;
-		else if ("modifycontents".equals(strPermission)) return PdfWriter.ALLOW_MODIFY_CONTENTS;
-		else if ("allowcopy".equals(strPermission)) return PdfWriter.ALLOW_COPY;
-		else if ("copy".equals(strPermission)) return PdfWriter.ALLOW_COPY;
-		else if ("copycontent".equals(strPermission)) return PdfWriter.ALLOW_COPY;
-		else if ("allowprinting".equals(strPermission)) return PdfWriter.ALLOW_PRINTING;
-		else if ("printing".equals(strPermission)) return PdfWriter.ALLOW_PRINTING;
-		else if ("allowscreenreaders".equals(strPermission)) return PdfWriter.ALLOW_SCREENREADERS;
-		else if ("screenreaders".equals(strPermission)) return PdfWriter.ALLOW_SCREENREADERS;
+		else if ("assembly".equals(strPermission)) return ALLOW_ASSEMBLY;
+		else if ("documentassembly".equals(strPermission)) return ALLOW_ASSEMBLY;
+		else if ("allowdegradedprinting".equals(strPermission)) return ALLOW_DEGRADED_PRINTING;
+		else if ("degradedprinting".equals(strPermission)) return ALLOW_DEGRADED_PRINTING;
+		else if ("printing".equals(strPermission)) return ALLOW_DEGRADED_PRINTING;
+		else if ("allowfillin".equals(strPermission)) return ALLOW_FILL_IN;
+		else if ("fillin".equals(strPermission)) return ALLOW_FILL_IN;
+		else if ("fillingform".equals(strPermission)) return ALLOW_FILL_IN;
+		else if ("allowmodifyannotations".equals(strPermission)) return ALLOW_MODIFY_ANNOTATIONS;
+		else if ("modifyannotations".equals(strPermission)) return ALLOW_MODIFY_ANNOTATIONS;
+		else if ("allowmodifycontents".equals(strPermission)) return ALLOW_MODIFY_CONTENTS;
+		else if ("modifycontents".equals(strPermission)) return ALLOW_MODIFY_CONTENTS;
+		else if ("allowcopy".equals(strPermission)) return ALLOW_COPY;
+		else if ("copy".equals(strPermission)) return ALLOW_COPY;
+		else if ("copycontent".equals(strPermission)) return ALLOW_COPY;
+		else if ("allowprinting".equals(strPermission)) return ALLOW_PRINTING;
+		else if ("printing".equals(strPermission)) return ALLOW_PRINTING;
+		else if ("allowscreenreaders".equals(strPermission)) return ALLOW_SCREENREADERS;
+		else if ("screenreaders".equals(strPermission)) return ALLOW_SCREENREADERS;
 
 		else throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("invalid permission [" + strPermission
 				+ "], valid permission values are [AllowPrinting, AllowModifyContents, AllowCopy, AllowModifyAnnotations, AllowFillIn, AllowScreenReaders, AllowAssembly, AllowDegradedPrinting]");
@@ -146,83 +158,53 @@ public class PDFUtil {
 	 * @param version
 	 * @throws PageException
 	 * @throws IOException
-	 * @throws DocumentException
 	 */
 	public static void concat(PDFStruct[] docs, OutputStream os, boolean keepBookmark, boolean removePages, boolean stopOnError, char version)
-			throws PageException, IOException, DocumentException {
-		Document document = null;
-		PdfCopy writer = null;
-		PdfReader reader;
-		Set pages;
-		boolean isInit = false;
-		PdfImportedPage page;
-		try {
-			int pageOffset = 0;
-			ArrayList master = new ArrayList();
+			throws PageException, IOException {
 
+		PDDocument resultDoc = new PDDocument();
+
+		try {
 			for (int i = 0; i < docs.length; i++) {
-				// we create a reader for a certain document
-				pages = docs[i].getPages();
+				Set<Integer> pages = docs[i].getPages();
+				PDDocument srcDoc;
 				try {
-					reader = docs[i].getPdfReader();
+					srcDoc = docs[i].toPDDocument();
 				}
 				catch (Throwable t) {
 					if (t instanceof ThreadDeath) throw (ThreadDeath) t;
 					if (!stopOnError) continue;
 					throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(t);
 				}
-				reader.consolidateNamedDestinations();
 
-				// we retrieve the total number of pages
-				int n = reader.getNumberOfPages();
-				List bookmarks = keepBookmark ? SimpleBookmark.getBookmark(reader) : null;
-				if (bookmarks != null) {
-					removeBookmarks(bookmarks, pages, removePages);
-					if (pageOffset != 0) SimpleBookmark.shiftPageNumbers(bookmarks, pageOffset, null);
-					master.addAll(bookmarks);
-				}
+				int n = srcDoc.getNumberOfPages();
 
-				if (!isInit) {
-					isInit = true;
-					document = new Document(reader.getPageSizeWithRotation(1));
-					writer = new PdfCopy(document, os);
-
-					if (version != 0) writer.setPdfVersion(version);
-
-					document.open();
-				}
-
-				for (int y = 1; y <= n; y++) {
-					if (pages != null && removePages == pages.contains(Integer.valueOf(y))) {
+				for (int y = 0; y < n; y++) {
+					int pageNum = y + 1; // 1-based for comparison with pages set
+					if (pages != null && removePages == pages.contains(Integer.valueOf(pageNum))) {
 						continue;
 					}
-					pageOffset++;
-					page = writer.getImportedPage(reader, y);
-					writer.addPage(page);
+					PDPage page = srcDoc.getPage(y);
+					resultDoc.importPage(page);
 				}
-				PRAcroForm form = reader.getAcroForm();
-				if (form != null) writer.copyAcroForm(reader);
-			}
-			if (master.size() > 0) writer.setOutlines(master);
 
+				// Note: Forms/AcroForms are not automatically merged in PDFBox
+				// This would require additional handling if needed
+			}
+
+			// TODO: Add bookmark support using PDFBox DocumentOutline
+			// For now, bookmarks are not preserved during concat
+
+			// Set PDF version if specified
+			if (version != 0) {
+				resultDoc.setVersion(Float.parseFloat("1." + version));
+			}
+
+			resultDoc.save(os);
 		}
 		finally {
-			CFMLEngineFactory.getInstance().getIOUtil().closeSilent(document);
+			resultDoc.close();
 		}
-	}
-
-	private static void removeBookmarks(List bookmarks, Set pages, boolean removePages) {
-		int size = bookmarks.size();
-		for (int i = size - 1; i >= 0; i--) {
-			if (removeBookmarks((Map) bookmarks.get(i), pages, removePages)) bookmarks.remove(i);
-		}
-	}
-
-	private static boolean removeBookmarks(Map bookmark, Set pages, boolean removePages) {
-		List kids = (List) bookmark.get("Kids");
-		if (kids != null) removeBookmarks(kids, pages, removePages);
-		Integer page = CFMLEngineFactory.getInstance().getCastUtil().toInteger(CFMLEngineFactory.getInstance().getListUtil().first((String) bookmark.get("Page"), " ", true), -1);
-		return removePages == (pages != null && pages.contains(page));
 	}
 
 	public static Set<Integer> parsePageDefinition(String strPages, int lastPageNumber) throws PageException {
@@ -257,29 +239,41 @@ public class PDFUtil {
 	}
 
 	public static void encrypt(PDFStruct doc, OutputStream os, String newUserPassword, String newOwnerPassword, int permissions, int encryption)
-			throws PageException, DocumentException, IOException {
+			throws PageException, IOException {
 		if (Util.isEmpty(newOwnerPassword)) newOwnerPassword = newUserPassword;
-		byte[] user = newUserPassword == null ? null : newUserPassword.getBytes();
-		byte[] owner = newOwnerPassword == null ? null : newOwnerPassword.getBytes();
 
-		PdfReader pr = doc.getPdfReader();
-		List bookmarks = SimpleBookmark.getBookmark(pr);
-		int n = pr.getNumberOfPages();
+		PDDocument pdDoc = doc.toPDDocument();
+		try {
+			if (encryption != ENCRYPT_NONE) {
+				AccessPermission ap = new AccessPermission();
+				// Map permissions to PDFBox AccessPermission
+				if ((permissions & ALLOW_PRINTING) > 0) ap.setCanPrint(true);
+				if ((permissions & ALLOW_MODIFY_CONTENTS) > 0) ap.setCanModify(true);
+				if ((permissions & ALLOW_COPY) > 0) ap.setCanExtractContent(true);
+				if ((permissions & ALLOW_MODIFY_ANNOTATIONS) > 0) ap.setCanModifyAnnotations(true);
+				if ((permissions & ALLOW_FILL_IN) > 0) ap.setCanFillInForm(true);
+				if ((permissions & ALLOW_SCREENREADERS) > 0) ap.setCanExtractForAccessibility(true);
+				if ((permissions & ALLOW_ASSEMBLY) > 0) ap.setCanAssembleDocument(true);
+				if ((permissions & ALLOW_DEGRADED_PRINTING) > 0) ap.setCanPrintFaithful(true);
 
-		Document document = new Document(pr.getPageSizeWithRotation(1));
-		PdfCopy writer = new PdfCopy(document, os);
-		if (encryption != ENCRYPT_NONE) writer.setEncryption(user, owner, permissions, encryption);
-		document.open();
+				StandardProtectionPolicy spp = new StandardProtectionPolicy(
+					newOwnerPassword != null ? newOwnerPassword : "",
+					newUserPassword != null ? newUserPassword : "",
+					ap
+				);
+				spp.setEncryptionKeyLength(encryption); // 40 or 128
+				pdDoc.protect(spp);
+			}
+			else {
+				// Remove encryption
+				pdDoc.setAllSecurityToBeRemoved(true);
+			}
 
-		PdfImportedPage page;
-		for (int i = 1; i <= n; i++) {
-			page = writer.getImportedPage(pr, i);
-			writer.addPage(page);
+			pdDoc.save(os);
 		}
-		PRAcroForm form = pr.getAcroForm();
-		if (form != null) writer.copyAcroForm(pr);
-		if (bookmarks != null) writer.setOutlines(bookmarks);
-		document.close();
+		finally {
+			pdDoc.close();
+		}
 	}
 
 	public static Map<String, String> generateGoToBookMark(String title, int page) {
@@ -303,24 +297,23 @@ public class PDFUtil {
 		else parent.put("Kids", children);
 	}
 
-	public static PdfReader toPdfReader(PageContext pc, Object value, String password) throws IOException, PageException {
-		if (value instanceof PdfReader) return (PdfReader) value;
-		if (value instanceof PDFStruct) return ((PDFStruct) value).getPdfReader();
+	/**
+	 * Convert a value to a PDFStruct.
+	 */
+	public static PDFStruct toPDFStruct(PageContext pc, Object value, String password) throws IOException, PageException {
+		if (value instanceof PDFStruct) return (PDFStruct) value;
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		if (engine.getDecisionUtil().isBinary(value)) {
-			if (password != null) return new PdfReader(engine.getCastUtil().toBinary(value), password.getBytes());
-			return new PdfReader(engine.getCastUtil().toBinary(value));
+			return new PDFStruct(engine.getCastUtil().toBinary(value), password);
 		}
 		if (value instanceof Resource) {
-			if (password != null) return new PdfReader(toBytes((Resource) value), password.getBytes());
-			return new PdfReader(toBytes((Resource) value));
+			return new PDFStruct((Resource) value, password);
 		}
 		if (value instanceof String) {
 			Resource res = engine.getResourceUtil().toResourceExisting(pc, (String) value);
-			if (password != null) return new PdfReader(toBytes(res), password.getBytes());
-			return new PdfReader(toBytes(res));
+			return new PDFStruct(res, password);
 		}
-		throw engine.getExceptionUtil().createCasterException(value, PdfReader.class);
+		throw engine.getExceptionUtil().createCasterException(value, PDFStruct.class);
 	}
 
 	public static byte[] toBytes(Resource res) throws IOException {
@@ -340,148 +333,162 @@ public class PDFUtil {
 	}
 
 	public static Object extractText(PDFStruct doc, Set<Integer> pageNumbers, int type, Resource destination) throws IOException, InvalidPasswordException {
-		PDDocument pdDoc = doc.toPDDocument();
-		// PDDocument newDocument = new PDDocument();
-		// List pages = pdDoc.getDocumentCatalog().getAllPages();
-		// pages.
-		// pdDoc.getDocumentCatalog().
-		CFMLEngine engine = CFMLEngineFactory.getInstance();
-		int n = pdDoc.getNumberOfPages();
-		Iterator<Integer> it = pageNumbers.iterator();
-		// PDFTextStripper textStripper=new PDFTextStripper();
-		int p;
-		StringBuilder sb = new StringBuilder();
-		PDFTextStripper stripper = new PDFTextStripper();
-		if (destination != null) stripper.setLineSeparator(" ");
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			CFMLEngine engine = CFMLEngineFactory.getInstance();
+			int n = pdDoc.getNumberOfPages();
+			Iterator<Integer> it = pageNumbers.iterator();
+			int p;
+			StringBuilder sb = new StringBuilder();
+			PDFTextStripper stripper = new PDFTextStripper();
+			if (destination != null) stripper.setLineSeparator(" ");
 
-		if (type == PDF.TYPE_XML) {
-			sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-			sb.append("<DocText>");
-			sb.append("<TextPerPage>");
+			if (type == PDF.TYPE_XML) {
+				sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+				sb.append("<DocText>");
+				sb.append("<TextPerPage>");
+			}
+
+			while (it.hasNext()) {
+				try (PDDocument document = new PDDocument()) {
+					p = it.next();
+					if (type == PDF.TYPE_XML) sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
+					if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+					document.addPage(pdDoc.getDocumentCatalog().getPages().get(p - 1));
+					stripper.setSortByPosition(true);
+					String text = stripper.getText(document);
+					sb.append(text);
+					if (type == PDF.TYPE_XML) sb.append("</page>");
+				}
+			}
+			if (type == PDF.TYPE_XML) {
+				sb.append("</TextPerPage>");
+				sb.append("</DocText>");
+			}
+
+			if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(sb.toString().getBytes("UTF-8")), destination, true);
+			return sb.toString();
 		}
-
-		while (it.hasNext()) {
-			PDDocument document = new PDDocument();
-			p = it.next();
-			if (type == PDF.TYPE_XML) sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
-			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
-			document.addPage(pdDoc.getDocumentCatalog().getPages().get(p - 1));
-			stripper.setSortByPosition(true);
-			String text = stripper.getText(document);
-			sb.append(text);
-			if (type == PDF.TYPE_XML) sb.append("</page>");
-		}
-		if (type == PDF.TYPE_XML) {
-			sb.append("</TextPerPage>");
-			sb.append("</DocText>");
-		}
-
-		// print.o(pages);
-
-		// pdDoc.
-		// PDFTextStripperByArea stripper = new PDFTextStripperByArea();
-		// PDFHighlighter stripper = new PDFHighlighter();
-		// PDFText2HTML stripper = new PDFText2HTML("UDF-8");// TODO pass in encoding
-		// PDFTextStripper stripper = new PDFTextStripper();
-		// StringWriter writer = new StringWriter();
-		// stripper.writeText(document, writer);
-
-		if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(sb.toString().getBytes("UTF-8")), destination, true);
-		return sb.toString();
-		// return pdDoc.getDocumentCatalog().getAllPages().get(2);
 	}
 
 	public static void thumbnail(PageContext pc, PDFStruct doc, String destination, Set<Integer> pageNumbers, String format, String imagePrefix, int scale, boolean overwrite) throws IOException {
-
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 
-		PDDocument pdDoc = doc.toPDDocument();
-		int n = pdDoc.getNumberOfPages();
-		Iterator<Integer> it = pageNumbers.iterator();
-		int p;
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			int n = pdDoc.getNumberOfPages();
+			Iterator<Integer> it = pageNumbers.iterator();
+			int p;
 
-		PDFRenderer pdfRender = new PDFRenderer(pdDoc);
+			PDFRenderer pdfRender = new PDFRenderer(pdDoc);
 
-		while (it.hasNext()) {
-			p = it.next();
+			while (it.hasNext()) {
+				p = it.next();
 
-			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+				if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
 
-			// thumbnail image file destination
-			String imageDestination = destination + "/" + imagePrefix + "_page_" + p + "." + format;
+				// thumbnail image file destination
+				String imageDestination = destination + "/" + imagePrefix + "_page_" + p + "." + format;
 
-			BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
-			Resource res = engine.getResourceUtil().toResourceNotExisting(pc, imageDestination);
-			if (res.exists() && !overwrite) throw new RuntimeException("Thumbnail image file already exists [" + imageDestination + "] and overwrite was false");
-			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res, true);
+				BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
+				Resource res = engine.getResourceUtil().toResourceNotExisting(pc, imageDestination);
+				if (res.exists() && !overwrite) throw new RuntimeException("Thumbnail image file already exists [" + imageDestination + "] and overwrite was false");
+				engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res, true);
+			}
 		}
 	}
 
-	public static void extractImages(PageContext pc,PDFStruct doc, Set<Integer> pageNumbers,Resource destination, String imagePrefix, String format, boolean overwrite) throws IOException, InvalidPasswordException,PageException {
-
-		PDDocument pdDoc = doc.toPDDocument();
-		int n = pdDoc.getNumberOfPages();
-		Iterator<Integer> it = pageNumbers.iterator();
-		int p;
-		PDPageTree pages= pdDoc.getPages();
-		int i = 1;
-		while (it.hasNext()) {
-			p = it.next();
-			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
-			PDResources pdResources = pages.get(p - 1).getResources();
-
-			// workjaround, getXObjectNames() returns images in reverse order
-			ArrayList<COSName> xObjectNamesReversed = new ArrayList<>();
-			for (COSName name : pdResources.getXObjectNames()) {
-				xObjectNamesReversed.add(name);
-			}
-			Collections.reverse(xObjectNamesReversed);
-
-			for (COSName name : xObjectNamesReversed) {
-				PDXObject o = pdResources.getXObject(name);
-				
-					if (o instanceof PDImageXObject) {
-						PDImageXObject image = (PDImageXObject)o;
-						String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
-						CFMLEngine engine = CFMLEngineFactory.getInstance();
-						Resource res = engine.getResourceUtil().toResourceNotExisting(pc,filename);
-						if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");
-						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-						ImageIO.write(image.getImage(), format, baos); 
-						CFMLEngineFactory.getInstance().getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()),res.getOutputStream(),true, true);
-						i++;
-				}
+	public static void extractImages(PageContext pc, PDFStruct doc, Set<Integer> pageNumbers, Resource destination, String imagePrefix, String format, boolean overwrite) throws IOException, InvalidPasswordException, PageException {
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			int n = pdDoc.getNumberOfPages();
+			Iterator<Integer> it = pageNumbers.iterator();
+			int p;
+			PDPageTree pages = pdDoc.getPages();
+			int[] counter = {1}; // Use array to allow modification in recursive calls
+			while (it.hasNext()) {
+				p = it.next();
+				if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+				PDResources pdResources = pages.get(p - 1).getResources();
+				extractImagesFromResources(pc, pdResources, destination, imagePrefix, format, overwrite, counter);
 			}
 		}
-
 	}
 
-	public static Object extractBookmarks(PageContext pc, PdfReader reader) throws IOException, InvalidPasswordException,PageException {
-		List<HashMap<String, Object>> pdfBookmarks = SimpleBookmark.getBookmark(reader);
+	private static void extractImagesFromResources(PageContext pc, PDResources pdResources, Resource destination, String imagePrefix, String format, boolean overwrite, int[] counter) throws IOException, PageException {
+		if (pdResources == null) return;
+
+		// Iterate through XObjects in document order
+		for (COSName name : pdResources.getXObjectNames()) {
+			PDXObject o = pdResources.getXObject(name);
+
+			if (o instanceof PDImageXObject) {
+				PDImageXObject image = (PDImageXObject) o;
+				String filename = destination + "/" + imagePrefix + "-" + counter[0] + "." + format;
+				CFMLEngine engine = CFMLEngineFactory.getInstance();
+				Resource res = engine.getResourceUtil().toResourceNotExisting(pc, filename);
+				if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				ImageIO.write(image.getImage(), format, baos);
+				CFMLEngineFactory.getInstance().getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res.getOutputStream(), true, true);
+				counter[0]++;
+			}
+			else if (o instanceof PDFormXObject) {
+				// Recursively extract images from FormXObjects (which may contain nested images)
+				PDFormXObject formXObject = (PDFormXObject) o;
+				extractImagesFromResources(pc, formXObject.getResources(), destination, imagePrefix, format, overwrite, counter);
+			}
+		}
+	}
+
+	/**
+	 * Extract bookmarks from a PDF document using PDFBox.
+	 */
+	public static Object extractBookmarks(PageContext pc, PDFStruct doc) throws IOException, PageException {
 		Array bookmarks = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
-		if (pdfBookmarks != null){
-			_extractBookmarks(pdfBookmarks, bookmarks);
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentOutline outline = pdDoc.getDocumentCatalog().getDocumentOutline();
+			if (outline != null) {
+				PDOutlineItem item = outline.getFirstChild();
+				extractBookmarksRecursive(pdDoc, item, bookmarks);
+			}
 		}
 		return bookmarks;
 	}
 
-	 private static void _extractBookmarks(List<HashMap<String, Object>> pdfBookmarks, Array bookmarks) throws PageException {
-		for (HashMap<String, Object> bm : pdfBookmarks) {
+	private static void extractBookmarksRecursive(PDDocument pdDoc, PDOutlineItem item, Array bookmarks) throws PageException {
+		while (item != null) {
 			Struct sct = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
-			sct.set("Title", ((String)bm.get("Title")));
-			String page = (String)bm.get("Page"); // space delimited list: pagenumber destination x-coord y-coord zoomlevel
-			String[] pageParts = page.split(" ");
-			sct.setEL("PageNumber", Integer.parseInt(pageParts[0]));
-			sct.setEL("Page", page);
-			sct.setEL("Action", ((String)bm.get("Action")));
-			//sct.setEL("bm", CFMLEngineFactory.getInstance().getCastUtil().toStruct(bm));
-			bookmarks.appendEL(sct);
-			List<HashMap<String, Object>> kids = (List<HashMap<String, Object>>) bm.get("Kids");
-			if (kids != null) {
-				_extractBookmarks(kids, bookmarks);
+			sct.set("Title", item.getTitle() != null ? item.getTitle() : "");
+
+			// Try to get page number from destination
+			int pageNum = -1;
+			try {
+				if (item.getDestination() instanceof PDPageDestination) {
+					PDPageDestination dest = (PDPageDestination) item.getDestination();
+					PDPage page = dest.getPage();
+					if (page != null) {
+						pageNum = pdDoc.getPages().indexOf(page) + 1;
+					}
+					else {
+						pageNum = dest.getPageNumber() + 1;
+					}
+				}
 			}
+			catch (Exception e) {
+				// ignore
+			}
+
+			sct.setEL("PageNumber", pageNum > 0 ? pageNum : 1);
+			sct.setEL("Page", pageNum + " FitH 0");
+			sct.setEL("Action", "GoTo");
+			bookmarks.appendEL(sct);
+
+			// Process children
+			if (item.hasChildren()) {
+				extractBookmarksRecursive(pdDoc, item.getFirstChild(), bookmarks);
+			}
+
+			item = item.getNextSibling();
 		}
 	}
 

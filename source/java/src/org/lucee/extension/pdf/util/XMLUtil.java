@@ -10,16 +10,16 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMResult;
-import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.dom.DOMSource;
 
-import org.ccil.cowan.tagsoup.Parser;
+import org.jsoup.Jsoup;
+import org.jsoup.helper.W3CDom;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.exp.PageException;
@@ -72,16 +72,38 @@ public class XMLUtil {
 		return node.getOwnerDocument();
 	}
 
+	/**
+	 * Parse HTML to a W3C DOM Document using jsoup.
+	 */
 	public static final Document parseHTML(InputSource xml) throws SAXException, IOException {
-		XMLReader reader = new Parser();
-		reader.setFeature(Parser.namespacesFeature, true);
-		reader.setFeature(Parser.namespacePrefixesFeature, true);
 		try {
-			Transformer transformer = getTransformer();
+			// Read the input source content
+			java.io.Reader reader = xml.getCharacterStream();
+			String html;
+			if (reader != null) {
+				StringBuilder sb = new StringBuilder();
+				char[] buffer = new char[4096];
+				int n;
+				while ((n = reader.read(buffer)) != -1) {
+					sb.append(buffer, 0, n);
+				}
+				html = sb.toString();
+			}
+			else if (xml.getByteStream() != null) {
+				html = new String(xml.getByteStream().readAllBytes(), "UTF-8");
+			}
+			else if (xml.getSystemId() != null) {
+				html = Jsoup.connect(xml.getSystemId()).get().html();
+			}
+			else {
+				throw new SAXException("No input source provided");
+			}
 
-			DOMResult result = new DOMResult();
-			transformer.transform(new SAXSource(reader, xml), result);
-			return getDocument(result.getNode());
+			// Parse with jsoup and convert to W3C DOM
+			org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
+			jsoupDoc.outputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml);
+			W3CDom w3cDom = new W3CDom();
+			return w3cDom.fromJsoup(jsoupDoc);
 		}
 		catch (Exception e) {
 			throw new SAXException(e);

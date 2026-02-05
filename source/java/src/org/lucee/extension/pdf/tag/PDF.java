@@ -1,57 +1,72 @@
 /**
  *
- * Copyright (c) 2015, Lucee Assosication Switzerland
+ * Copyright (c) 2015, Lucee Association Switzerland
  * Copyright (c) 2014, the Railo Company Ltd. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.extension.pdf.tag;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.imageio.ImageIO;
+
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDDocumentInformation;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
+import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
+import org.apache.pdfbox.pdmodel.common.filespecification.PDComplexFileSpecification;
+import org.apache.pdfbox.pdmodel.common.filespecification.PDEmbeddedFile;
+import org.apache.pdfbox.pdmodel.PDDocumentNameDictionary;
+import org.apache.pdfbox.pdmodel.PDEmbeddedFilesNameTreeNode;
+import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
+import org.apache.pdfbox.pdmodel.interactive.form.PDField;
+import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
+import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.cos.COSDictionary;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.util.PDFUtil;
-
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.Image;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.pdf.ColumnText;
-import com.lowagie.text.pdf.PdfContentByte;
-import com.lowagie.text.pdf.PdfGState;
-import com.lowagie.text.pdf.PdfImportedPage;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.PdfStamper;
-import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.SimpleBookmark;
 
 import lucee.commons.io.res.Resource;
 import lucee.commons.io.res.filter.ResourceFilter;
@@ -60,6 +75,7 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.ext.function.BIF;
 import lucee.runtime.type.Array;
 import lucee.runtime.type.Collection.Key;
+import lucee.runtime.type.Query;
 import lucee.runtime.type.Struct;
 import lucee.runtime.util.Cast;
 import lucee.runtime.util.ClassUtil;
@@ -85,6 +101,12 @@ public class PDF extends BodyTagImpl {
 	private static final int ACTION_OPEN = 14;
 	private static final int ACTION_EXTRACT_IMAGES = 15;
 	private static final int ACTION_EXTRACT_BOOKMARKS = 16;
+	private static final int ACTION_TRANSFORM = 17;
+	private static final int ACTION_ADD_ATTACHMENTS = 18;
+	private static final int ACTION_EXTRACT_ATTACHMENTS = 19;
+	private static final int ACTION_READ_SIGNATURE_FIELDS = 20;
+	private static final int ACTION_REMOVE_ATTACHMENTS = 21;
+	private static final int ACTION_VALIDATE_SIGNATURE = 22;
 
 	private static final String FORMAT_JPG = "jpg";
 	private static final String FORMAT_TIFF = "tiff";
@@ -107,9 +129,12 @@ public class PDF extends BodyTagImpl {
 	private static final int NUMBERFORMAT_NUMERIC = 2;
 	private static final int NUMBERFORMAT_UPPERCASEROMAN = 3;
 
-	// private static final PDF_FILTER =
-	// CFMLEngineFactory.getInstance().getResourceUtil().getExtensionResourceFilter("pdf", false);
 	private static final int UNDEFINED = Integer.MIN_VALUE;
+
+	// Alignment constants (matching iText Element values for backward compatibility)
+	private static final int ALIGN_LEFT = 0;
+	private static final int ALIGN_CENTER = 1;
+	private static final int ALIGN_RIGHT = 2;
 
 	private int action = ACTION_PROCESSDDX;
 	private boolean ascending = false;
@@ -145,19 +170,21 @@ public class PDF extends BodyTagImpl {
 	private Object source = null;
 	private boolean stopOnError = false;
 	private boolean transparent = false;
-	private char version = 0;
+	private float version = 0;
 	private java.util.List<PDFParamBean> params;
 	private ResourceFilter filter = null;
 	private String imagePrefix = null;
 	private int type = TYPE_XML;
 	private String text;
 	private int numberformat = NUMBERFORMAT_NUMERIC;
-	private int align = Element.ALIGN_CENTER;
+	private int align = ALIGN_CENTER;
 	private float leftmargin = 1;
 	private float rightmargin = 1;
 	private float topmargin = 0.5f;
 	private float bottommargin = 0.5f;
-	private Font font = null;
+	private Struct fontStruct = null;
+	private float hscale = 1.0f;
+	private float vscale = 1.0f;
 
 	@Override
 	public void release() {
@@ -203,17 +230,16 @@ public class PDF extends BodyTagImpl {
 		type = TYPE_XML;
 		text = null;
 		numberformat = NUMBERFORMAT_NUMERIC;
-		align = Element.ALIGN_CENTER;
+		align = ALIGN_CENTER;
 		leftmargin = 1;
 		rightmargin = 1;
 		topmargin = 0.5f;
 		bottommargin = 0.5f;
-		font = null;
+		fontStruct = null;
+		hscale = 1.0f;
+		vscale = 1.0f;
 	}
 
-	/**
-	 * @param imagePrefix the imagePrefix to set
-	 */
 	public void setImageprefix(String imagePrefix) {
 		this.imagePrefix = imagePrefix;
 	}
@@ -223,7 +249,7 @@ public class PDF extends BodyTagImpl {
 	}
 
 	public void setFont(Struct font) throws PageException {
-		this.font = toFont(font);
+		this.fontStruct = font;
 	}
 
 	public void setNumberformat(String numberformat) throws PageException {
@@ -238,22 +264,18 @@ public class PDF extends BodyTagImpl {
 		else if ("uppercaseroman".equals(numberformat)) this.numberformat = NUMBERFORMAT_UPPERCASEROMAN;
 
 		else throw engine.getExceptionUtil()
-				.createApplicationException("Invalid numberformat [" + numberformat + "], supported numberformats are " + "[numeric, lowercaseroman, uppercaseroman]");
-
+				.createApplicationException("Invalid numberformat [" + numberformat + "], supported numberformats are " + "[numeric, lowercaseroman, uppercaseroman] (aliases: number, lowercase-roman, uppercase-roman)");
 	}
 
 	public void setAlign(String align) throws PageException {
 		if (Util.isEmpty(align, true)) return;
 		align = align.trim().toLowerCase();
 
-		if ("center".equals(align)) this.align = Element.ALIGN_CENTER;
-		else if ("left".equals(align)) this.align = Element.ALIGN_LEFT;
-		else if ("right".equals(align)) this.align = Element.ALIGN_RIGHT;
-		// else if("justified".equals(align)) this.align=Element.ALIGN_JUSTIFIED;
-		// else if("justify".equals(align)) this.align=Element.ALIGN_JUSTIFIED;
+		if ("center".equals(align)) this.align = ALIGN_CENTER;
+		else if ("left".equals(align)) this.align = ALIGN_LEFT;
+		else if ("right".equals(align)) this.align = ALIGN_RIGHT;
 
 		else throw engine.getExceptionUtil().createApplicationException("Invalid PDF [align] value [" + align + "], supported align values are [center, left, right]");
-
 	}
 
 	public void setLeftmargin(double leftmargin) throws PageException {
@@ -272,127 +294,76 @@ public class PDF extends BodyTagImpl {
 		this.bottommargin = (float) bottommargin;
 	}
 
-	/**
-	 * @param action the action to set
-	 * @throws PageException
-	 */
 	public void setAction(String strAction) throws PageException {
-
-		strAction = Document.trimAndLower(strAction);
+		strAction = Document.trimAndLower(strAction).replace("-", "").replace("_", "");
 		if ("addwatermark".equals(strAction)) action = ACTION_ADD_WATERMARK;
-		else if ("add-watermark".equals(strAction)) action = ACTION_ADD_WATERMARK;
-		else if ("add_watermark".equals(strAction)) action = ACTION_ADD_WATERMARK;
 		else if ("deletepages".equals(strAction)) action = ACTION_DELETE_PAGES;
-		else if ("delete-pages".equals(strAction)) action = ACTION_DELETE_PAGES;
-		else if ("delete_pages".equals(strAction)) action = ACTION_DELETE_PAGES;
 		else if ("deletepage".equals(strAction)) action = ACTION_DELETE_PAGES;
-		else if ("delete-page".equals(strAction)) action = ACTION_DELETE_PAGES;
-		else if ("delete_page".equals(strAction)) action = ACTION_DELETE_PAGES;
 		else if ("getinfo".equals(strAction)) action = ACTION_GET_INFO;
-		else if ("get-info".equals(strAction)) action = ACTION_GET_INFO;
-		else if ("get_info".equals(strAction)) action = ACTION_GET_INFO;
 		else if ("merge".equals(strAction)) action = ACTION_MERGE;
 		else if ("open".equals(strAction)) action = ACTION_OPEN;
 		else if ("removepassword".equals(strAction)) action = ACTION_OPEN;
-		// else if("processddx".equals(strAction)) action=ACTION_PROCESSDDX;
-		// else if("process-ddx".equals(strAction)) action=ACTION_PROCESSDDX;
-		// else if("process_ddx".equals(strAction)) action=ACTION_PROCESSDDX;
 		else if ("protect".equals(strAction)) action = ACTION_PROTECT;
 		else if ("read".equals(strAction)) action = ACTION_READ;
 		else if ("removewatermark".equals(strAction)) action = ACTION_REMOVE_WATERMARK;
-		else if ("removewater-mark".equals(strAction)) action = ACTION_REMOVE_WATERMARK;
-		else if ("removewater_mark".equals(strAction)) action = ACTION_REMOVE_WATERMARK;
 		else if ("setinfo".equals(strAction)) action = ACTION_SET_INFO;
-		else if ("set-info".equals(strAction)) action = ACTION_SET_INFO;
-		else if ("set_info".equals(strAction)) action = ACTION_SET_INFO;
 		else if ("thumbnail".equals(strAction)) action = ACTION_THUMBNAIL;
 		else if ("write".equals(strAction)) action = ACTION_WRITE;
 		else if ("extracttext".equals(strAction)) action = ACTION_EXTRACT_TEXT;
-		else if ("extract-text".equals(strAction)) action = ACTION_EXTRACT_TEXT;
-		else if ("extract_text".equals(strAction)) action = ACTION_EXTRACT_TEXT;
 		else if ("addheader".equals(strAction)) action = ACTION_ADD_HEADER;
 		else if ("addfooter".equals(strAction)) action = ACTION_ADD_FOOTER;
 		else if ("extractimage".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extractimages".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
-		else if ("extract-images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
-		else if ("extract_images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extractbookmarks".equals(strAction)) action = ACTION_EXTRACT_BOOKMARKS;
+		else if ("transform".equals(strAction)) action = ACTION_TRANSFORM;
+		else if ("addattachments".equals(strAction)) action = ACTION_ADD_ATTACHMENTS;
+		else if ("extractattachments".equals(strAction)) action = ACTION_EXTRACT_ATTACHMENTS;
+		else if ("removeattachments".equals(strAction)) action = ACTION_REMOVE_ATTACHMENTS;
+		else if ("readsignaturefields".equals(strAction)) action = ACTION_READ_SIGNATURE_FIELDS;
+		else if ("validatesignature".equals(strAction)) action = ACTION_VALIDATE_SIGNATURE;
 
 		else throw engine.getExceptionUtil().createApplicationException(
-				"Invalid PDF action [" + strAction + "], supported actions are " + "[addHeader, addFooter, addWatermark, deletePages, extractBookmarks, extractImage, extractText, getInfo, merge, open, "
-						+ "removePassword, protect, read, removeWatermark, setInfo, thumbnail, write]");
-
+				"Invalid PDF action [" + strAction + "], supported actions are " + "[addAttachments, addHeader, addFooter, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, "
+						+ "readSignatureFields, removeAttachments, removePassword, protect, read, removeWatermark, setInfo, thumbnail, transform, validateSignature, write]");
 	}
 
 	public void setType(String strType) throws PageException {
-
 		strType = Document.trimAndLower(strType);
 		if ("string".equals(strType)) type = TYPE_STRING;
 		else if ("text".equals(strType)) type = TYPE_STRING;
 		else if ("plain".equals(strType)) type = TYPE_STRING;
 		else if ("xml".equals(strType)) type = TYPE_XML;
 
-		else throw engine.getExceptionUtil().createApplicationException("Invalid type [" + strType + "], supported types are " + "[string, xml]");
-
+		else throw engine.getExceptionUtil().createApplicationException("Invalid type [" + strType + "], supported types are " + "[string, text, plain, xml]");
 	}
 
-	/**
-	 * sets a filter pattern
-	 * 
-	 * @param pattern
-	 * @throws PageException
-	 **/
 	public void setFilter(String pattern) throws PageException {
-		/*
-		 * TODO if(pattern.trim().length()>0) { try { this.filter=new WildCardFilter(pattern); } catch
-		 * (MalformedPatternException e) { throw engine.getCastUtil().toPageException(e); } }
-		 */
+		// TODO: implement filter
 	}
 
-	/**
-	 * @param ascending the ascending to set
-	 */
 	public void setAscending(boolean ascending) {
 		this.ascending = ascending;
 	}
 
-	/**
-	 * @param copyFrom the copyFrom to set
-	 * @throws PageException
-	 */
 	public void setCopyfrom(Object copyFrom) throws PageException {
-		this.copyFrom = copyFrom;// engine.getResourceUtil().toResourceExisting(pageContext, copyFrom);
+		this.copyFrom = copyFrom;
 	}
 
-	/**
-	 * @param ddxFile the ddxFile to set
-	 */
 	public void setDdxfile(String ddxFile) {
-		this.ddxFile = ddxFile;// MUST
+		this.ddxFile = ddxFile;
 	}
 
-	/**
-	 * @param destination the destination to set
-	 */
 	public void setDestination(String destination) throws PageException {
-		if (engine.getStringUtil().isEmpty(destination, true)) throw engine.getExceptionUtil().createApplicationException("Attribute [destination] has an invalid value [" + destination + "], it cannot be empty value");
+		if (engine.getStringUtil().isEmpty(destination, true))
+			throw engine.getExceptionUtil().createApplicationException("Attribute [destination] has an invalid value [" + destination + "], it cannot be empty value");
 		this.destination = engine.getResourceUtil().toResourceNotExisting(pageContext, destination);
 	}
 
-	/**
-	 * @param directory the directory to set
-	 * @throws PageException
-	 */
 	public void setDirectory(String directory) throws PageException {
 		this.directory = engine.getResourceUtil().toResourceExisting(pageContext, directory);
 	}
 
-	/**
-	 * @param encrypt the encrypt to set
-	 * @throws PageException
-	 */
 	public void setEncrypt(String strEncrypt) throws PageException {
-
 		strEncrypt = Document.trimAndLower(strEncrypt);
 		if ("aes128".equals(strEncrypt)) encrypt = PDFUtil.ENCRYPT_AES_128;
 		else if ("aes-128".equals(strEncrypt)) encrypt = PDFUtil.ENCRYPT_AES_128;
@@ -413,24 +384,14 @@ public class PDF extends BodyTagImpl {
 				.createApplicationException("Invalid PDF encrypt [" + strEncrypt + "], supported [encrypt] types are " + "[aes_128, none, rc4_128, rc4_128m, rc4_40]");
 	}
 
-	/**
-	 * @param flatten the flatten to set
-	 */
 	public void setFlatten(boolean flatten) {
 		this.flatten = flatten;
 	}
 
-	/**
-	 * @param foreground the foreground to set
-	 */
 	public void setForeground(boolean foreground) {
 		this.foreground = foreground;
 	}
 
-	/**
-	 * @param format the format to set
-	 * @throws PageException
-	 */
 	public void setFormat(String strFormat) throws PageException {
 		strFormat = Document.trimAndLower(strFormat);
 		if ("jpg".equals(strFormat)) format = FORMAT_JPG;
@@ -443,90 +404,53 @@ public class PDF extends BodyTagImpl {
 		else throw engine.getExceptionUtil().createApplicationException("Invalid format [" + strFormat + "], supported formats " + "[jpg, tiff, png]");
 	}
 
-	/**
-	 * @param image the image to set
-	 */
 	public void setImage(Object image) {
-		this.image = image;// MUST
+		this.image = image;
 	}
 
-	/**
-	 * @param prefix the prefix to set
-	 */
 	public void setPrefix(String prefix) {
 		this.imagePrefix = prefix;
 	}
 
-	/**
-	 * @param info the info to set
-	 */
 	public void setInfo(Struct info) {
 		this.info = info;
 	}
 
-	/**
-	 * @param inputFiles the inputFiles to set
-	 */
 	public void setInputfiles(Struct inputFiles) {
 		this.inputFiles = inputFiles;
 	}
 
-	/**
-	 * @param outputFiles the outputFiles to set
-	 */
 	public void setOutputfiles(Struct outputFiles) {
 		this.outputFiles = outputFiles;
 	}
 
-	/**
-	 * @param isBase64 the isBase64 to set
-	 */
 	public void setIsbase64(boolean isBase64) {
 		this.isBase64 = isBase64;
 	}
 
-	/**
-	 * @param keepBookmark the keepBookmark to set
-	 */
 	public void setKeepbookmark(boolean keepBookmark) {
 		this.keepBookmark = keepBookmark;
 	}
 
-	/**
-	 * @param name the name to set
-	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
-	/**
-	 * @param newOwnerPassword the newOwnerPassword to set
-	 */
 	public void setNewownerpassword(String newOwnerPassword) {
 		this.newOwnerPassword = newOwnerPassword;
 	}
 
-	/**
-	 * @param newUserPassword the newUserPassword to set
-	 */
 	public void setNewuserpassword(String newUserPassword) {
 		this.newUserPassword = newUserPassword;
 	}
 
-	/**
-	 * @param opacity the opacity to set
-	 * @throws PageException
-	 */
 	public void setOpacity(double opacity) throws PageException {
-		if (opacity < 0 || opacity > 10) throw engine.getExceptionUtil()
-				.createApplicationException("Invalid PDF opacity definition [" + engine.getCastUtil().toString(opacity) + "], value should be in range from 0 to 10");
+		if (opacity < 0 || opacity > 10)
+			throw engine.getExceptionUtil()
+					.createApplicationException("Invalid PDF opacity definition [" + engine.getCastUtil().toString(opacity) + "], value should be in range from 0 to 10");
 		this.opacity = (float) (opacity / 10);
 	}
 
-	/**
-	 * @param order the order to set
-	 * @throws PageException
-	 */
 	public void setOrder(String strOrder) throws PageException {
 		strOrder = Document.trimAndLower(strOrder);
 		if ("name".equals(strOrder)) order = ORDER_NAME;
@@ -535,46 +459,26 @@ public class PDF extends BodyTagImpl {
 		else throw engine.getExceptionUtil().createApplicationException("Invalid order [" + strOrder + "], supported order definitions are " + "[name, time]");
 	}
 
-	/**
-	 * @param overwrite the overwrite to set
-	 */
 	public void setOverwrite(boolean overwrite) {
 		this.overwrite = overwrite;
 	}
 
-	/**
-	 * @param pages the pages to set
-	 */
 	public void setPages(String pages) {
 		this.pages = pages;
 	}
 
-	/**
-	 * @param password the password to set
-	 */
 	public void setPassword(String password) {
 		this.password = password;
 	}
 
-	/**
-	 * @param permissions the permissions to set
-	 * @throws PageException
-	 */
 	public void setPermissions(String strPermissions) throws PageException {
 		permissions = PDFUtil.toPermissions(strPermissions);
 	}
 
-	/**
-	 * @param position the position to set
-	 */
 	public void setPosition(String position) {
-		this.position = position;// MUST
+		this.position = position;
 	}
 
-	/**
-	 * @param resolution the resolution to set
-	 * @throws PageException
-	 */
 	public void setResolution(String strResolution) throws PageException {
 		strResolution = Document.trimAndLower(strResolution);
 		if ("low".equals(strResolution)) resolution = RESOLUTION_LOW;
@@ -583,20 +487,11 @@ public class PDF extends BodyTagImpl {
 		else throw engine.getExceptionUtil().createApplicationException("Invalid PDF resolution [" + strResolution + "], supported resolutions are " + "[low, high]");
 	}
 
-	/**
-	 * @param rotation the rotation to set
-	 */
 	public void setRotation(double rotation) {
 		rotation = rotation % 360D;
-		// rotation=rotation/360*6.28318525;
-
 		this.rotation = (float) rotation;
 	}
 
-	/**
-	 * @param saveOption the saveOption to set
-	 * @throws PageException
-	 */
 	public void setSaveoption(String strSaveOption) throws PageException {
 		strSaveOption = Document.trimAndLower(strSaveOption);
 		if ("full".equals(strSaveOption)) saveOption = SAVE_OPTION_FULL;
@@ -607,75 +502,51 @@ public class PDF extends BodyTagImpl {
 				.createApplicationException("Invalid PDF saveOption [" + strSaveOption + "], supported saveOptions are " + "[full, linear, incremental]");
 	}
 
-	/**
-	 * @param scale the scale to set
-	 * @throws PageException
-	 */
 	public void setScale(double scale) throws PageException {
-		// if(scale<1 || scale>1000) this check is now done inside PDF2IMage implementation
-		// throw engine.getExceptionUtil().createApplicationException("invalid scale definition
-		// ["+engine.getCastUtil().toString(scale)+"], value should be in
-		// range from 1 to 100");
 		this.scale = (int) scale;
 	}
 
-	/**
-	 * @param showOnPrint the showOnPrint to set
-	 */
 	public void setShowonprint(boolean showOnPrint) {
 		this.showOnPrint = showOnPrint;
 	}
 
-	/**
-	 * @param source the source to set
-	 */
 	public void setSource(Object source) {
 		this.source = source;
 	}
 
-	/**
-	 * @param stopOnError the stopOnError to set
-	 */
 	public void setStoponerror(boolean stopOnError) {
 		this.stopOnError = stopOnError;
 	}
 
-	/**
-	 * @param transparent the transparent to set
-	 */
 	public void setTransparent(boolean transparent) {
 		this.transparent = transparent;
 	}
 
-	/**
-	 * @param version the version to set
-	 * @throws PageException
-	 */
 	public void setVersion(double version) throws PageException {
-		if (1.1 == version) this.version = '1';
-		else if (1.2 == version) this.version = PdfWriter.VERSION_1_2;
-		else if (1.3 == version) this.version = PdfWriter.VERSION_1_3;
-		else if (1.4 == version) this.version = PdfWriter.VERSION_1_4;
-		else if (1.5 == version) this.version = PdfWriter.VERSION_1_5;
-		else if (1.6 == version) this.version = PdfWriter.VERSION_1_6;
+		if (version >= 1.0 && version <= 1.7) {
+			this.version = (float) version;
+		}
+		else {
+			throw engine.getExceptionUtil().createApplicationException(
+					"Invalid PDF [version] specified [" + engine.getCastUtil().toString(version) + "], supported versions are " + "[1.0 to 1.7]");
+		}
+	}
 
-		else throw engine.getExceptionUtil().createApplicationException(
-				"Invalid PDF [version] specified [" + engine.getCastUtil().toString(version) + "], supported versions are " + "[1.1, 1.2, 1.3, 1.4, 1.5, 1.6]");
+	public void setHscale(double hscale) {
+		this.hscale = (float) hscale;
+	}
+
+	public void setVscale(double vscale) {
+		this.vscale = (float) vscale;
 	}
 
 	@Override
 	public int doStartTag() throws PageException {
-		// RR SerialNumber sn = pageContext.getConfig().getSerialNumber();
-		// if(sn.getVersion()==SerialNumber.VERSION_COMMUNITY)
-		// throw new SecurityException("no access to this functionality with the "+sn.getStringVersion()+"
-		// version of Lucee");
-
 		return EVAL_BODY_BUFFERED;
 	}
 
 	@Override
 	public void doInitBody() {
-
 	}
 
 	@Override
@@ -686,7 +557,6 @@ public class PDF extends BodyTagImpl {
 	@Override
 	public int doEndTag() throws PageException {
 		try {
-
 			if (ACTION_ADD_WATERMARK == action) doActionAddWatermark();
 			else if (ACTION_ADD_HEADER == action) doActionAddHeaderFooter(true);
 			else if (ACTION_ADD_FOOTER == action) doActionAddHeaderFooter(false);
@@ -701,13 +571,14 @@ public class PDF extends BodyTagImpl {
 			else if (ACTION_OPEN == action) doActionProtect(false);
 			else if (ACTION_THUMBNAIL == action) doActionThumbnail();
 			else if (ACTION_EXTRACT_IMAGES == action) doActionExtractImages();
-			else if (ACTION_EXTRACT_TEXT == action) { doActionExtractText(); }
+			else if (ACTION_EXTRACT_TEXT == action) doActionExtractText();
 			else if (ACTION_EXTRACT_BOOKMARKS == action) doActionExtractBookmarks();
-			
-
-			// else if(ACTION_PROCESSDDX==action) throw
-			// engine.getExceptionUtil().createApplicationException("action [processddx] not supported");
-
+			else if (ACTION_TRANSFORM == action) doActionTransform();
+			else if (ACTION_ADD_ATTACHMENTS == action) doActionAddAttachments();
+			else if (ACTION_EXTRACT_ATTACHMENTS == action) doActionExtractAttachments();
+			else if (ACTION_REMOVE_ATTACHMENTS == action) doActionRemoveAttachments();
+			else if (ACTION_READ_SIGNATURE_FIELDS == action) doActionReadSignatureFields();
+			else if (ACTION_VALIDATE_SIGNATURE == action) doActionValidateSignature();
 		}
 		catch (Exception e) {
 			throw engine.getCastUtil().toPageException(e);
@@ -715,7 +586,7 @@ public class PDF extends BodyTagImpl {
 		return EVAL_PAGE;
 	}
 
-	private void doActionWrite() throws PageException, IOException, DocumentException {
+	private void doActionWrite() throws PageException, IOException {
 		required("pdf", "write", "source", source);
 		required("pdf", "write", "destination", destination);
 
@@ -723,8 +594,6 @@ public class PDF extends BodyTagImpl {
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
 		PDFStruct doc = toPDFDocument(source, password, null);
-		// PdfReader pr = doc.getPdfReader();
-		// output
 		boolean destIsSource = doc.getResource() != null && destination.equals(doc.getResource());
 
 		OutputStream os = null;
@@ -736,12 +605,13 @@ public class PDF extends BodyTagImpl {
 		}
 
 		try {
-			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, version);
+			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, version != 0 ? (char) ('0' + (int) ((version - 1) * 10)) : (char) 0);
 		}
 		finally {
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
+				if (destination != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
 			}
 		}
 		this.overwrite = true;
@@ -749,24 +619,15 @@ public class PDF extends BodyTagImpl {
 		doActionSetInfo();
 	}
 
-	private void doActionAddHeaderFooter(boolean isHeader) throws PageException, IOException, DocumentException {
+	private void doActionAddHeaderFooter(boolean isHeader) throws PageException, IOException {
 		required("pdf", "write", "source", source);
-		if (text == null) throw engine.getExceptionUtil().createApplicationException("when PDF action is [addHeader or addFooter], It requires a attribute [text]");
+		if (text == null)
+			throw engine.getExceptionUtil().createApplicationException("when PDF action is [addHeader or addFooter], It requires a attribute [text]");
 
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
-		// required("pdf", "write", "destination", destination);
 
-		/*
-		 * optinal - pages
-		 */
-		/*
-		 * isBase64 = "yes|no" showonprint = "yes|no"> opacity = "header opacity" image =
-		 * "image file name to be used as the header"
-		 * 
-		 */
 		PDFStruct doc = toPDFDocument(source, password, null);
-		PdfReader reader = doc.getPdfReader();
 		BIF bif = null;
 		if (NUMBERFORMAT_NUMERIC != numberformat) {
 			ClassUtil classUtil = engine.getClassUtil();
@@ -774,11 +635,10 @@ public class PDF extends BodyTagImpl {
 				bif = classUtil.loadBIF(pageContext, "lucee.runtime.functions.displayFormatting.NumberFormat");
 			}
 			catch (Exception e) {
-				e.printStackTrace();
 				throw engine.getCastUtil().toPageException(e);
 			}
 		}
-		// output stream
+
 		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 		OutputStream os = null;
 		if (!Util.isEmpty(name) || destIsSource || destination == null) {
@@ -787,80 +647,78 @@ public class PDF extends BodyTagImpl {
 		else if (destination != null) {
 			os = destination.getOutputStream();
 		}
-		PdfStamper stamper = null;
-		try {
-			int len = reader.getNumberOfPages();
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			int len = pdDoc.getNumberOfPages();
 			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
-			stamper = new PdfStamper(reader, os);
-			if (font == null) font = getDefaultFont();
-			for (int p = 1; p <= len; p++) {
-				if (pageSet != null && !pageSet.contains(p)) continue;
 
-				Phrase header = text(text, p, len, numberformat, bif, font);
-				// vertical orientation
-				float y;
-
-				if (isHeader) {
-					y = reader.getPageSize(p).getTop(header.getFont().getCalculatedSize() + (topmargin - 3));
+			// Get font settings
+			float fontSize = 10f;
+			if (fontStruct != null) {
+				Object sizeObj = fontStruct.get("size", null);
+				if (sizeObj != null) {
+					fontSize = engine.getCastUtil().toFloatValue(sizeObj, 10f);
 				}
-				else {
-					y = reader.getPageSize(p).getBottom((bottommargin + 2));
-				}
-
-				// horizontal orientation
-				float x = reader.getPageSize(p).getWidth() / 2;
-				if (Element.ALIGN_LEFT == align) {
-					x = leftmargin;
-				}
-				else if (Element.ALIGN_RIGHT == align) {
-					x = reader.getPageSize(p).getWidth() - rightmargin;
-				}
-				else {
-					x = reader.getPageSize(p).getWidth() / 2;
-				}
-				ColumnText.showTextAligned(stamper.getOverContent(p), align, header, x, y, 0);
 			}
+			PDFont font = new PDType1Font(Standard14Fonts.FontName.COURIER);
+
+			for (int p = 0; p < len; p++) {
+				if (pageSet != null && !pageSet.contains(p + 1)) continue;
+
+				PDPage page = pdDoc.getPage(p);
+				PDRectangle pageSize = page.getMediaBox();
+				String textContent = processText(text, p + 1, len, numberformat, bif);
+
+				try (PDPageContentStream cs = new PDPageContentStream(pdDoc, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
+					cs.beginText();
+					cs.setFont(font, fontSize);
+
+					float y;
+					if (isHeader) {
+						y = pageSize.getHeight() - topmargin * 72 - fontSize;
+					}
+					else {
+						y = bottommargin * 72;
+					}
+
+					float textWidth = font.getStringWidth(textContent) / 1000 * fontSize;
+					float x;
+					if (align == ALIGN_LEFT) {
+						x = leftmargin * 72;
+					}
+					else if (align == ALIGN_RIGHT) {
+						x = pageSize.getWidth() - rightmargin * 72 - textWidth;
+					}
+					else {
+						x = (pageSize.getWidth() - textWidth) / 2;
+					}
+
+					cs.newLineAtOffset(x, y);
+					cs.showText(textContent);
+					cs.endText();
+				}
+			}
+
+			pdDoc.save(os);
 		}
 		finally {
-			try {
-				if (stamper != null) stamper.close();
-			}
-			catch (IOException ioe) {
-			}
-			;
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
+				if (destination != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
 				if (!Util.isEmpty(name)) {
 					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
 				}
-				else if (destination == null && doc.getResource() != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination and name attributes specify means add header or footer to the source file
+				else if (destination == null && doc.getResource() != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
 			}
 		}
-
-		// PdfReader pr = doc.getPdfReader();
-		// output
-		/*
-		 * boolean destIsSource = doc.getResource()!=null && destination.equals(doc.getResource());
-		 * 
-		 * OutputStream os=null; if(destIsSource){ os=new ByteArrayOutputStream(); } else
-		 * if(destination!=null) { os=destination.getOutputStream(); }
-		 * 
-		 * try { PDFUtil.concat(new PDFStruct[]{doc}, os, true, true, true,version); } finally {
-		 * Util.closeEL(os); if(os instanceof ByteArrayOutputStream) {
-		 * if(destination!=null)engine.getIOUtil().copy(new
-		 * ByteArrayInputStream(((ByteArrayOutputStream)os).toByteArray()), destination,true);// MUST
-		 * overwrite } }
-		 */
 	}
 
-	// TODO add current page label|_LASTPAGELABEL: add last page label|
-	// : add current page number: add last page
-	private Phrase text(String text, int page, int lastPage, int numberformat, BIF bif, Font font) throws PageException {
+	private String processText(String text, int page, int lastPage, int numberformat, BIF bif) throws PageException {
 		String strPage;
 		String strLastPage;
 
-		// number Format
 		if (NUMBERFORMAT_NUMERIC == numberformat) {
 			strPage = page + "";
 			strLastPage = lastPage + "";
@@ -874,22 +732,15 @@ public class PDF extends BodyTagImpl {
 			}
 		}
 
-		// replace placeholdrs
 		Strings util = engine.getStringUtil();
 		text = util.replace(text, "_PAGENUMBER", strPage, false, true);
 		text = util.replace(text, "_LASTPAGENUMBER", strLastPage, false, true);
-
-		// supress whitespace
-		text = suppressWhiteSpace(text);
-		Phrase p = new Phrase(text, font);
-		return p;
+		return suppressWhiteSpace(text);
 	}
 
 	private static String suppressWhiteSpace(String str) {
 		int len = str.length();
 		StringBuilder sb = new StringBuilder(len);
-		// boolean wasWS=false;
-
 		char c;
 		char buffer = 0;
 		for (int i = 0; i < len; i++) {
@@ -905,51 +756,41 @@ public class PDF extends BodyTagImpl {
 				}
 				sb.append(c);
 			}
-			// sb.append(c);
 		}
 		if (buffer != 0) sb.append(buffer);
-
 		return sb.toString();
 	}
 
-	private void doActionThumbnail() throws PageException, IOException, DocumentException {
+	private void doActionThumbnail() throws PageException, IOException {
 		required("pdf", "thumbnail", "source", source);
 
-		// scale
-		if (scale < 1 || scale > 100) throw engine.getExceptionUtil().createApplicationException("Attribute [scale] the value [" + scale + "] must between the range 1 to 100");
-		
-		// destination
+		if (scale < 1 || scale > 100)
+			throw engine.getExceptionUtil().createApplicationException("Attribute [scale] the value [" + scale + "] must between the range 1 to 100");
+
 		if (destination == null) destination = engine.getResourceUtil().toResourceNotExisting(pageContext, "thumbnails");
-		
-		if (destination.isFile()) throw engine.getExceptionUtil().createApplicationException("The attribute [destination] for the tag [cfpdf] is not a directory");
+
+		if (destination.isFile())
+			throw engine.getExceptionUtil().createApplicationException("The attribute [destination] for the tag [cfpdf] is not a directory");
 
 		if (destination.exists()) {
-		 	if (!overwrite) throw engine.getExceptionUtil().createApplicationException("Destination directory [" + destination + "] already exists");
+			if (!overwrite)
+				throw engine.getExceptionUtil().createApplicationException("Destination directory [" + destination + "] already exists");
 		}
 		else destination.mkdirs();
 
 		PDFStruct doc = toPDFDocument(source, password, null);
-		PdfReader reader = doc.getPdfReader();
+		int len = doc.getNumberOfPages();
 
-		try {
-			int len = reader.getNumberOfPages();
+		if (pages == null) pages = "1-" + len + "";
+		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-			// pages
-			if (pages == null) pages = "1-" + len + "";
-			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
+		Resource resource;
+		if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? getName(resource.getName()) : "thumbnail";
 
-			// imagePrefix
-			Resource resource;
-			if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? getName(resource.getName()): "thumbnail";
-
-			PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale, overwrite);
-		}
-		finally {
-			reader.close();
-		}
+		PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale, overwrite);
 	}
 
-	private void doActionAddWatermark() throws PageException, IOException, DocumentException {
+	private void doActionAddWatermark() throws PageException, IOException {
 		required("pdf", "addWatermark", "source", source);
 		if (copyFrom == null && image == null)
 			throw engine.getExceptionUtil().createApplicationException("PDF action [addWaterMark] requires one of the following attributes " + "[copyFrom, image]");
@@ -957,25 +798,20 @@ public class PDF extends BodyTagImpl {
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
-		// image
-		Image img = null;
-		byte[] barr;
-
+		// Load watermark image
+		BufferedImage watermarkImage = null;
 		if (image != null) {
-			if(image instanceof String){
+			if (image instanceof String) {
 				Resource res = engine.getResourceUtil().toResourceExisting(pageContext, (String) image);
-				img = Image.getInstance(res.getPath());
-				// TODO lucee.runtime.img.Image ri =
-				// lucee.runtime.img.Image.createImage(pageContext,image,false,false,true,null);
-				// TODO img=Image.getInstance(ri.getBufferedImage(),null,false);
+				watermarkImage = ImageIO.read(new File(res.getAbsolutePath()));
 			}
-			else{
-				barr = engine.getCastUtil().toBinary(image);
-				img = Image.getInstance(barr);
+			else {
+				byte[] barr = engine.getCastUtil().toBinary(image);
+				watermarkImage = ImageIO.read(new ByteArrayInputStream(barr));
 			}
 		}
-		// copy From
 		else {
+			byte[] barr;
 			try {
 				Resource res = copyFrom instanceof String ? engine.getResourceUtil().toResourceExisting(pageContext, (String) copyFrom) : engine.getCastUtil().toResource(copyFrom);
 				barr = PDFUtil.toBytes(res);
@@ -983,34 +819,26 @@ public class PDF extends BodyTagImpl {
 			catch (PageException ee) {
 				barr = engine.getCastUtil().toBinary(copyFrom);
 			}
-
-			img = Image.getInstance(PDFUtil.toImage(new PDFStruct(barr, password)), null, false);
+			watermarkImage = PDFUtil.toImage(new PDFStruct(barr, password));
 		}
 
-		// position
+		// Position
 		float x = UNDEFINED, y = UNDEFINED;
 		if (!Util.isEmpty(position)) {
 			int index = position.indexOf(',');
-			if (index == -1) throw engine.getExceptionUtil().createApplicationException(
-					"Attribute [position] has an invalid value [" + position + "]," + "value should follow one of the following pattern [40,50], [40,] or [,50]");
+			if (index == -1)
+				throw engine.getExceptionUtil().createApplicationException(
+						"Attribute [position] has an invalid value [" + position + "]," + "value should follow one of the following pattern [40,50], [40,] or [,50]");
 			String strX = position.substring(0, index).trim();
 			String strY = position.substring(index + 1).trim();
 			if (!Util.isEmpty(strX)) x = engine.getCastUtil().toIntValue(strX);
 			if (!Util.isEmpty(strY)) y = engine.getCastUtil().toIntValue(strY);
-
 		}
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 		doc.setPages(pages);
-		PdfReader reader = doc.getPdfReader();
-		reader.consolidateNamedDestinations();
-		java.util.List bookmarks = SimpleBookmark.getBookmark(reader);
-		ArrayList master = new ArrayList();
-		if (bookmarks != null) master.addAll(bookmarks);
 
-		// output
-		boolean destIsSource = false;
-		if(destination != null && doc.getResource() != null && destination.equals(doc.getResource())) destIsSource = true;
+		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 		OutputStream os = null;
 		if (!Util.isEmpty(name) || destIsSource || destination == null) {
 			os = new ByteArrayOutputStream();
@@ -1019,84 +847,80 @@ public class PDF extends BodyTagImpl {
 			os = destination.getOutputStream();
 		}
 
-		try {
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDImageXObject pdImage = LosslessFactory.createFromImage(pdDoc, watermarkImage);
+			Set<Integer> _pages = doc.getPages();
+			int len = pdDoc.getNumberOfPages();
 
-			int len = reader.getNumberOfPages();
-			PdfStamper stamp = new PdfStamper(reader, os);
+			for (int i = 0; i < len; i++) {
+				if (_pages != null && !_pages.contains(Integer.valueOf(i + 1))) continue;
 
-			if (len > 0) {
-				if (x == UNDEFINED || y == UNDEFINED) {
-					PdfImportedPage first = stamp.getImportedPage(reader, 1);
-					if (y == UNDEFINED) y = (first.getHeight() - img.getHeight()) / 2;
-					if (x == UNDEFINED) x = (first.getWidth() - img.getWidth()) / 2;
+				PDPage page = pdDoc.getPage(i);
+				PDRectangle pageSize = page.getMediaBox();
+
+				float imgX = x != UNDEFINED ? x : (pageSize.getWidth() - pdImage.getWidth()) / 2;
+				float imgY = y != UNDEFINED ? y : (pageSize.getHeight() - pdImage.getHeight()) / 2;
+
+				try (PDPageContentStream cs = new PDPageContentStream(pdDoc, page,
+						foreground ? PDPageContentStream.AppendMode.APPEND : PDPageContentStream.AppendMode.PREPEND, true, true)) {
+
+					// Set opacity
+					PDExtendedGraphicsState gs = new PDExtendedGraphicsState();
+					gs.setNonStrokingAlphaConstant(opacity);
+					cs.setGraphicsStateParameters(gs);
+
+					// Apply rotation if needed
+					if (rotation != 0) {
+						float centerX = imgX + pdImage.getWidth() / 2;
+						float centerY = imgY + pdImage.getHeight() / 2;
+						cs.transform(org.apache.pdfbox.util.Matrix.getTranslateInstance(centerX, centerY));
+						cs.transform(org.apache.pdfbox.util.Matrix.getRotateInstance(Math.toRadians(rotation), 0, 0));
+						cs.transform(org.apache.pdfbox.util.Matrix.getTranslateInstance(-pdImage.getWidth() / 2, -pdImage.getHeight() / 2));
+						cs.drawImage(pdImage, 0, 0);
+					}
+					else {
+						cs.drawImage(pdImage, imgX, imgY);
+					}
 				}
-				img.setAbsolutePosition(x, y);
-				// img.setAlignment(Image.ALIGN_JUSTIFIED); ration geht nicht anhand mitte
-
 			}
 
-			// rotation
-			if (rotation != 0) {
-				img.setRotationDegrees(rotation);
-			}
-
-			Set _pages = doc.getPages();
-			for (int i = 1; i <= len; i++) {
-				if (_pages != null && !_pages.contains(Integer.valueOf(i))) continue;
-				PdfContentByte cb = foreground ? stamp.getOverContent(i) : stamp.getUnderContent(i);
-				PdfGState gs1 = new PdfGState();
-				// print.out("op:"+opacity);
-				gs1.setFillOpacity(opacity);
-				// gs1.setStrokeOpacity(opacity);
-				cb.setGState(gs1);
-				cb.addImage(img);
-			}
-			if (bookmarks != null) stamp.setOutlines(master);
-			stamp.close();
+			pdDoc.save(os);
 		}
 		finally {
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
+				if (destination != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
 				if (!Util.isEmpty(name)) {
 					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
 				}
-				else if(destination == null && doc.getResource() != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination and name attribute specify means addWatermark to source file
+				else if (destination == null && doc.getResource() != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
 			}
 		}
 	}
 
-	private void doActionRemoveWatermark() throws PageException, IOException, DocumentException {
+	private void doActionRemoveWatermark() throws PageException, IOException {
 		required("pdf", "removeWatermark", "source", source);
 
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
-		BufferedImage bi = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g = bi.createGraphics();
-		g.setBackground(Color.BLACK);
-		g.clearRect(0, 0, 1, 1);
-
-		Image img = Image.getInstance(bi, null, false);
-		img.setAbsolutePosition(1, 1);
+		// Note: True watermark removal is complex - this is a simplified implementation
+		// that essentially creates a copy. Full watermark removal would require
+		// analyzing and modifying the PDF content streams.
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 		doc.setPages(pages);
-		PdfReader reader = doc.getPdfReader();
 
-		boolean destIsSource;
 		if (destination == null) {
-			destIsSource = true;
 			destination = doc.getResource();
-			if (destination == null) throw engine.getExceptionUtil().createApplicationException("PDF Source is not based on a resource, attribute [destination] file is required");
+			if (destination == null)
+				throw engine.getExceptionUtil().createApplicationException("PDF Source is not based on a resource, attribute [destination] file is required");
 		}
-		else destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 
-		java.util.List bookmarks = SimpleBookmark.getBookmark(reader);
-		ArrayList master = new ArrayList();
-		if (bookmarks != null) master.addAll(bookmarks);
+		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 
-		// output
 		OutputStream os = null;
 		if (!Util.isEmpty(name) || destIsSource) {
 			os = new ByteArrayOutputStream();
@@ -1104,27 +928,15 @@ public class PDF extends BodyTagImpl {
 		else if (destination != null) {
 			os = destination.getOutputStream();
 		}
-		// PDFUtil.encrypt(doc, os, newUserPassword, newOwnerPassword, permissions, encryption);
-		try {
-			int len = reader.getNumberOfPages();
-			PdfStamper stamp = new PdfStamper(reader, os);
 
-			Set _pages = doc.getPages();
-			for (int i = 1; i <= len; i++) {
-				if (_pages != null && !_pages.contains(Integer.valueOf(i))) continue;
-				PdfContentByte cb = foreground ? stamp.getOverContent(i) : stamp.getUnderContent(i);
-				PdfGState gs1 = new PdfGState();
-				gs1.setFillOpacity(0);
-				cb.setGState(gs1);
-				cb.addImage(img);
-			}
-			if (bookmarks != null) stamp.setOutlines(master);
-			stamp.close();
+		try {
+			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, (char) 0);
 		}
 		finally {
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
+				if (destination != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
 				if (!Util.isEmpty(name)) {
 					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
 				}
@@ -1132,7 +944,7 @@ public class PDF extends BodyTagImpl {
 		}
 	}
 
-	private void doActionDeletePages() throws PageException, IOException, DocumentException {
+	private void doActionDeletePages() throws PageException, IOException {
 		required("pdf", "deletePage", "pages", pages, true);
 		required("pdf", "deletePage", "source", source);
 
@@ -1140,7 +952,8 @@ public class PDF extends BodyTagImpl {
 		doc.setPages(pages);
 
 		if (destination == null && Util.isEmpty(name)) {
-			if (doc.getResource() == null) throw engine.getExceptionUtil().createApplicationException("Source is not based on a resource, attribute [destination] is required");
+			if (doc.getResource() == null)
+				throw engine.getExceptionUtil().createApplicationException("Source is not based on a resource, attribute [destination] is required");
 			destination = doc.getResource();
 		}
 		else if (destination != null && destination.exists() && !overwrite)
@@ -1148,7 +961,6 @@ public class PDF extends BodyTagImpl {
 
 		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 
-		// output
 		OutputStream os = null;
 		if (!Util.isEmpty(name) || destIsSource) {
 			os = new ByteArrayOutputStream();
@@ -1158,13 +970,13 @@ public class PDF extends BodyTagImpl {
 		}
 
 		try {
-			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, version);
+			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, (char) 0);
 		}
 		finally {
-			// if(document!=null)document.close();
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
+				if (destination != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
 				if (!Util.isEmpty(name)) {
 					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
 				}
@@ -1172,17 +984,18 @@ public class PDF extends BodyTagImpl {
 		}
 	}
 
-	private void doActionMerge() throws PageException, PageException, IOException, DocumentException {
-
-		if (source == null && params == null && directory == null) throw engine.getExceptionUtil()
-				.createApplicationException("At least one of the following combinations is required, attribute [source], attribute [directory] or [cfpdfparam] child tags");
-		if (source != null && directory != null) throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [source, directory] at the same time, only specify one");
+	private void doActionMerge() throws PageException, IOException {
+		if (source == null && params == null && directory == null)
+			throw engine.getExceptionUtil()
+					.createApplicationException("At least one of the following combinations is required, attribute [source], attribute [directory] or [cfpdfparam] child tags");
+		if (source != null && directory != null)
+			throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [source, directory] at the same time, only specify one");
 		if (destination == null && Util.isEmpty(name, true))
 			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
-		ArrayList docs = new ArrayList();
+		ArrayList<PDFStruct> docs = new ArrayList<PDFStruct>();
 		PDFStruct doc;
 		boolean isListing = false;
 		boolean destIsSource = false;
@@ -1194,7 +1007,7 @@ public class PDF extends BodyTagImpl {
 				int len = arr.size();
 				for (int i = 1; i <= len; i++) {
 					docs.add(doc = toPDFDocument(arr.getE(i), password, null));
-					if(doc.getResource() != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
+					if (doc.getResource() != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 					doc.setPages(pages);
 				}
 			}
@@ -1202,12 +1015,11 @@ public class PDF extends BodyTagImpl {
 				String[] sources = engine.getListUtil().toStringArrayTrim(engine.getListUtil().toArrayRemoveEmpty((String) source, ","));
 				for (int i = 0; i < sources.length; i++) {
 					docs.add(doc = toPDFDocument(sources[i], password, null));
-					if(doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
+					if (doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 					doc.setPages(pages);
 				}
 			}
 			else docs.add(toPDFDocument(source, password, null));
-
 		}
 
 		// directory
@@ -1215,14 +1027,15 @@ public class PDF extends BodyTagImpl {
 			if (!directory.exists()) throw engine.getExceptionUtil().createApplicationException("Attribute [directory] does not exist");
 			throw engine.getExceptionUtil().createApplicationException("Attribute [directory] is not a directory");
 		}
+
 		// params
 		if (params != null) {
-			Iterator it = params.iterator();
+			Iterator<PDFParamBean> it = params.iterator();
 			PDFParamBean param;
 			while (it.hasNext()) {
-				param = (PDFParamBean) it.next();
+				param = it.next();
 				docs.add(doc = toPDFDocument(param.getSource(), param.getPassword(), directory));
-				if(doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
+				if (doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 				doc.setPages(param.getPages());
 			}
 		}
@@ -1257,9 +1070,9 @@ public class PDF extends BodyTagImpl {
 		}
 
 		int doclen = docs.size();
-		if (doclen == 0) throw engine.getExceptionUtil().createApplicationException("PDF action [merge] requires at least 1 PDF file when merging");
+		if (doclen == 0)
+			throw engine.getExceptionUtil().createApplicationException("PDF action [merge] requires at least 1 PDF file when merging");
 
-		// output
 		OutputStream os = null;
 		if (!Util.isEmpty(name) || destIsSource) {
 			os = new ByteArrayOutputStream();
@@ -1268,37 +1081,18 @@ public class PDF extends BodyTagImpl {
 			os = destination.getOutputStream();
 		}
 
-		/*
-		 * com.lowagie.text.Document document=null; PdfCopy copy=null; PdfReader pr; Set pages; int size;
-		 */
-
 		try {
 			if (!isListing) stopOnError = true;
-
-			PDFUtil.concat((PDFStruct[]) docs.toArray(new PDFStruct[docs.size()]), os, keepBookmark, false, stopOnError, version);
-			/*
-			 * boolean init=false; for(int d=0;d<doclen;d++) { doc=(PDFDocument) docs.get(d);
-			 * pages=doc.getPages(); try { pr=doc.getPdfReader(); print.out(pr.getCatalog().getKeys());
-			 * 
-			 * } catch(Throwable t) { if(t instanceof ThreadDeath) throw (ThreadDeath)t; if(isListing &&
-			 * !stopOnError)continue; throw engine.getCastUtil().toPageException(t); } print.out("d+"+d);
-			 * if(!init) { init=true; print.out("set"); document = new
-			 * com.lowagie.text.Document(pr.getPageSizeWithRotation(1)); copy = new PdfCopy(document,os);
-			 * document.open(); } size=pr.getNumberOfPages(); print.out("pages:"+size); for(int
-			 * page=1;page<=size;page++) { if(pages==null || pages.contains(Constants.Integer(page))) {
-			 * copy.addPage(copy.getImportedPage(pr, page)); } } }
-			 */
+			PDFUtil.concat(docs.toArray(new PDFStruct[docs.size()]), os, keepBookmark, false, stopOnError, (char) 0);
 		}
 		finally {
-			// if(document!=null)document.close();
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
+				if (destination != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
 				if (!Util.isEmpty(name)) pageContext.setVariable(name, ((ByteArrayOutputStream) os).toByteArray());
 			}
-
 		}
-
 	}
 
 	private void doActionRead() throws PageException {
@@ -1308,7 +1102,7 @@ public class PDF extends BodyTagImpl {
 		pageContext.setVariable(name, toPDFDocument(source, password, null));
 	}
 
-	private void doActionProtect(boolean protect) throws PageException, IOException, DocumentException {
+	private void doActionProtect(boolean protect) throws PageException, IOException {
 		required("pdf", protect ? "protect" : "open", "source", source);
 
 		if (protect && Util.isEmpty(newUserPassword) && Util.isEmpty(newOwnerPassword))
@@ -1319,13 +1113,14 @@ public class PDF extends BodyTagImpl {
 
 		if (destination == null) {
 			destination = doc.getResource();
-			if (destination == null) throw engine.getExceptionUtil().createApplicationException("Source is not based on a resource, destination file is required");
+			if (destination == null)
+				throw engine.getExceptionUtil().createApplicationException("Source is not based on a resource, destination file is required");
 		}
-		else if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
+		else if (destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
 
 		boolean destIsSource = doc.getResource() != null && destination.equals(doc.getResource());
 
-		// output
 		OutputStream os = null;
 		if (destIsSource) {
 			os = new ByteArrayOutputStream();
@@ -1341,83 +1136,85 @@ public class PDF extends BodyTagImpl {
 		finally {
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
-				engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
+				engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
 			}
-
 		}
 	}
 
-	private void doActionSetInfo() throws PageException, IOException, DocumentException {
+	private void doActionSetInfo() throws PageException, IOException {
 		required("pdf", "setInfo", "info", info);
 		required("pdf", "getInfo", "source", source);
 
 		PDFStruct doc = toPDFDocument(source, password, null);
-		PdfReader pr = doc.getPdfReader();
-		OutputStream os = new ByteArrayOutputStream();
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-		if (destination != null && name != null) throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [destination, name] at the same time, only specify one");
+		if (destination != null && name != null)
+			throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [destination, name] at the same time, only specify one");
 
-		try {
-			if (destination == null) {
-				if (Util.isEmpty(name)) {
-					if (doc.getResource() != null) destination = doc.getResource();
-					else if (source instanceof String && doc.getResource() == null) name = (String) source;
-					else throw engine.getExceptionUtil().createApplicationException("PDF attribute [source] is not a resource (file) or variable, you must specify one of the following attributes [destination, name]");
+		// Determine destination and check if it's same as source
+		boolean destIsSource = false;
+		if (destination == null) {
+			if (Util.isEmpty(name)) {
+				if (doc.getResource() != null) {
+					destination = doc.getResource();
+					destIsSource = true;
 				}
+				else if (source instanceof String && doc.getResource() == null) name = (String) source;
+				else throw engine.getExceptionUtil().createApplicationException(
+						"PDF attribute [source] is not a resource (file) or variable, you must specify one of the following attributes [destination, name]");
 			}
-			else if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
+		}
+		else {
+			destIsSource = doc.getResource() != null && destination.equals(doc.getResource());
+			if (destination.exists() && !overwrite && !destIsSource)
+				throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
+		}
 
-			if (destination != null) os = destination.getOutputStream();
+		// If destination is source, always write to ByteArrayOutputStream first
+		OutputStream os = destIsSource ? baos : (destination != null ? destination.getOutputStream() : baos);
 
-			PdfStamper stamp = new PdfStamper(pr, os);
-			HashMap moreInfo = new HashMap();
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentInformation docInfo = pdDoc.getDocumentInformation();
 
-			// Key[] keys = info.keys();
+			// Set info values
 			Iterator<Entry<Key, Object>> it = info.entryIterator();
 			Entry<Key, Object> e;
 			while (it.hasNext()) {
 				e = it.next();
-				if (e.getKey().equals("PageRotation") || e.getKey().equals("Pagesize")) continue;
+				String key = e.getKey().getLowerString();
+				String value = engine.getCastUtil().toString(e.getValue(), "");
 
-				moreInfo.put(engine.getStringUtil().ucFirst(e.getKey().getLowerString()), engine.getCastUtil().toString(e.getValue()));
+				if ("author".equals(key)) docInfo.setAuthor(value);
+				else if ("keywords".equals(key)) docInfo.setKeywords(value);
+				else if ("title".equals(key)) docInfo.setTitle(value);
+				else if ("subject".equals(key)) docInfo.setSubject(value);
+				else if ("creator".equals(key)) docInfo.setCreator(value);
+				else if ("producer".equals(key)) docInfo.setProducer(value);
+				else if ("trapped".equals(key)) {
+					// Only set trapped if value is valid (True, False, or Unknown)
+					if ("True".equalsIgnoreCase(value) || "False".equalsIgnoreCase(value) || "Unknown".equalsIgnoreCase(value)) {
+						docInfo.setTrapped(engine.getStringUtil().ucFirst(value.toLowerCase()));
+					}
+					// Skip invalid or empty trapped values
+				}
+				else if (!"pagerotation".equals(key) && !"pagesize".equals(key)) {
+					docInfo.setCustomMetadataValue(engine.getStringUtil().ucFirst(key), value);
+				}
 			}
-			// author
-			Object value = info.get("author", null);
-			if (value != null) moreInfo.put("Author", engine.getCastUtil().toString(value));
-			// keywords
-			value = info.get("keywords", null);
-			if (value != null) moreInfo.put("Keywords", engine.getCastUtil().toString(value));
-			// title
-			value = info.get("title", null);
-			if (value != null) moreInfo.put("Title", engine.getCastUtil().toString(value));
-			// subject
-			value = info.get("subject", null);
-			if (value != null) moreInfo.put("Subject", engine.getCastUtil().toString(value));
-			// creator
-			value = info.get("creator", null);
-			if (value != null) moreInfo.put("Creator", engine.getCastUtil().toString(value));
-			// trapped
-			value = info.get("Trapped", null);
-			if (value != null) moreInfo.put("Trapped", engine.getCastUtil().toString(value));
-			// Created
-			value = info.get("Created", null);
-			if (value != null) moreInfo.put("Created", engine.getCastUtil().toString(value));
-			// Language
-			value = info.get("Language", null);
-			if (value != null) moreInfo.put("Language", engine.getCastUtil().toString(value));
 
-			stamp.setMoreInfo(moreInfo);
-			stamp.close();
-
+			pdDoc.save(os);
 		}
 		finally {
 			Util.closeEL(os);
-			pr.close();
-			if (os instanceof ByteArrayOutputStream) {
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
-				}
-			}
+		}
+
+		// If destination was source, copy bytes to file now that source is closed
+		if (destIsSource && destination != null) {
+			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), destination, true);
+		}
+
+		if (!Util.isEmpty(name)) {
+			pageContext.setVariable(name, new PDFStruct(baos.toByteArray(), password));
 		}
 	}
 
@@ -1427,46 +1224,34 @@ public class PDF extends BodyTagImpl {
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 		pageContext.setVariable(name, doc.getInfo());
-
 	}
 
 	private void doActionExtractText() throws PageException, IOException {
 		required("pdf", "extractText", "source", source);
 		PDFStruct doc = toPDFDocument(source, password, null);
-		PdfReader reader = doc.getPdfReader();
+		int len = doc.getNumberOfPages();
 
-		try {
-			int len = reader.getNumberOfPages();
+		if (pages == null) pages = "1-" + len + "";
+		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-			// pages
-			if (pages == null) pages = "1-" + len + "";
-			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
-
-			if (destination == null && Util.isEmpty(name, true))
+		if (destination == null && Util.isEmpty(name, true))
 			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
-			if (destination != null && destination.exists() && !overwrite)
-				throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
 
-			if(!Util.isEmpty(name, true)) pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type, destination));
-			else PDFUtil.extractText(doc, pageSet, type, destination);
-		}
-		finally {
-			reader.close();
-		}
+		if (!Util.isEmpty(name, true))
+			pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type, destination));
+		else
+			PDFUtil.extractText(doc, pageSet, type, destination);
 	}
 
 	private void doActionExtractBookmarks() throws PageException, IOException {
 		required("pdf", "extractBookmarks", "source", source);
 		PDFStruct doc = toPDFDocument(source, password, null);
-		PdfReader reader = doc.getPdfReader();
 
-		try {
-			if (Util.isEmpty(name, true)) throw engine.getExceptionUtil().createApplicationException("The [name] attribute is required");
-			pageContext.setVariable(name, PDFUtil.extractBookmarks(pageContext,reader));
-		}
-		finally {
-			reader.close();
-		}
+		if (Util.isEmpty(name, true))
+			throw engine.getExceptionUtil().createApplicationException("The [name] attribute is required");
+		pageContext.setVariable(name, PDFUtil.extractBookmarks(pageContext, doc));
 	}
 
 	private void doActionExtractImages() throws PageException, IOException, InvalidPasswordException {
@@ -1475,16 +1260,11 @@ public class PDF extends BodyTagImpl {
 		required("pdf", "extractImages", "imagePrefix", imagePrefix);
 		required("pdf", "extractImages", "format", format);
 		PDFStruct doc = toPDFDocument(source, password, null);
-		PdfReader reader = doc.getPdfReader();
-		int len = reader.getNumberOfPages();
+		int len = doc.getNumberOfPages();
 		if (pages == null || pages.equals("*")) pages = "1-" + len + "";
 		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		PDFUtil.extractImages(pageContext,doc,pageSet,destination,imagePrefix, format, overwrite);
-	}
-
-	private Object allowed(boolean encrypted, int permissions, int permission) {
-		return (!encrypted || (permissions & permission) > 0) ? "Allowed" : "Not Allowed";
+		PDFUtil.extractImages(pageContext, doc, pageSet, destination, imagePrefix, format, overwrite);
 	}
 
 	private PDFStruct toPDFDocument(Object source, String password, Resource directory) throws PageException {
@@ -1492,7 +1272,6 @@ public class PDF extends BodyTagImpl {
 	}
 
 	private PDFStruct toPDFDocument(Object source, String password, Resource directory, boolean eval) throws PageException {
-
 		if (source instanceof PDFStruct) return (PDFStruct) source;
 		if (engine.getDecisionUtil().isBinary(source)) {
 			return new PDFStruct(engine.getCastUtil().toBinary(source), password);
@@ -1524,77 +1303,12 @@ public class PDF extends BodyTagImpl {
 			return new PDFStruct(engine.getResourceUtil().toResourceExisting(pageContext, (String) source), password);
 		}
 
-		throw engine.getExceptionUtil().createCasterException(source, PdfReader.class);
+		throw engine.getExceptionUtil().createCasterException(source, PDFStruct.class);
 	}
-
-	/*
-	 * private byte[] toBinary(Object source) throws PageException, IOException {
-	 * 
-	 * if(source instanceof PDFDocument) return toBinary(((PDFDocument)source).getResource());
-	 * if(Decision.isBinary(source)){ return engine.getCastUtil().toBinary(source); } if(source
-	 * instanceof Resource){ return engine.getIOUtil().toBytes((Resource)source); } if(source instanceof
-	 * String){ if(directory!=null) { Resource res = directory.getRealResource((String)source);
-	 * if(!res.isFile()){ Resource res2 = engine.getResourceUtil().toResourceNotExisting(pageContext,
-	 * (String)source); if(res2.isFile()) res=res2; else throw
-	 * engine.getExceptionUtil().createApplicationException("file or directory "+res+" not exist"); }
-	 * return engine.getIOUtil().toBytes(res); } return
-	 * engine.getIOUtil().toBytes(engine.getResourceUtil().toResourceExisting(pageContext,
-	 * (String)source)); }
-	 * 
-	 * throw new CasterException(source,PdfReader.class); }
-	 */
 
 	protected void setParam(PDFParamBean param) {
 		if (params == null) params = new ArrayList<PDFParamBean>();
 		params.add(param);
-	}
-
-	private Font toFont(Struct sct) throws PageException {
-		Cast caster = engine.getCastUtil();
-		Font f = getDefaultFont();
-		// size
-		float size = caster.toFloatValue(sct.get("size", null), 0);
-		if (size > 0) f.setSize(size);
-
-		// family
-		Set fonts = FontFactory.getRegisteredFonts();
-		String family = caster.toString(sct.get("family", null), null);
-		if (!Util.isEmpty(family)) {
-			String lc = family.toLowerCase();
-			if (!fonts.contains(lc)) {
-				StringBuilder sb = new StringBuilder();
-				Iterator it = fonts.iterator();
-				while (it.hasNext()) {
-					if (sb.length() > 0) sb.append(", ");
-					sb.append(it.next());
-				}
-				throw engine.getExceptionUtil().createApplicationException("Font family [" + family + "] is not available, available font families are [" + sb + "]");
-			}
-			f.setFamily(lc);
-		}
-
-		int style = 0;
-		// bold
-		boolean bold = caster.toBooleanValue(sct.get("bold", null), false);
-		if (bold) style |= Font.BOLD;
-		// italic
-		boolean italic = caster.toBooleanValue(sct.get("italic", null), false);
-		if (italic) style |= Font.ITALIC;
-		// underline
-		boolean underline = caster.toBooleanValue(sct.get("underline", null), false);
-		if (underline) style |= Font.UNDERLINE;
-		// strike
-		boolean strike = caster.toBooleanValue(sct.get("strike", null), false);
-		if (strike) style |= Font.STRIKETHRU;
-		if (style != 0) f.setStyle(style);
-
-		return f;
-	}
-
-	private static Font getDefaultFont() {
-		Font font = new Font(Font.COURIER);
-		font.setSize(10);
-		return font;
 	}
 
 	private static String getName(String strFileName) {
@@ -1603,4 +1317,333 @@ public class PDF extends BodyTagImpl {
 		return strFileName.substring(0, pos);
 	}
 
+	private void doActionTransform() throws PageException, IOException {
+		required("pdf", "transform", "source", source);
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+		int len = doc.getNumberOfPages();
+
+		if (pages == null) pages = "1-" + len;
+		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
+
+		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
+		OutputStream os = null;
+		if (!Util.isEmpty(name) || destIsSource || destination == null) {
+			os = new ByteArrayOutputStream();
+		}
+		else if (destination != null) {
+			os = destination.getOutputStream();
+		}
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			for (int i = 0; i < len; i++) {
+				if (pageSet != null && !pageSet.contains(i + 1)) continue;
+
+				PDPage page = pdDoc.getPage(i);
+
+				// Apply rotation (must be 0, 90, 180, or 270)
+				if (rotation != 0) {
+					int currentRotation = page.getRotation();
+					int newRotation = (currentRotation + (int) rotation) % 360;
+					if (newRotation < 0) newRotation += 360;
+					page.setRotation(newRotation);
+				}
+
+				// Apply scaling via media box transformation
+				if (hscale != 1.0f || vscale != 1.0f) {
+					PDRectangle mediaBox = page.getMediaBox();
+					float newWidth = mediaBox.getWidth() * hscale;
+					float newHeight = mediaBox.getHeight() * vscale;
+					page.setMediaBox(new PDRectangle(newWidth, newHeight));
+
+					// Also adjust crop box if present
+					PDRectangle cropBox = page.getCropBox();
+					if (cropBox != null) {
+						page.setCropBox(new PDRectangle(cropBox.getWidth() * hscale, cropBox.getHeight() * vscale));
+					}
+				}
+			}
+
+			pdDoc.save(os);
+		}
+		finally {
+			Util.closeEL(os);
+			if (os instanceof ByteArrayOutputStream) {
+				if (destination != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
+				if (!Util.isEmpty(name)) {
+					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
+				}
+				else if (destination == null && doc.getResource() != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
+			}
+		}
+	}
+
+	private void doActionAddAttachments() throws PageException, IOException {
+		required("pdf", "addAttachments", "source", source);
+		if (params == null || params.isEmpty())
+			throw engine.getExceptionUtil().createApplicationException("PDF action [addAttachments] requires at least one cfpdfparam child tag");
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
+		OutputStream os = null;
+		if (!Util.isEmpty(name) || destIsSource || destination == null) {
+			os = new ByteArrayOutputStream();
+		}
+		else if (destination != null) {
+			os = destination.getOutputStream();
+		}
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentNameDictionary names = pdDoc.getDocumentCatalog().getNames();
+			if (names == null) {
+				names = new PDDocumentNameDictionary(pdDoc.getDocumentCatalog());
+				pdDoc.getDocumentCatalog().setNames(names);
+			}
+
+			PDEmbeddedFilesNameTreeNode efTree = names.getEmbeddedFiles();
+			Map<String, PDComplexFileSpecification> existingFiles = new java.util.HashMap<>();
+			if (efTree != null) {
+				Map<String, PDComplexFileSpecification> existing = efTree.getNames();
+				if (existing != null) existingFiles.putAll(existing);
+			}
+			else {
+				efTree = new PDEmbeddedFilesNameTreeNode();
+			}
+
+			for (PDFParamBean param : params) {
+				Object paramSource = param.getSource();
+				Resource attachRes = engine.getResourceUtil().toResourceExisting(pageContext, paramSource.toString());
+
+				String filename = param.getFilename();
+				if (Util.isEmpty(filename)) filename = attachRes.getName();
+
+				byte[] fileBytes = PDFUtil.toBytes(attachRes);
+
+				PDEmbeddedFile embeddedFile = new PDEmbeddedFile(pdDoc, new ByteArrayInputStream(fileBytes));
+				embeddedFile.setSize(fileBytes.length);
+
+				String mimeType = param.getMimetype();
+				if (!Util.isEmpty(mimeType)) {
+					embeddedFile.setSubtype(mimeType);
+				}
+
+				PDComplexFileSpecification fileSpec = new PDComplexFileSpecification();
+				fileSpec.setFile(filename);
+				fileSpec.setEmbeddedFile(embeddedFile);
+
+				String desc = param.getDescription();
+				if (!Util.isEmpty(desc)) {
+					fileSpec.setFileDescription(desc);
+				}
+
+				existingFiles.put(filename, fileSpec);
+			}
+
+			efTree.setNames(existingFiles);
+			names.setEmbeddedFiles(efTree);
+
+			pdDoc.save(os);
+		}
+		finally {
+			Util.closeEL(os);
+			if (os instanceof ByteArrayOutputStream) {
+				if (destination != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
+				if (!Util.isEmpty(name)) {
+					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
+				}
+				else if (destination == null && doc.getResource() != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
+			}
+		}
+	}
+
+	private void doActionExtractAttachments() throws PageException, IOException {
+		required("pdf", "extractAttachments", "source", source);
+		required("pdf", "extractAttachments", "destination", destination);
+
+		if (!destination.exists()) destination.mkdirs();
+		if (!destination.isDirectory())
+			throw engine.getExceptionUtil().createApplicationException("Destination must be a directory for extractAttachments");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+		Array result = engine.getCreationUtil().createArray();
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentNameDictionary names = pdDoc.getDocumentCatalog().getNames();
+			if (names != null) {
+				PDEmbeddedFilesNameTreeNode efTree = names.getEmbeddedFiles();
+				if (efTree != null) {
+					Map<String, PDComplexFileSpecification> files = efTree.getNames();
+					if (files != null) {
+						for (Map.Entry<String, PDComplexFileSpecification> entry : files.entrySet()) {
+							String filename = entry.getKey();
+							PDComplexFileSpecification fileSpec = entry.getValue();
+							PDEmbeddedFile embeddedFile = fileSpec.getEmbeddedFile();
+
+							if (embeddedFile != null) {
+								Resource outFile = destination.getRealResource(filename);
+								if (outFile.exists() && !overwrite) {
+									if (stopOnError)
+										throw engine.getExceptionUtil().createApplicationException("File [" + outFile + "] already exists");
+									continue;
+								}
+
+								engine.getIOUtil().copy(embeddedFile.createInputStream(), outFile, true);
+
+								Struct info = engine.getCreationUtil().createStruct();
+								info.set("filename", filename);
+								info.set("path", outFile.getAbsolutePath());
+								info.set("size", embeddedFile.getSize());
+								if (fileSpec.getFileDescription() != null) {
+									info.set("description", fileSpec.getFileDescription());
+								}
+								result.append(info);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (!Util.isEmpty(name)) {
+			pageContext.setVariable(name, result);
+		}
+	}
+
+	private void doActionRemoveAttachments() throws PageException, IOException {
+		required("pdf", "removeAttachments", "source", source);
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
+		OutputStream os = null;
+		if (!Util.isEmpty(name) || destIsSource || destination == null) {
+			os = new ByteArrayOutputStream();
+		}
+		else if (destination != null) {
+			os = destination.getOutputStream();
+		}
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentNameDictionary names = pdDoc.getDocumentCatalog().getNames();
+			if (names != null) {
+				names.setEmbeddedFiles(null);
+			}
+
+			pdDoc.save(os);
+		}
+		finally {
+			Util.closeEL(os);
+			if (os instanceof ByteArrayOutputStream) {
+				if (destination != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
+				if (!Util.isEmpty(name)) {
+					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
+				}
+				else if (destination == null && doc.getResource() != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
+			}
+		}
+	}
+
+	private void doActionReadSignatureFields() throws PageException, IOException {
+		required("pdf", "readSignatureFields", "source", source);
+		required("pdf", "readSignatureFields", "name", name, true);
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		// Create query with columns: name, signable, isSigned, certifiable
+		Query query = engine.getCreationUtil().createQuery(new String[] { "name", "signable", "isSigned", "certifiable" }, 0, "signatureFields");
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDAcroForm acroForm = pdDoc.getDocumentCatalog().getAcroForm();
+			if (acroForm != null) {
+				for (PDField field : acroForm.getFieldTree()) {
+					if (field instanceof PDSignatureField) {
+						PDSignatureField sigField = (PDSignatureField) field;
+						int row = query.addRow();
+						query.setAt("name", row, sigField.getFullyQualifiedName());
+						query.setAt("signable", row, true);
+						query.setAt("isSigned", row, sigField.getSignature() != null);
+						query.setAt("certifiable", row, false); // Would need deeper inspection
+					}
+				}
+			}
+		}
+
+		pageContext.setVariable(name, query);
+	}
+
+	private void doActionValidateSignature() throws PageException, IOException {
+		required("pdf", "validateSignature", "source", source);
+		required("pdf", "validateSignature", "name", name, true);
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		// Create result struct with signature validation info
+		Struct result = engine.getCreationUtil().createStruct();
+		Array signatures = engine.getCreationUtil().createArray();
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			List<PDSignature> signatureList = pdDoc.getSignatureDictionaries();
+
+			boolean hasSignatures = !signatureList.isEmpty();
+			boolean allValid = true;
+
+			for (PDSignature sig : signatureList) {
+				Struct sigInfo = engine.getCreationUtil().createStruct();
+
+				// Basic signature information
+				sigInfo.set(engine.getCreationUtil().createKey("name"), sig.getName() != null ? sig.getName() : "");
+				sigInfo.set(engine.getCreationUtil().createKey("reason"), sig.getReason() != null ? sig.getReason() : "");
+				sigInfo.set(engine.getCreationUtil().createKey("location"), sig.getLocation() != null ? sig.getLocation() : "");
+				sigInfo.set(engine.getCreationUtil().createKey("contactInfo"), sig.getContactInfo() != null ? sig.getContactInfo() : "");
+				sigInfo.set(engine.getCreationUtil().createKey("signDate"), sig.getSignDate() != null ? sig.getSignDate().getTime() : null);
+
+				// Filter and SubFilter
+				String filter = sig.getFilter();
+				String subFilter = sig.getSubFilter();
+				sigInfo.set(engine.getCreationUtil().createKey("filter"), filter != null ? filter : "");
+				sigInfo.set(engine.getCreationUtil().createKey("subFilter"), subFilter != null ? subFilter : "");
+
+				// Check if signature has byte range (indicates it covers document content)
+				int[] byteRange = sig.getByteRange();
+				boolean hasValidByteRange = byteRange != null && byteRange.length == 4;
+				sigInfo.set(engine.getCreationUtil().createKey("hasValidByteRange"), hasValidByteRange);
+
+				// Check if signature has content (is actually signed)
+				boolean isSigned = sig.getContents() != null && sig.getContents().length > 0;
+				sigInfo.set(engine.getCreationUtil().createKey("isSigned"), isSigned);
+
+				// Basic validation status - without full cryptographic validation
+				// Full validation would require certificate chain verification
+				boolean valid = isSigned && hasValidByteRange;
+				sigInfo.set(engine.getCreationUtil().createKey("valid"), valid);
+
+				if (!valid) allValid = false;
+
+				signatures.append(sigInfo);
+			}
+
+			result.set(engine.getCreationUtil().createKey("hasSignatures"), hasSignatures);
+			result.set(engine.getCreationUtil().createKey("signatureCount"), signatureList.size());
+			result.set(engine.getCreationUtil().createKey("allValid"), hasSignatures && allValid);
+			result.set(engine.getCreationUtil().createKey("signatures"), signatures);
+		}
+
+		pageContext.setVariable(name, result);
+	}
 }

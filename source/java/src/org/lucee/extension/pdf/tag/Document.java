@@ -34,16 +34,21 @@ import java.util.Map;
 import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
-import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
 
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.pdf.PdfCopy;
-import com.lowagie.text.pdf.PdfImportedPage;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.PdfSmartCopy;
-import com.lowagie.text.pdf.SimpleBookmark;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageTree;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lucee.Info;
@@ -316,23 +321,12 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param type the PDF rendering method to use for this document (classic or modern)
+	 * @param type DEPRECATED - ignored. OpenHTMLToPDF is always used.
+	 *             Previously selected the PDF rendering engine (classic/pd4ml or modern/fs).
 	 * @throws PageException
 	 */
 	public void setType(String type) throws PageException {
-		if (Util.isEmpty(type, true)) return;
-
-		type = type.trim().toLowerCase();
-
-		if ("classic".equals(type) || "pd4ml".equals(type)) {
-			this.selectedType = PDFDocument.TYPE_PD4ML;
-		}
-		else if ("modern".equals(type) || "fs".equals(type)) {
-			this.selectedType = PDFDocument.TYPE_FS;
-		}
-		else {
-			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + selectedType + "], only the following engines are supported [classic, modern]");
-		}
+		// Silently ignore - OpenHTMLToPDF is the only engine now
 	}
 
 	/**
@@ -368,7 +362,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param pagetype the pagetype to set
+	 * @param strPagetype the pagetype to set
 	 * @throws PageException
 	 */
 	public void setPagetype(String strPagetype) throws PageException {
@@ -499,7 +493,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param unitFactor the unit to set
+	 * @param strUnit the unit to set
 	 * @throws PageException
 	 */
 	public void setUnit(String strUnit) throws PageException {
@@ -512,7 +506,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param encryption the encryption to set
+	 * @param strEncryption the encryption to set
 	 * @throws PageException
 	 */
 	public void setEncryption(String strEncryption) throws PageException {
@@ -545,7 +539,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param permissions the permissions to set
+	 * @param strPermissions the permissions to set
 	 * @throws PageException
 	 */
 	public void setPermissions(String strPermissions) throws PageException {
@@ -571,7 +565,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param srcfile the srcfile to set @throws PageException @throws
+	 * @param strSrcfile the srcfile to set @throws PageException @throws
 	 */
 	public void setSrcfile(String strSrcfile) throws PageException {
 		Resource srcfile = engine.getResourceUtil().toResourceExisting(pageContext, strSrcfile);
@@ -580,7 +574,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param mimetype the mimetype to set
+	 * @param strMimetype the mimetype to set
 	 * @throws PageException
 	 */
 	public void setMimetype(String strMimetype) throws PageException {
@@ -809,13 +803,12 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	private byte[] renderInital(boolean doBookmarks, boolean doHtmlBookmarks) throws Exception {
 		PDFDocument[] pdfDocs = new PDFDocument[documents.size()];
-		PdfReader[] pdfReaders = new PdfReader[pdfDocs.length];
+		byte[][] pdfBytes = new byte[pdfDocs.length][];
 		Iterator<PDFDocument> it = documents.iterator();
 		int index = 0, pageOffset = 0, count = 0, pages;
 		Dimension dimension = null;
 
-		// generate pdf with pd4ml
-
+		// generate pdf with OpenHTMLToPDF
 		while (it.hasNext()) {
 			count++;
 			pdfDocs[index] = it.next();
@@ -828,137 +821,145 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			int multiCount = getMultipleHF(pdfDocs[index]);
 			// multiple header/footer
 			if (multiCount > 1) {
-				PdfReader[] tmp = new PdfReader[multiCount];
+				byte[][] tmp = new byte[multiCount][];
 				for (int i = 0; i < multiCount; i++) {
 					pdfDocs[index].setHFIndex(i);
-					tmp[i] = new PdfReader(pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks));
+					tmp[i] = pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks);
 				}
 				try {
-					pdfReaders[index] = merge(tmp);
+					pdfBytes[index] = mergePdfBytes(tmp);
 				}
 				catch (Exception e) {
 					CFMLEngine eng = CFMLEngineFactory.getInstance();
-					if (pdfDocs[index] instanceof PD4MLPDFDocument) {
-						throw eng.getExceptionUtil()
-								.createApplicationException("attribute evalAtPrint is not fully supported with the classic PDF Engine, please use the regular PDF Engine.");
-					}
 					throw eng.getExceptionUtil().createPageRuntimeException(eng.getCastUtil().toPageException(e));
 				}
 			}
 			else {
-				pdfReaders[index] = new PdfReader(pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks));
+				pdfBytes[index] = pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks);
 			}
 			pdfDocs[index].setHFIndex(0);
 
-			pages = pdfReaders[index].getNumberOfPages();
+			// Get page count using PDFBox
+			try (PDDocument pdDoc = Loader.loadPDF(new RandomAccessReadBuffer(pdfBytes[index]))) {
+				pages = pdDoc.getNumberOfPages();
+			}
 			pdfDocs[index].setPages(pages);
 			pageOffset += pages;
 			index++;
 		}
 
-		// collect together
+		// Merge all PDFs together using PDFBox
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		com.lowagie.text.Document document = new com.lowagie.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
-		PdfSmartCopy copy = new PdfSmartCopy(document, baos);
-		document.open();
-		String name;
-		ArrayList bookmarks = doBookmarks ? new ArrayList() : null;
-		try {
-			int size, totalPage = 0, pageNo = 0;
-			Map<String, String> parent;
-			for (int doc = 0; doc < pdfReaders.length; doc++) {
-				size = pdfReaders[doc].getNumberOfPages();
-				PdfImportedPage ip;
-				// bookmarks
-				if (doBookmarks) {
-					name = pdfDocs[doc].getName();
-					if (!Util.isEmpty(name)) {
-						bookmarks.add(parent = PDFUtil.generateGoToBookMark(name, totalPage + 1));
-					}
-					else parent = null;
+		PDFMergerUtility merger = new PDFMergerUtility();
+		merger.setDestinationStream(baos);
 
-					if (doHtmlBookmarks) {
-						java.util.List pageBM = SimpleBookmark.getBookmark(pdfReaders[doc]);
-						if (pageBM != null) {
-							if (totalPage > 0) SimpleBookmark.shiftPageNumbers(pageBM, totalPage, null);
-							if (parent != null) PDFUtil.setChildBookmarks(parent, pageBM);
-							else bookmarks.addAll(pageBM);
-						}
-					}
-				}
-
-				totalPage++;
-				for (int page = 1; page <= size; page++) {
-					pageNo++;
-					if (page > 1) totalPage++;
-					ip = copy.getImportedPage(pdfReaders[doc], page);
-					copy.addPage(ip);
-				}
-			}
-			if (doBookmarks && !bookmarks.isEmpty()) copy.setOutlines(bookmarks);
+		for (int doc = 0; doc < pdfBytes.length; doc++) {
+			merger.addSource(new RandomAccessReadBuffer(pdfBytes[doc]));
 		}
-		finally {
-			document.close();
-		}
-		return baos.toByteArray();
 
+		merger.mergeDocuments(null);
+
+		byte[] mergedPdf = baos.toByteArray();
+
+		// Add bookmarks if enabled and we have named sections
+		if (doBookmarks && pdfDocs.length > 0) {
+			mergedPdf = addBookmarks(mergedPdf, pdfDocs);
+		}
+
+		return mergedPdf;
 	}
 
-	private PdfReader merge(PdfReader[] pdfReaders) throws DocumentException, IOException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		com.lowagie.text.Document document = new com.lowagie.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
-		PdfSmartCopy copy = new PdfSmartCopy(document, baos);
-		document.open();
-		try {
-			for (int doc = 0; doc < pdfReaders.length; doc++) {
-				PdfImportedPage ip;
-				ip = copy.getImportedPage(pdfReaders[doc], doc + 1);
-				copy.addPage(ip);
+	private byte[] addBookmarks(byte[] pdfBytes, PDFDocument[] pdfDocs) throws IOException {
+		try (PDDocument pdDoc = Loader.loadPDF(new RandomAccessReadBuffer(pdfBytes))) {
+			PDDocumentOutline outline = new PDDocumentOutline();
+			pdDoc.getDocumentCatalog().setDocumentOutline(outline);
+
+			PDPageTree pages = pdDoc.getPages();
+			int totalPages = pages.getCount();
+
+			for (PDFDocument doc : pdfDocs) {
+				String name = doc.getName();
+				if (Util.isEmpty(name)) continue;
+
+				int pageIndex = doc.getPageOffset();
+				if (pageIndex >= 0 && pageIndex < totalPages) {
+					PDPage page = pages.get(pageIndex);
+					PDPageFitDestination dest = new PDPageFitDestination();
+					dest.setPage(page);
+
+					PDOutlineItem item = new PDOutlineItem();
+					item.setTitle(name);
+					item.setDestination(dest);
+					outline.addLast(item);
+				}
 			}
+
+			outline.openNode();
+
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			pdDoc.save(baos);
+			return baos.toByteArray();
 		}
-		finally {
-			document.close();
+	}
+
+	private byte[] mergePdfBytes(byte[][] pdfBytesArray) throws IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		PDFMergerUtility merger = new PDFMergerUtility();
+		merger.setDestinationStream(baos);
+
+		for (byte[] pdfBytes : pdfBytesArray) {
+			merger.addSource(new RandomAccessReadBuffer(pdfBytes));
 		}
-		return new PdfReader(baos.toByteArray());
+
+		merger.mergeDocuments(null);
+		return baos.toByteArray();
 	}
 
 	private int getMultipleHF(PDFDocument doc) {
-		int count;
-		if (doc.getHeader() != null && (count = doc.getHeader().getHtmlTemplates().size()) > 1) return count;
-		if (doc.getFooter() != null && (count = doc.getFooter().getHtmlTemplates().size()) > 1) return count;
+		// OpenHTMLToPDF uses CSS counters for page numbers, so we always render once.
+		// The old multi-render approach was for PD4ML/Flying Saucer which are no longer used.
 		return 1;
 	}
 
 	private void renderUpdate(byte[] pdf, OutputStream os) throws Exception {
 
-		// permission/encryption
-		if (PDFDocument.ENC_NONE != encryption) {
-			PdfReader reader = new PdfReader(pdf);
-			com.lowagie.text.Document document = new com.lowagie.text.Document(reader.getPageSize(1));
+		// permission/encryption - only encrypt if at least one password is provided
+		boolean userEmpty = Util.isEmpty(userpassword);
+		boolean ownerEmpty = Util.isEmpty(ownerpassword);
 
-			Info info = CFMLEngineFactory.getInstance().getInfo();
-			document.addCreator("Lucee PDF Extension");
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			PdfCopy copy = new PdfCopy(document, baos);
-			// PdfWriter writer = PdfWriter.getInstance(document, pdfOut);
-			{
-				boolean userEmpty = Util.isEmpty(userpassword);
-				boolean ownerEmpty = Util.isEmpty(ownerpassword);
+		if (PDFDocument.ENC_NONE != encryption && !(userEmpty && ownerEmpty)) {
+			try (PDDocument pdDoc = Loader.loadPDF(new RandomAccessReadBuffer(pdf))) {
+				// Set up encryption
 				// one is empty the other not
 				if (userEmpty != ownerEmpty) {
 					if (userEmpty) userpassword = ownerpassword;
 					else ownerpassword = userpassword;
 				}
-			}
 
-			copy.setEncryption(PDFDocument.ENC_128BIT == encryption, userpassword, ownerpassword, permissions);
-			document.open();
-			int size = reader.getNumberOfPages();
-			for (int page = 1; page <= size; page++) {
-				copy.addPage(copy.getImportedPage(reader, page));
+				AccessPermission ap = new AccessPermission();
+				// Map CFML permissions to PDFBox
+				if ((permissions & 4) > 0) ap.setCanPrint(true);
+				if ((permissions & 8) > 0) ap.setCanModify(true);
+				if ((permissions & 16) > 0) ap.setCanExtractContent(true);
+				if ((permissions & 32) > 0) ap.setCanModifyAnnotations(true);
+				if ((permissions & 256) > 0) ap.setCanFillInForm(true);
+				if ((permissions & 512) > 0) ap.setCanExtractForAccessibility(true);
+				if ((permissions & 1024) > 0) ap.setCanAssembleDocument(true);
+				if ((permissions & 2048) > 0) ap.setCanPrintFaithful(true);
+
+				int keyLength = PDFDocument.ENC_128BIT == encryption ? 128 : 40;
+				StandardProtectionPolicy spp = new StandardProtectionPolicy(
+					ownerpassword != null ? ownerpassword : "",
+					userpassword != null ? userpassword : "",
+					ap
+				);
+				spp.setEncryptionKeyLength(keyLength);
+				pdDoc.protect(spp);
+
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				pdDoc.save(baos);
+				pdf = baos.toByteArray();
 			}
-			document.close();
-			pdf = baos.toByteArray();
 		}
 
 		// write out
@@ -1009,7 +1010,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param orientation the orientation to set @throws PageException
+	 * @param strOrientation the orientation to set @throws PageException
 	 */
 	public void setOrientation(String strOrientation) throws PageException {
 		this.attrOrientation = strOrientation;

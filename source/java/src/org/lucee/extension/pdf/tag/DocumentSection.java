@@ -129,7 +129,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param orientation the orientation to set @throws PageException
+	 * @param strOrientation the orientation to set @throws PageException
 	 */
 	public void setOrientation(String strOrientation) throws PageException {
 		getPDFDocument().setOrientation(strOrientation);
@@ -143,7 +143,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param srcfile the srcfile to set @throws PageException @throws
+	 * @param strSrcfile the srcfile to set @throws PageException @throws
 	 */
 	public void setSrcfile(String strSrcfile) throws PageException {
 		Resource srcfile = engine.getResourceUtil().toResourceExisting(pageContext, strSrcfile);
@@ -152,7 +152,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param mimetype the mimetype to set
+	 * @param strMimetype the mimetype to set
 	 */
 	public void setMimetype(String strMimetype) throws PageException {
 		getPDFDocument().setMimetype(strMimetype);

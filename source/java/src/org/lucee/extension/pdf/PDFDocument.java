@@ -1,6 +1,6 @@
 /**
- *
- * Copyright (c) 2015, Lucee Assosication Switzerland
+ * Copyright (c) 2015, Lucee Association Switzerland
+ * Copyright (c) 2014, the Railo Company Ltd. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -9,524 +9,314 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- *
- **/
+ * License along with this library. If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.lucee.extension.pdf;
 
 import java.awt.Dimension;
-import java.awt.Font;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.util.logging.Logger;
 
-import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
-import org.lucee.extension.pdf.util.Margin;
-import org.lucee.extension.pdf.util.XMLUtil;
-import org.lucee.extension.pdf.xhtmlrenderer.FSPDFDocument;
-import org.w3c.dom.Attr;
-import org.w3c.dom.CharacterData;
+import org.jsoup.Jsoup;
+import org.jsoup.helper.W3CDom;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
-import jakarta.servlet.http.HttpServletRequest;
-import lucee.commons.io.res.ContentType;
+import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.PageSizeUnits;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+
+import org.lucee.extension.pdf.util.LuceeLogHandler;
+
+import lucee.commons.io.log.Log;
 import lucee.commons.io.res.Resource;
-import lucee.commons.net.http.HTTPResponse;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
-import lucee.runtime.util.ResourceUtil;
 
-public abstract class PDFDocument {
+/**
+ * PDFDocument - HTML to PDF renderer using OpenHTMLToPDF.
+ * This replaces the old PD4ML and Flying Saucer implementations.
+ */
+public class PDFDocument {
 
-	// PageType
-	public static final Dimension PAGETYPE_ISOB5 = new Dimension(501, 709);
-	public static final Dimension PAGETYPE_ISOB4 = new Dimension(709, 1002);
-	public static final Dimension PAGETYPE_ISOB3 = new Dimension(1002, 1418);
-	public static final Dimension PAGETYPE_ISOB2 = new Dimension(1418, 2004);
-	public static final Dimension PAGETYPE_ISOB1 = new Dimension(2004, 2836);
-	public static final Dimension PAGETYPE_ISOB0 = new Dimension(2836, 4008);
-	public static final Dimension PAGETYPE_HALFLETTER = new Dimension(396, 612);
-	public static final Dimension PAGETYPE_LETTER = new Dimension(612, 792);
-	public static final Dimension PAGETYPE_TABLOID = new Dimension(792, 1224);
-	public static final Dimension PAGETYPE_LEDGER = new Dimension(1224, 792);
-	public static final Dimension PAGETYPE_NOTE = new Dimension(540, 720);
-	public static final Dimension PAGETYPE_LEGAL = new Dimension(612, 1008);
+	// Type constants (kept for backward compatibility, but now ignored)
+	public static final int TYPE_NONE = 0;
+	public static final int TYPE_PD4ML = 1;   // Legacy - treated same as TYPE_NONE
+	public static final int TYPE_FS = 2;      // Legacy - treated same as TYPE_NONE
 
-	public static final Dimension PAGETYPE_A10 = new Dimension(74, 105);
-	public static final Dimension PAGETYPE_A9 = new Dimension(105, 148);
-	public static final Dimension PAGETYPE_A8 = new Dimension(148, 210);
-	public static final Dimension PAGETYPE_A7 = new Dimension(210, 297);
-	public static final Dimension PAGETYPE_A6 = new Dimension(297, 421);
-	public static final Dimension PAGETYPE_A5 = new Dimension(421, 595);
-	public static final Dimension PAGETYPE_A4 = new Dimension(595, 842);
-	public static final Dimension PAGETYPE_A3 = new Dimension(842, 1190);
-	public static final Dimension PAGETYPE_A2 = new Dimension(1190, 1684);
-	public static final Dimension PAGETYPE_A1 = new Dimension(1684, 2384);
-	public static final Dimension PAGETYPE_A0 = new Dimension(2384, 3370);
-
-	public static final Dimension PAGETYPE_B4 = new Dimension(708, 1000);
-	public static final Dimension PAGETYPE_B5 = new Dimension(499, 708);
-	public static final Dimension PAGETYPE_B4_JIS = new Dimension(728, 1031);
-	public static final Dimension PAGETYPE_B5_JIS = new Dimension(516, 728);
+	// Page types (in points - 72 points per inch)
 	public static final Dimension PAGETYPE_CUSTOM = new Dimension(1, 1);
+	public static final Dimension PAGETYPE_LETTER = new Dimension(612, 792);       // 8.5 x 11 inches
+	public static final Dimension PAGETYPE_LEGAL = new Dimension(612, 1008);       // 8.5 x 14 inches
+	public static final Dimension PAGETYPE_A4 = new Dimension(595, 842);           // 210 x 297 mm
+	public static final Dimension PAGETYPE_A5 = new Dimension(420, 595);           // 148 x 210 mm
+	public static final Dimension PAGETYPE_B4 = new Dimension(709, 1001);          // 250 x 353 mm
+	public static final Dimension PAGETYPE_B5 = new Dimension(499, 709);           // 176 x 250 mm
+	public static final Dimension PAGETYPE_B4_JIS = new Dimension(729, 1032);      // JIS B4
+	public static final Dimension PAGETYPE_B5_JIS = new Dimension(516, 729);       // JIS B5
 
-	// orientation
-	public static final int ORIENTATION_UNDEFINED = 0;
-	public static final int ORIENTATION_LANDSCAPE = 1;
-	public static final int ORIENTATION_PORTRAIT = 2;
+	// Unit conversion factors (to points)
+	public static final double UNIT_FACTOR_IN = 72.0;      // 1 inch = 72 points
+	public static final double UNIT_FACTOR_CM = 28.3465;   // 1 cm = 28.3465 points
+	public static final double UNIT_FACTOR_POINT = 1.0;    // 1 point = 1 point
+	public static final double UNIT_FACTOR_PIXEL = 0.75;   // 1 pixel = 0.75 points (at 96 DPI)
 
-	// encryption
+	// Font embed options
+	public static final int FONT_EMBED_YES = 1;
+	public static final int FONT_EMBED_NO = 2;
+	public static final int FONT_EMBED_SELECCTIVE = 3;
+
+	// Encryption options
 	public static final int ENC_NONE = 0;
 	public static final int ENC_40BIT = 1;
 	public static final int ENC_128BIT = 2;
 
-	// fontembed
-	public static final int FONT_EMBED_NO = 0;
-	public static final int FONT_EMBED_YES = 1;
-	public static final int FONT_EMBED_SELECCTIVE = FONT_EMBED_YES;
+	// Orientation constants
+	public static final int ORIENTATION_UNDEFINED = -1;
+	public static final int ORIENTATION_PORTRAIT = 0;
+	public static final int ORIENTATION_LANDSCAPE = 1;
 
-	// unit
-	public static final double UNIT_FACTOR_CM = Margin.UNIT_FACTOR_CM;// 85d / 3d;// =28.333333333333333333333333333333333333333333;
-	public static final double UNIT_FACTOR_IN = Margin.UNIT_FACTOR_IN;// UNIT_FACTOR_CM * 2.54;
-	public static final double UNIT_FACTOR_POINT = Margin.UNIT_FACTOR_PT;// 1;
-	public static final double UNIT_FACTOR_PIXEL = Margin.UNIT_FACTOR_PX;// 1d/12d/16d;
+	// Margin constants (in points)
+	public static final double MARGIN_INIT = 36;      // Default margin 0.5 inch
+	public static final double MARGIN_WITH_HF = 72;   // Margin when header/footer present (1 inch)
 
-	// margin init
-	public static final int MARGIN_INIT = 36;
-	public static final int MARGIN_WITH_HF = 73;
+	// Instance fields
+	private String body;
+	private String src;
+	private Resource srcfile;
+	private String authUser;
+	private String authPassword;
+	private String userAgent;
+	private String proxyserver;
+	private int proxyport = 80;
+	private String proxyuser;
+	private String proxypassword;
+	private boolean bookmark;
+	private boolean htmlBookmark;
+	private boolean localUrl;
+	private int fontembed = FONT_EMBED_YES;
+	private File fontDirectory;
+	private double margintop = -1;
+	private double marginbottom = -1;
+	private double marginleft = -1;
+	private double marginright = -1;
+	private String mimetype;
+	private int orientation = ORIENTATION_UNDEFINED;
+	private PDFPageMark header;
+	private PDFPageMark footer;
+	private String name;
+	private int pageOffset = 0;
+	private int pages = 0;
+	private int hfIndex = 0;
 
-	// mimetype
-	protected static final int MIMETYPE_TEXT_HTML = 0;
-	protected static final int MIMETYPE_TEXT = 1;
-	protected static final int MIMETYPE_IMAGE = 2;
-	protected static final int MIMETYPE_APPLICATION = 3;
-	protected static final int MIMETYPE_APPLICATION_PDF = 4;
-	protected static final int MIMETYPE_OTHER = -1;
-
-	protected double margintop = -1;
-	protected double marginbottom = -1;
-	protected double marginleft = -1;
-	protected double marginright = -1;
-
-	protected int mimeType = MIMETYPE_OTHER;
-	protected Charset charset = null;
-
-	// No default value applied here, because a PDFDocument may represent either
-	// a cfdocument or a cfdocumentsection. We only want the former to have a
-	// default, so we will set it in Document instead, because Document is aware
-	// of the context.
-	protected int orientation = ORIENTATION_UNDEFINED;
-
-	protected boolean backgroundvisible;
-	protected boolean fontembed = true;
-	protected PDFPageMark header;
-	protected PDFPageMark footer;
-
-	protected String proxyserver;
-	protected int proxyport = 80;
-	protected String proxyuser = null;
-	protected String proxypassword = "";
-
-	protected String src = null;
-	protected Resource srcfile = null;
-	protected String body;
-	// private boolean isEvaluation;
-	protected String name;
-	protected String authUser;
-	protected String authPassword;
-	protected String userAgent;
-	protected boolean localUrl;
-	protected boolean bookmark;
-	protected boolean htmlBookmark;
-	protected final CFMLEngine engine;
-	protected File fontDirectory;
-	private int pageOffset;
-	private int pages;
-	private List<Resource> tempFiles = new ArrayList<>();
-
-	public static int TYPE_NONE = 0;
-	public static int TYPE_PD4ML = 1; // AKA "classic"
-	public static int TYPE_FS = 2; // AKA "modern"
-	private static long id = 0;
+	private static final CFMLEngine engine = CFMLEngineFactory.getInstance();
 
 	public PDFDocument() {
-		engine = CFMLEngineFactory.getInstance();
-		userAgent = "Lucee PDF Extension";
-
 	}
 
+	/**
+	 * Factory method for creating PDFDocument instances.
+	 * The type parameter is now ignored - OpenHTMLToPDF is always used.
+	 */
 	public static PDFDocument newInstance(int type) {
-		if (TYPE_PD4ML == type) return new PD4MLPDFDocument();
-		return new FSPDFDocument();
+		// Type is ignored - we always use OpenHTMLToPDF now
+		return new PDFDocument();
 	}
 
-	public final void setHeader(PDFPageMark header) {
-		this.header = header;
+	// Setters
+	public void setBody(String body) {
+		this.body = body;
 	}
 
-	public final void setFooter(PDFPageMark footer) {
-		this.footer = footer;
+	public void setSrc(String src) {
+		this.src = src;
 	}
 
-	/**
-	 * @param marginbottom the marginbottom to set
-	 */
-	public final void setMarginbottom(double marginbottom) {
-		this.marginbottom = marginbottom;
+	public void setSrcfile(Resource srcfile) {
+		this.srcfile = srcfile;
 	}
 
-	/**
-	 * @param marginleft the marginleft to set
-	 */
-	public final void setMarginleft(double marginleft) {
-		this.marginleft = marginleft;
+	public void setAuthUser(String authUser) {
+		this.authUser = authUser;
 	}
 
-	/**
-	 * @param marginright the marginright to set
-	 */
-	public final void setMarginright(double marginright) {
-		this.marginright = marginright;
+	public void setAuthPassword(String authPassword) {
+		this.authPassword = authPassword;
 	}
 
-	/**
-	 * @param margintop the margintop to set
-	 */
-	public final void setMargintop(double margintop) {
+	public void setUserAgent(String userAgent) {
+		this.userAgent = userAgent;
+	}
+
+	public void setProxyserver(String proxyserver) {
+		this.proxyserver = proxyserver;
+	}
+
+	public void setProxyport(int proxyport) {
+		this.proxyport = proxyport;
+	}
+
+	public void setProxyuser(String proxyuser) {
+		this.proxyuser = proxyuser;
+	}
+
+	public void setProxypassword(String proxypassword) {
+		this.proxypassword = proxypassword;
+	}
+
+	public void setBookmark(boolean bookmark) {
+		this.bookmark = bookmark;
+	}
+
+	public void setHtmlBookmark(boolean htmlBookmark) {
+		this.htmlBookmark = htmlBookmark;
+	}
+
+	public void setLocalUrl(boolean localUrl) {
+		this.localUrl = localUrl;
+	}
+
+	public void setFontembed(int fontembed) {
+		this.fontembed = fontembed;
+	}
+
+	public void setFontDirectory(File fontDirectory) {
+		this.fontDirectory = fontDirectory;
+	}
+
+	public void setMargintop(double margintop) {
 		this.margintop = margintop;
 	}
 
-	/**
-	 * @param ct the mimetype to set
-	 * @throws PageException
-	 */
-	public final void setMimetype(ContentType ct) throws PageException {
-		// mimetype
-		if (ct.getMimeType().startsWith("text/html")) mimeType = MIMETYPE_TEXT_HTML;
-		else if (ct.getMimeType().startsWith("text/")) mimeType = MIMETYPE_TEXT;
-		else if (ct.getMimeType().startsWith("image/")) mimeType = MIMETYPE_IMAGE;
-		else if (ct.getMimeType().startsWith("application/pdf")) mimeType = MIMETYPE_APPLICATION_PDF;
-		else mimeType = MIMETYPE_OTHER;
-
-		// charset
-		String strCharset = ct.getCharset();
-		if (!Util.isEmpty(strCharset, true)) {
-			charset = engine.getCastUtil().toCharset(strCharset);
-		}
+	public void setMarginbottom(double marginbottom) {
+		this.marginbottom = marginbottom;
 	}
 
-	public final void setMimetype(String strMimetype) throws PageException {
-		strMimetype = strMimetype.toLowerCase().trim();
-
-		// mimetype
-		if (strMimetype.startsWith("text/html")) mimeType = MIMETYPE_TEXT_HTML;
-		else if (strMimetype.startsWith("text/")) mimeType = MIMETYPE_TEXT;
-		else if (strMimetype.startsWith("image/")) mimeType = MIMETYPE_IMAGE;
-		else if (strMimetype.startsWith("application/pdf")) mimeType = MIMETYPE_APPLICATION_PDF;
-		else mimeType = MIMETYPE_OTHER;
-
-		// charset
-		String[] arr = engine.getListUtil().toStringArray(strMimetype, ";");
-		if (arr.length >= 2) {
-			strMimetype = arr[0].trim();
-			for (int i = 1; i < arr.length; i++) {
-				String[] item = engine.getListUtil().toStringArray(arr[i], "=");
-				if (item.length == 1) {
-					charset = engine.getCastUtil().toCharset(item[0].trim());
-					break;
-				}
-				else if (item.length == 2 && item[0].trim().equals("charset")) {
-					charset = engine.getCastUtil().toCharset(item[1].trim());
-					break;
-				}
-			}
-		}
+	public void setMarginleft(double marginleft) {
+		this.marginleft = marginleft;
 	}
 
-	public int getOrientation() {
-		return this.orientation;
+	public void setMarginright(double marginright) {
+		this.marginright = marginright;
 	}
 
-	/**
-	 * @param orientation the orientation to set
-	 * @throws PageException
-	 */
-	public void setOrientation(String strOrientation) throws PageException {
-		if (Util.isEmpty(strOrientation, true)) return;
-		strOrientation = strOrientation.trim();
-		if ("portrait".equalsIgnoreCase(strOrientation)) setOrientation(ORIENTATION_PORTRAIT);
-		else if ("landscape".equalsIgnoreCase(strOrientation)) setOrientation(ORIENTATION_LANDSCAPE);
-		else throw engine.getExceptionUtil().createApplicationException("Invalid orientation [" + strOrientation + "], valid orientations are [portrait, landscape]");
+	public void setMimetype(String mimetype) {
+		this.mimetype = mimetype;
 	}
 
-	/**
-	 * Set the orientation, without any parameter checking. Use this when the calling method cannot
-	 * throw exceptions, and be careful!
-	 * 
-	 * @param orientation the orientation to set. ("portrait" or "landscape")
-	 */
 	public void setOrientation(int orientation) {
 		this.orientation = orientation;
 	}
 
-	/**
-	 * set the value proxyserver Host name or IP address of a proxy server.
-	 *
-	 * @param proxyserver value to set
-	 **/
-	public final void setProxyserver(String proxyserver) {
-		this.proxyserver = proxyserver;
-	}
-
-	/**
-	 * set the value proxyport The port number on the proxy server from which the object is requested.
-	 * Default is 80. When used with resolveURL, the URLs of retrieved documents that specify a port
-	 * number are automatically resolved to preserve links in the retrieved document.
-	 *
-	 * @param proxyport value to set
-	 **/
-	public final void setProxyport(int proxyport) {
-		this.proxyport = proxyport;
-	}
-
-	/**
-	 * set the value username When required by a proxy server, a valid username.
-	 *
-	 * @param proxyuser value to set
-	 **/
-	public final void setProxyuser(String proxyuser) {
-		this.proxyuser = proxyuser;
-	}
-
-	/**
-	 * set the value password When required by a proxy server, a valid password.
-	 *
-	 * @param proxypassword value to set
-	 **/
-	public final void setProxypassword(String proxypassword) {
-		this.proxypassword = proxypassword;
-	}
-
-	/**
-	 * @param src
-	 * @throws PageException
-	 */
-	public final void setSrc(String src) throws PageException {
-		if (srcfile != null) throw engine.getExceptionUtil().createApplicationException("You cannot specify both the [src] and [srcfile] attributes");
-		this.src = src;
-	}
-
-	/**
-	 * @param srcfile the srcfile to set
-	 * @throws PageException
-	 */
-	public final void setSrcfile(Resource srcfile) throws PageException {
-		if (src != null) throw engine.getExceptionUtil().createApplicationException("You cannot specify both the [src] and [srcfile] attributes");
-		this.srcfile = srcfile;
-	}
-
-	public final void setBody(String body) {
-		this.body = body;
-	}
-
-	public final String getBody() {
-		return body;
-	}
-
-	public abstract byte[] _render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws Exception;
-
-	public final byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws Exception {
-		try {
-			return _render(dimension, unitFactor, pc, generategenerateOutlines);
+	public void setOrientation(String strOrientation) throws PageException {
+		if (Util.isEmpty(strOrientation, true)) return;
+		strOrientation = strOrientation.trim().toLowerCase();
+		if ("portrait".equals(strOrientation)) {
+			this.orientation = ORIENTATION_PORTRAIT;
 		}
-		finally {
-			clean();
+		else if ("landscape".equals(strOrientation)) {
+			this.orientation = ORIENTATION_LANDSCAPE;
+		}
+		else {
+			throw engine.getExceptionUtil().createApplicationException(
+				"Invalid orientation [" + strOrientation + "], valid orientations are [portrait, landscape]");
 		}
 	}
 
-	private void clean() {
-		for (Resource tmp: tempFiles) {
-			if (!tmp.delete() && tmp instanceof File) {
-				((File) tmp).deleteOnExit();
-			}
-
-		}
-		tempFiles.iterator();
+	public void setHeader(PDFPageMark header) {
+		this.header = header;
 	}
 
-	protected final static URL getRequestURL(PageContext pc) {
-		if (pc == null) return null;
-		try {
-			return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(getDirectoryFromPath(getRequestURL(pc.getHttpServletRequest(), false)));
-		}
-		catch (Throwable t) {
-			if (t instanceof ThreadDeath) throw (ThreadDeath) t;
-			return null;
-		}
+	public void setFooter(PDFPageMark footer) {
+		this.footer = footer;
 	}
 
-	public final PDFPageMark getHeader() {
-		return header;
-	}
-
-	public final PDFPageMark getFooter() {
-		return footer;
-	}
-
-	public final void setFontembed(int fontembed) {
-		this.fontembed = fontembed != FONT_EMBED_NO;
-	}
-
-	public final void setFontDirectory(File fontdirectory) {
-		this.fontDirectory = fontdirectory;
-	}
-
-	/**
-	 * @return the name
-	 */
-	public final String getName() {
-		return name;
-	}
-
-	/**
-	 * @param name the name to set
-	 */
-	public final void setName(String name) {
+	public void setName(String name) {
 		this.name = name;
 	}
 
-	/**
-	 * @return the authUser
-	 */
-	public final String getAuthUser() {
+	public void setPageOffset(int pageOffset) {
+		this.pageOffset = pageOffset;
+	}
+
+	public void setPages(int pages) {
+		this.pages = pages;
+	}
+
+	public void setHFIndex(int hfIndex) {
+		this.hfIndex = hfIndex;
+	}
+
+	// Getters
+	public String getBody() {
+		return body;
+	}
+
+	public String getSrc() {
+		return src;
+	}
+
+	public Resource getSrcfile() {
+		return srcfile;
+	}
+
+	public String getAuthUser() {
 		return authUser;
 	}
 
-	/**
-	 * @param authUser the authUser to set
-	 */
-	public final void setAuthUser(String authUser) {
-		this.authUser = authUser;
-	}
-
-	/**
-	 * @return the authPassword
-	 */
-	public final String getAuthPassword() {
+	public String getAuthPassword() {
 		return authPassword;
 	}
 
-	/**
-	 * @param authPassword the authPassword to set
-	 */
-	public final void setAuthPassword(String authPassword) {
-		this.authPassword = authPassword;
-	}
-
-	/**
-	 * @return the userAgent
-	 */
-	public final String getUserAgent() {
+	public String getUserAgent() {
 		return userAgent;
 	}
 
-	/**
-	 * @param userAgent the userAgent to set
-	 */
-	public final void setUserAgent(String userAgent) {
-		this.userAgent = userAgent;
-	}
-
-	/**
-	 * @return the proxyserver
-	 */
-	public final String getProxyserver() {
+	public String getProxyserver() {
 		return proxyserver;
 	}
 
-	/**
-	 * @return the proxyport
-	 */
-	public final int getProxyport() {
+	public int getProxyport() {
 		return proxyport;
 	}
 
-	/**
-	 * @return the proxyuser
-	 */
-	public final String getProxyuser() {
+	public String getProxyuser() {
 		return proxyuser;
 	}
 
-	/**
-	 * @return the proxypassword
-	 */
-	public final String getProxypassword() {
+	public String getProxypassword() {
 		return proxypassword;
 	}
 
-	public final boolean hasProxy() {
-		return !Util.isEmpty(proxyserver);
-	}
-
-	/**
-	 * @return the localUrl
-	 */
-	public final boolean getLocalUrl() {
-		return localUrl;
-	}
-
-	/**
-	 * @param localUrl the localUrl to set
-	 */
-	public final void setLocalUrl(boolean localUrl) {
-		this.localUrl = localUrl;
-	}
-
-	/**
-	 * @return the bookmark
-	 */
-	public final boolean getBookmark() {
+	public boolean getBookmark() {
 		return bookmark;
 	}
 
-	/**
-	 * @param bookmark the bookmark to set
-	 */
-	public final void setBookmark(boolean bookmark) {
-		this.bookmark = bookmark;
-	}
-
-	/**
-	 * @return the htmlBookmark
-	 */
-	public final boolean getHtmlBookmark() {
+	public boolean getHtmlBookmark() {
 		return htmlBookmark;
 	}
 
-	/**
-	 * @param htmlBookmark the htmlBookmark to set
-	 */
-	public final void setHtmlBookmark(boolean htmlBookmark) {
-		this.htmlBookmark = htmlBookmark;
+	public boolean getLocalUrl() {
+		return localUrl;
+	}
+
+	public boolean getFontembed() {
+		return fontembed == FONT_EMBED_YES;
+	}
+
+	public File getFontDirectory() {
+		return fontDirectory;
 	}
 
 	public double getMargintop() {
@@ -545,304 +335,407 @@ public abstract class PDFDocument {
 		return marginright;
 	}
 
-	public File getFontDirectory() {
-		return fontDirectory;
+	public String getMimetype() {
+		return mimetype;
 	}
 
-	public boolean getFontembed() {
-		return fontembed;
+	public int getOrientation() {
+		return orientation;
 	}
 
-	protected final static String getRequestURL(HttpServletRequest req, boolean includeQueryString) {
-		StringBuffer sb = req.getRequestURL();
-		int maxpos = sb.indexOf("/", 8);
-		if (maxpos > -1) {
-			if (req.isSecure()) {
-				if (sb.substring(maxpos - 4, maxpos).equals(":443")) sb.delete(maxpos - 4, maxpos);
-			}
-			else {
-				if (sb.substring(maxpos - 3, maxpos).equals(":80")) sb.delete(maxpos - 3, maxpos);
-			}
-
-			if (includeQueryString && !Util.isEmpty(req.getQueryString())) sb.append('?').append(req.getQueryString());
-		}
-		return sb.toString();
+	public PDFPageMark getHeader() {
+		return header;
 	}
 
-	public final static String getDirectoryFromPath(String path) {
-		int posOfLastDel = path.lastIndexOf('/');
-		String parent = "";
-
-		if (path.lastIndexOf('\\') > posOfLastDel) posOfLastDel = path.lastIndexOf("\\");
-		if (posOfLastDel != -1) parent = path.substring(0, posOfLastDel + 1);
-		else if (path.equals(".") || path.equals("..")) parent = String.valueOf(File.separatorChar);
-		else if (path.startsWith(".")) parent = String.valueOf(File.separatorChar);
-		else parent = String.valueOf(File.separatorChar);
-		return parent;
+	public PDFPageMark getFooter() {
+		return footer;
 	}
 
-	public static String getDomain(HttpServletRequest req) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(req.isSecure() ? "https://" : "http://");
-		sb.append(req.getServerName());
-		sb.append(':');
-		sb.append(req.getServerPort());
-		if (!Util.isEmpty(req.getContextPath())) sb.append(req.getContextPath());
-		return sb.toString();
-	}
-
-	protected static URL searchBaseURL(Document doc) {
-		Element html = doc.getDocumentElement();
-		NodeList list = html.getChildNodes();
-		Node n;
-		for (int i = list.getLength() - 1; i >= 0; i--) {
-			n = list.item(i);
-			// head
-			if (n instanceof Element && n.getNodeName().equalsIgnoreCase("head")) {
-				Element head = (Element) n;
-				NodeList _list = html.getChildNodes();
-				for (int _i = _list.getLength() - 1; _i >= 0; _i--) {
-					n = list.item(i);
-					// base
-					if (n instanceof Element && n.getNodeName().equalsIgnoreCase("base")) {
-						Element base = (Element) n;
-						String href = base.getAttribute("href");
-						if (!Util.isEmpty(href)) {
-							try {
-								return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(href);
-							}
-							catch (MalformedURLException e) {
-							}
-						}
-					}
-
-				}
-			}
-		}
-		return null;
-	}
-
-	public static String toHTML(Node node) throws PageException {
-		if (Node.DOCUMENT_NODE == node.getNodeType()) return toHTML(XMLUtil.getRootElement(node));
-
-		StringBuilder sb = new StringBuilder();
-		toHTML(node, sb);
-		return sb.toString();
-	}
-
-	private static void toHTML(Node node, StringBuilder sb) throws PageException {
-		short type = node.getNodeType();
-		if (Node.ELEMENT_NODE == type) {
-			Element el = (Element) node;
-			String tagName = el.getTagName();
-			sb.append('<');
-			sb.append(tagName);
-
-			NamedNodeMap attrs = el.getAttributes();
-			Attr attr;
-			int len = attrs.getLength();
-			for (int i = 0; i < len; i++) {
-				attr = (Attr) attrs.item(i);
-				sb.append(' ');
-				sb.append(attr.getName());
-				sb.append("=\"");
-				sb.append(attr.getValue());
-				sb.append('"');
-			}
-			NodeList children = el.getChildNodes();
-			len = children.getLength();
-
-			boolean doEndTag = len != 0 || (tagName.length() == 4 && (tagName.equalsIgnoreCase("head") || tagName.equalsIgnoreCase("body")));
-
-			if (!doEndTag) sb.append(" />");
-			else sb.append('>');
-
-			for (int i = 0; i < len; i++) {
-				toHTML(children.item(i), sb);
-			}
-
-			if (doEndTag) {
-				sb.append("</");
-				sb.append(el.getTagName());
-				sb.append('>');
-			}
-		}
-		else if (node instanceof CharacterData) {
-			sb.append(CFMLEngineFactory.getInstance().getHTMLUtil().escapeHTML(node.getNodeValue()));
-		}
-	}
-
-	protected void prepare(File fontDirectory, String propertyName) {
-		if (!fontDirectory.isDirectory()) return;
-		File fontProps = new File(fontDirectory, propertyName);
-		if (fontProps.isFile()) return;
-
-		// create file content
-		StringBuilder sb = new StringBuilder("# generated by the Lucee PDF Extension based on the files in this directory");
-		sb.append("\n");
-		File[] children = fontDirectory.listFiles();
-		String name;
-		for (File child: children) {
-			if (!child.getName().toLowerCase().endsWith(".ttf")) continue;
-			try {
-				name = Font.createFont(Font.TRUETYPE_FONT, child).getName();
-				sb.append(engine.getStringUtil().replace(name, " ", "\\ ", false, false)).append('=').append(child.getName()).append('\n');
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		// create the file
-		try {
-			engine.getIOUtil().copy(new ByteArrayInputStream(sb.toString().trim().getBytes("UTF-8")), new FileOutputStream(fontProps), true, true);
-		}
-		catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	public final static int toPoint(double value, double unitFactor) {
-		if (value < 0) return MARGIN_INIT;
-		return (int) Math.round(value * unitFactor);
-		// return r;
-	}
-
-	public abstract void pageBreak(PageContext pc) throws IOException;
-
-	public abstract String handlePageNumbers(String html);
-
-	public void setPageOffset(int pageOffset) {
-		this.pageOffset = pageOffset;
+	public String getName() {
+		return name;
 	}
 
 	public int getPageOffset() {
 		return pageOffset;
 	}
 
-	public void setPages(int pages) {
-		this.pages = pages;
-	}
-
 	public int getPages() {
 		return pages;
 	}
 
-	public void setHFIndex(int i) {
-		if (header != null) header.setIndex(i);
-		if (footer != null) footer.setIndex(i);
+	public int getHFIndex() {
+		return hfIndex;
 	}
 
-	protected static URL getBase(PageContext pc) throws MalformedURLException, PageException, RuntimeException {
-		// PageContext pc = Thread LocalPageContext.get();
-		if (pc == null) return null;
-
-		String userAgent = pc.getHttpServletRequest().getHeader("User-Agent");
-		// bug in pd4ml-> html badse definition create a call
-		if (!Util.isEmpty(userAgent) && (userAgent.startsWith("Java"))) return null;
-
-		String url = getRequestURL(pc.getHttpServletRequest(), false);
-		return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(url, -1, true);
+	public boolean hasProxy() {
+		return !Util.isEmpty(proxyserver);
 	}
 
-	protected void toLocalSource(CFMLEngine engine, PageContext pc, Node n, String hostPort) {
-		if (n.getNodeName().equalsIgnoreCase("img") && n instanceof Element) {
-			Element e = (Element) n;
-			String src = e.getAttribute("src");
+	/**
+	 * Convert a value to points using the given unit factor.
+	 */
+	public static int toPoint(double value, double unitFactor) {
+		return (int) Math.round(value * unitFactor);
+	}
+
+	/**
+	 * Render the HTML content to PDF.
+	 *
+	 * @param dimension Page dimensions in points
+	 * @param unitFactor Unit conversion factor for margins
+	 * @param pc PageContext for resource resolution
+	 * @param doHtmlBookmarks Whether to include HTML bookmarks
+	 * @return PDF as byte array
+	 */
+	public byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean doHtmlBookmarks) throws PageException {
+		try {
+			String html = getHTMLContent(pc);
+			String baseUrl = getBaseUrl(pc);
+
+			// Parse HTML with JSoup and convert to W3C DOM
+			org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
+			jsoupDoc.outputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml);
+
+			// Convert local file paths to file:// URIs for OpenHTMLToPDF compatibility
+			convertLocalPathsToURIs(jsoupDoc);
+
+			W3CDom w3cDom = new W3CDom();
+			Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
+
+			// Inject CSS for page size and margins
+			String pageCSS = buildPageCSS(dimension, unitFactor);
+			injectPageCSS(jsoupDoc, pageCSS);
+
+			// Re-convert after CSS injection
+			w3cDoc = w3cDom.fromJsoup(jsoupDoc);
+
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PdfRendererBuilder builder = new PdfRendererBuilder();
+
+			// Set the W3C DOM
+			builder.withW3cDocument(w3cDoc, baseUrl);
+
+			// Configure fonts
+			if (fontDirectory != null && fontDirectory.isDirectory()) {
+				File[] fonts = fontDirectory.listFiles((dir, name) ->
+					name.toLowerCase().endsWith(".ttf") || name.toLowerCase().endsWith(".otf"));
+				if (fonts != null) {
+					for (File font : fonts) {
+						try {
+							// Get the actual font family name from the font file
+							java.awt.Font awtFont = java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, font);
+							String fontFamily = awtFont.getFamily();
+							builder.useFont(font, fontFamily);
+						}
+						catch (Exception e) {
+							// Fallback to filename if font can't be read
+							try {
+								String fontName = font.getName().replaceFirst("[.][^.]+$", "");
+								builder.useFont(font, fontName);
+							}
+							catch (Exception e2) {
+								// Skip fonts that can't be loaded
+							}
+						}
+					}
+				}
+			}
+
+			builder.toStream(baos);
+
+			// Route OpenHTMLToPDF logging through Lucee (uncomment when done debugging)
+			// Log pdfLog = pc.getConfig().getLog("pdf");
+			// Logger ohtLogger = Logger.getLogger("com.openhtmltopdf");
+			// ohtLogger.setUseParentHandlers(false);
+			// ohtLogger.addHandler(new LuceeLogHandler(pdfLog));
+
+			builder.run();
+
+			return baos.toByteArray();
+		}
+		catch (Exception e) {
+			throw engine.getCastUtil().toPageException(e);
+		}
+	}
+
+	/**
+	 * Build CSS @page rules for page size and margins.
+	 */
+	private String buildPageCSS(Dimension dimension, double unitFactor) {
+		StringBuilder css = new StringBuilder();
+		css.append("@page { ");
+
+		// Page size
+		double widthPt = dimension.width;
+		double heightPt = dimension.height;
+		css.append("size: ").append(widthPt).append("pt ").append(heightPt).append("pt; ");
+
+		// Margins
+		if (margintop >= 0) {
+			css.append("margin-top: ").append(toPoint(margintop, unitFactor)).append("pt; ");
+		}
+		if (marginbottom >= 0) {
+			css.append("margin-bottom: ").append(toPoint(marginbottom, unitFactor)).append("pt; ");
+		}
+		if (marginleft >= 0) {
+			css.append("margin-left: ").append(toPoint(marginleft, unitFactor)).append("pt; ");
+		}
+		if (marginright >= 0) {
+			css.append("margin-right: ").append(toPoint(marginright, unitFactor)).append("pt; ");
+		}
+
+		css.append("}");
+
+		// Header/footer support via CSS running elements
+		if (header != null) {
+			css.append(" @page { @top-center { content: element(header); } }");
+			css.append(" #pdf-header { position: running(header); }");
+		}
+		if (footer != null) {
+			css.append(" @page { @bottom-center { content: element(footer); } }");
+			css.append(" #pdf-footer { position: running(footer); }");
+		}
+
+		// CSS counters for page numbers - OpenHTMLToPDF supports these
+		css.append(" .pdf-page-number::before { content: counter(page); }");
+		css.append(" .pdf-page-count::before { content: counter(pages); }");
+
+		return css.toString();
+	}
+
+	/**
+	 * Inject CSS into the HTML document head.
+	 */
+	private void injectPageCSS(org.jsoup.nodes.Document doc, String css) {
+		org.jsoup.nodes.Element head = doc.head();
+		if (head == null) {
+			head = doc.appendElement("head");
+		}
+		head.prependElement("style").attr("type", "text/css").text(css);
+
+		// Inject header/footer content if present
+		org.jsoup.nodes.Element body = doc.body();
+		if (body != null) {
+			if (header != null) {
+				String headerHtml = header.getHtml(hfIndex);
+				if (!Util.isEmpty(headerHtml)) {
+					body.prependElement("div")
+						.attr("id", "pdf-header")
+						.html(processPageVariables(headerHtml));
+				}
+			}
+			if (footer != null) {
+				String footerHtml = footer.getHtml(hfIndex);
+				if (!Util.isEmpty(footerHtml)) {
+					body.appendElement("div")
+						.attr("id", "pdf-footer")
+						.html(processPageVariables(footerHtml));
+				}
+			}
+		}
+	}
+
+	/**
+	 * Convert local file paths in src attributes to file:// URIs.
+	 * OpenHTMLToPDF requires proper URIs, not Windows paths like d:\path\file.png
+	 */
+	private void convertLocalPathsToURIs(org.jsoup.nodes.Document doc) {
+		// Process img, link, script, and other elements with src/href attributes
+		for (org.jsoup.nodes.Element el : doc.select("[src], [href]")) {
+			String src = el.attr("src");
+			String href = el.attr("href");
+
+			if (!Util.isEmpty(src)) {
+				String converted = pathToFileURI(src);
+				if (converted != null) {
+					el.attr("src", converted);
+				}
+			}
+			if (!Util.isEmpty(href)) {
+				String converted = pathToFileURI(href);
+				if (converted != null) {
+					el.attr("href", converted);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Convert a local file path to a file:// URI if it looks like a Windows or Unix path.
+	 * Returns null if the path is already a URL or doesn't need conversion.
+	 */
+	private String pathToFileURI(String path) {
+		if (path == null || path.isEmpty()) return null;
+
+		// Skip if already a URL
+		String lower = path.toLowerCase();
+		if (lower.startsWith("http://") || lower.startsWith("https://") ||
+			lower.startsWith("file://") || lower.startsWith("data:")) {
+			return null;
+		}
+
+		// Check if it looks like a Windows path (e.g., C:\ or d:\)
+		if (path.length() > 2 && Character.isLetter(path.charAt(0)) && path.charAt(1) == ':') {
 			try {
-				if (!engine.getStringUtil().startsWithIgnoreCase(src.trim(), "data:image")) {
-					Resource res = engine.getCastUtil().toResource(src, null);
-					if (res != null) e.setAttribute("src", toLocalSource(engine, res));
-				}
-				else e.setAttribute("src", cleanBase64Image(src));
+				File f = new File(path);
+				return f.toURI().toString();
 			}
-			catch (Exception mue) {
+			catch (Exception e) {
+				return null;
 			}
 		}
-		else {
-			NodeList children = n.getChildNodes();
-			int len = children.getLength();
-			for (int i = 0; i < len; i++) {
-				toLocalSource(engine, pc, children.item(i), hostPort);
-			}
-		}
-	}
 
-	private static String cleanBase64Image(String src) {
-		return src.trim().replaceAll(";base64,\\s+", ";base64,");
-	}
-
-	protected String toLocalSource(CFMLEngine engine, URL url) {
-		try {
-			String name = url.getFile();
-			String expType = null;
-			if (engine.getStringUtil().endsWithIgnoreCase(name, ".jpg")) expType = "image/jpeg";
-			else if (engine.getStringUtil().endsWithIgnoreCase(name, ".png")) expType = "image/png";
-			else if (engine.getStringUtil().endsWithIgnoreCase(name, ".gif")) expType = "image/gif";
-
-			if (expType != null) {
-				HTTPResponse rsp = engine.getHTTPUtil().get(url, null, null, -1, null, null, null, -1, null, null, null);
-				if (expType.equals(rsp.getContentType().toString())) {
-					String b64 = engine.getCastUtil().toBase64(rsp.getContentAsByteArray());
-					return "data:" + expType + ";base64," + b64;
+		// Check if it looks like an absolute Unix path
+		if (path.startsWith("/") && !path.startsWith("//")) {
+			try {
+				File f = new File(path);
+				if (f.exists()) {
+					return f.toURI().toString();
 				}
 			}
+			catch (Exception e) {
+				return null;
+			}
 		}
-		catch (Exception e) {
-		}
-		return url.toExternalForm();
+
+		return null;
 	}
 
-	protected String toLocalSource(CFMLEngine engine, Resource res) {
-		// local URL Path
-		try {
-			if (!(res instanceof File)) {
-				ResourceUtil util = engine.getResourceUtil();
-				String ext = util.getExtension(res, "tmp");
-				Resource tmp = util.getTempDirectory().getRealResource(uid() + "." + ext);
-				engine.getIOUtil().copy(res, tmp);
-				res = tmp;
-				tempFiles.add(tmp);
+	/**
+	 * Process page number variables in header/footer content.
+	 * OpenHTMLToPDF uses CSS counters which are injected via buildPageCSS().
+	 */
+	private String processPageVariables(String html) {
+		// Replace CFML placeholder patterns with spans that CSS will populate with counters
+		html = html.replace("{currentpagenumber}", "<span class=\"pdf-page-number\"></span>");
+		html = html.replace("{totalpagecount}", "<span class=\"pdf-page-count\"></span>");
+		html = html.replace("{currentsectionpagenumber}", "<span class=\"pdf-page-number\"></span>");
+		html = html.replace("{totalsectionpagecount}", "<span class=\"pdf-page-count\"></span>");
+		return html;
+	}
+
+	/**
+	 * Get the HTML content to render.
+	 */
+	private String getHTMLContent(PageContext pc) throws PageException, IOException {
+		// Priority: body > srcfile > src
+		// Note: body can be empty string for blank PDFs - that's valid
+		if (body != null) {
+			// Return body even if empty - creates blank PDF
+			return body.isEmpty() ? "<html><body></body></html>" : body;
+		}
+		if (srcfile != null) {
+			InputStream is = srcfile.getInputStream();
+			try {
+				return engine.getIOUtil().toString(is, StandardCharsets.UTF_8);
 			}
-			return ((File) res).toURI().toURL().toString();
+			finally {
+				Util.closeEL(is);
+			}
 		}
-		catch (Exception e) {
+		if (!Util.isEmpty(src)) {
+			return fetchURL(src, pc);
+		}
+		// No content at all - return blank page (backwards compatible behavior)
+		return "<html><body></body></html>";
+	}
+
+	/**
+	 * Fetch content from a URL.
+	 */
+	private String fetchURL(String urlStr, PageContext pc) throws PageException, IOException {
+		// Handle local URLs
+		if (localUrl && !urlStr.toLowerCase().startsWith("http://") && !urlStr.toLowerCase().startsWith("https://")) {
+			Resource res = engine.getResourceUtil().toResourceExisting(pc, urlStr);
+			InputStream is = res.getInputStream();
+			try {
+				return engine.getIOUtil().toString(is, StandardCharsets.UTF_8);
+			}
+			finally {
+				Util.closeEL(is);
+			}
 		}
 
-		// local base 64
+		// TODO: Implement proper URL fetching with proxy/auth support
+		// For now, use JSoup for basic URL fetching
 		try {
-			String name = res.getName();
-			String expType = null;
-			if (engine.getStringUtil().endsWithIgnoreCase(name, ".jpg")) expType = "image/jpeg";
-			else if (engine.getStringUtil().endsWithIgnoreCase(name, ".png")) expType = "image/png";
-			else if (engine.getStringUtil().endsWithIgnoreCase(name, ".gif")) expType = "image/gif";
+			org.jsoup.Connection conn = Jsoup.connect(urlStr);
+			if (!Util.isEmpty(userAgent)) {
+				conn.userAgent(userAgent);
+			}
+			if (!Util.isEmpty(authUser) && !Util.isEmpty(authPassword)) {
+				String auth = java.util.Base64.getEncoder().encodeToString(
+					(authUser + ":" + authPassword).getBytes(StandardCharsets.UTF_8));
+				conn.header("Authorization", "Basic " + auth);
+			}
+			// TODO: Add proxy support when needed
+			return conn.get().html();
+		}
+		catch (IOException e) {
+			throw engine.getExceptionUtil().createApplicationException(
+				"Failed to fetch URL [" + urlStr + "]: " + e.getMessage());
+		}
+	}
 
-			if (expType != null) {
-				ContentType ct = engine.getResourceUtil().getContentType(res);
-				if (expType.equals(ct.getMimeType())) {
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					engine.getIOUtil().copy(res.getInputStream(), baos, true, true);
-					String b64 = engine.getCastUtil().toBase64(baos.toByteArray());
-					return "data:" + expType + ";base64," + b64;
+	/**
+	 * Handle page number placeholders in content.
+	 * Replaces placeholders with CSS counter elements that OpenHTMLToPDF can process.
+	 */
+	public String handlePageNumbers(String content) {
+		if (content == null) return content;
+		// These placeholders get replaced at runtime with CSS page counters
+		content = content.replace("{currentpagenumber}", "<span class=\"page-number\"></span>");
+		content = content.replace("{totalpagecount}", "<span class=\"page-count\"></span>");
+		content = content.replace("{currentsectionpagenumber}", "<span class=\"page-number\"></span>");
+		content = content.replace("{totalsectionpagecount}", "<span class=\"page-count\"></span>");
+		return content;
+	}
+
+	/**
+	 * Write a page break marker to the output.
+	 * With OpenHTMLToPDF, page breaks are handled via CSS.
+	 */
+	public void pageBreak(PageContext pc) throws IOException {
+		// Write a CSS page-break element
+		pc.forceWrite("<div style=\"page-break-after: always;\"></div>");
+	}
+
+	/**
+	 * Determine the base URL for resolving relative resources.
+	 */
+	private String getBaseUrl(PageContext pc) {
+		try {
+			if (srcfile != null) {
+				if (srcfile instanceof File) {
+					return ((File) srcfile).toURI().toString();
+				}
+				return srcfile.getAbsolutePath();
+			}
+			if (!Util.isEmpty(src)) {
+				try {
+					new URL(src);
+					return src;
+				}
+				catch (MalformedURLException e) {
+					// Not a valid URL, try as file path
+					Resource res = engine.getResourceUtil().toResourceExisting(pc, src);
+					if (res instanceof File) {
+						return ((File) res).toURI().toString();
+					}
+				}
+			}
+			// Default to current template directory
+			Resource curr = pc.getCurrentTemplatePageSource().getResource();
+			if (curr != null) {
+				Resource parent = curr.getParentResource();
+				if (parent instanceof File) {
+					return ((File) parent).toURI().toString();
 				}
 			}
 		}
 		catch (Exception e) {
+			// Ignore and return null
 		}
-
-		// simply cleaned path
-		try {
-			return res.getCanonicalPath();
-		}
-		catch (Exception e) {
-			return res.getAbsolutePath();
-		}
+		return null;
 	}
-
-	private synchronized static String uid() {
-		if (id < 0) id = 0;
-		return Long.toString(++id, Character.MAX_RADIX);
-	}
-
 }
