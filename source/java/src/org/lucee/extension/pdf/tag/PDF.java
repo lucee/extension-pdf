@@ -93,7 +93,7 @@ public class PDF extends BodyTagImpl {
 	private static final int ACTION_DELETE_PAGES = 1;
 	private static final int ACTION_GET_INFO = 2;
 	private static final int ACTION_MERGE = 3;
-	private static final int ACTION_PROCESSDDX = 5;
+	private static final int ACTION_PROCESSDDX = 4;
 	private static final int ACTION_PROTECT = 5;
 	private static final int ACTION_READ = 6;
 	private static final int ACTION_REMOVE_WATERMARK = 7;
@@ -651,6 +651,31 @@ public class PDF extends BodyTagImpl {
 		return EVAL_PAGE;
 	}
 
+	// Helper to create output stream based on destination/source configuration
+	private OutputStream createOutputStream( PDFStruct doc, boolean needsBytes ) throws PageException, IOException {
+		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals( doc.getResource() );
+		if ( needsBytes || destIsSource || destination == null ) {
+			return new ByteArrayOutputStream();
+		}
+		return destination.getOutputStream();
+	}
+
+	// Helper to finalize output - handles copy-back and sets variable as PDFStruct if varName provided
+	private byte[] finalizeOutput( OutputStream os, PDFStruct doc, String varName ) throws PageException, IOException {
+		Util.closeEL( os );
+		if ( os instanceof ByteArrayOutputStream ) {
+			byte[] bytes = ( (ByteArrayOutputStream) os ).toByteArray();
+			if ( destination != null )
+				engine.getIOUtil().copy( new ByteArrayInputStream( bytes ), destination, true );
+			else if ( doc.getResource() != null )
+				engine.getIOUtil().copy( new ByteArrayInputStream( bytes ), doc.getResource(), true );
+			if ( !Util.isEmpty( varName ) )
+				pageContext.setVariable( varName, new PDFStruct( bytes, password ) );
+			return bytes;
+		}
+		return null;
+	}
+
 	private void doActionWrite() throws PageException, IOException {
 		required("pdf", "write", "source", source);
 		required("pdf", "write", "destination", destination);
@@ -704,15 +729,7 @@ public class PDF extends BodyTagImpl {
 			}
 		}
 
-		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
-		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource || destination == null) {
-			os = new ByteArrayOutputStream();
-		}
-		else if (destination != null) {
-			os = destination.getOutputStream();
-		}
-
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
 		try (PDDocument pdDoc = doc.toPDDocument()) {
 			int len = pdDoc.getNumberOfPages();
 			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
@@ -767,16 +784,7 @@ public class PDF extends BodyTagImpl {
 			pdDoc.save(os);
 		}
 		finally {
-			Util.closeEL(os);
-			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
-				}
-				else if (destination == null && doc.getResource() != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
-			}
+			finalizeOutput( os, doc, name );
 		}
 	}
 
@@ -903,15 +911,7 @@ public class PDF extends BodyTagImpl {
 		PDFStruct doc = toPDFDocument(source, password, null);
 		doc.setPages(pages);
 
-		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
-		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource || destination == null) {
-			os = new ByteArrayOutputStream();
-		}
-		else if (destination != null) {
-			os = destination.getOutputStream();
-		}
-
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
 		try (PDDocument pdDoc = doc.toPDDocument()) {
 			PDImageXObject pdImage = LosslessFactory.createFromImage(pdDoc, watermarkImage);
 			Set<Integer> _pages = doc.getPages();
@@ -952,16 +952,7 @@ public class PDF extends BodyTagImpl {
 			pdDoc.save(os);
 		}
 		finally {
-			Util.closeEL(os);
-			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
-				}
-				else if (destination == null && doc.getResource() != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
-			}
+			finalizeOutput( os, doc, name );
 		}
 	}
 
@@ -984,28 +975,12 @@ public class PDF extends BodyTagImpl {
 				throw engine.getExceptionUtil().createApplicationException("PDF Source is not based on a resource, attribute [destination] file is required");
 		}
 
-		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
-
-		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource) {
-			os = new ByteArrayOutputStream();
-		}
-		else if (destination != null) {
-			os = destination.getOutputStream();
-		}
-
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
 		try {
 			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, (char) 0);
 		}
 		finally {
-			Util.closeEL(os);
-			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
-				}
-			}
+			finalizeOutput( os, doc, name );
 		}
 	}
 
@@ -1024,28 +999,12 @@ public class PDF extends BodyTagImpl {
 		else if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
-		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
-
-		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource) {
-			os = new ByteArrayOutputStream();
-		}
-		else if (destination != null) {
-			os = destination.getOutputStream();
-		}
-
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
 		try {
 			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, (char) 0);
 		}
 		finally {
-			Util.closeEL(os);
-			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
-				}
-			}
+			finalizeOutput( os, doc, name );
 		}
 	}
 
@@ -1394,15 +1353,7 @@ public class PDF extends BodyTagImpl {
 		if (pages == null) pages = "1-" + len;
 		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
-		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource || destination == null) {
-			os = new ByteArrayOutputStream();
-		}
-		else if (destination != null) {
-			os = destination.getOutputStream();
-		}
-
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
 		try (PDDocument pdDoc = doc.toPDDocument()) {
 			for (int i = 0; i < len; i++) {
 				if (pageSet != null && !pageSet.contains(i + 1)) continue;
@@ -1435,16 +1386,7 @@ public class PDF extends BodyTagImpl {
 			pdDoc.save(os);
 		}
 		finally {
-			Util.closeEL(os);
-			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
-				}
-				else if (destination == null && doc.getResource() != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
-			}
+			finalizeOutput( os, doc, name );
 		}
 	}
 
@@ -1458,15 +1400,7 @@ public class PDF extends BodyTagImpl {
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 
-		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
-		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource || destination == null) {
-			os = new ByteArrayOutputStream();
-		}
-		else if (destination != null) {
-			os = destination.getOutputStream();
-		}
-
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
 		try (PDDocument pdDoc = doc.toPDDocument()) {
 			PDDocumentNameDictionary names = pdDoc.getDocumentCatalog().getNames();
 			if (names == null) {
@@ -1519,16 +1453,7 @@ public class PDF extends BodyTagImpl {
 			pdDoc.save(os);
 		}
 		finally {
-			Util.closeEL(os);
-			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
-				}
-				else if (destination == null && doc.getResource() != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
-			}
+			finalizeOutput( os, doc, name );
 		}
 	}
 
@@ -1593,15 +1518,7 @@ public class PDF extends BodyTagImpl {
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 
-		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
-		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource || destination == null) {
-			os = new ByteArrayOutputStream();
-		}
-		else if (destination != null) {
-			os = destination.getOutputStream();
-		}
-
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
 		try (PDDocument pdDoc = doc.toPDDocument()) {
 			PDDocumentNameDictionary names = pdDoc.getDocumentCatalog().getNames();
 			if (names != null) {
@@ -1611,16 +1528,7 @@ public class PDF extends BodyTagImpl {
 			pdDoc.save(os);
 		}
 		finally {
-			Util.closeEL(os);
-			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
-				}
-				else if (destination == null && doc.getResource() != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true);
-			}
+			finalizeOutput( os, doc, name );
 		}
 	}
 
