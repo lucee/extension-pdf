@@ -125,16 +125,6 @@ start-bundles: false
       byline="true"/>
 
 
-
-
-
-    <!-- copy the context necessary
-    <copy todir="${dist}/extension/webcontexts">
-      <fileset dir="${context}">
-        <include name="**/*.*"/>
-      </fileset>
-    </copy> -->
-
     <!-- copy the jars necessary -->
     <copy todir="${dist}/extension/jars">
       <fileset dir="${lib}">
