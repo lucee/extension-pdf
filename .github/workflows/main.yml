@@ -52,7 +52,6 @@ jobs:
     needs: setup
     env:
       testLabels: pdf
-      testAdditional: ${{ github.workspace }}/tests
       LUCEE_TEST_VERSIONS: ${{ vars.LUCEE_TEST_VERSIONS }}
     strategy:
       matrix:
@@ -98,7 +97,6 @@ jobs:
           extensionDir: ${{ github.workspace }}/target
         env:
           testLabels: pdf
-          testAdditional: ${{ github.workspace }}/tests
 
   deploy:
     runs-on: ubuntu-latest
