@@ -622,6 +622,15 @@ public abstract class PDFDocument {
 		}
 	}
 
+	public static Object getHttpServletResponse(PageContext pc) {
+		try {
+			return pc.getClass().getMethod("getHttpServletResponse").invoke(pc);
+		}
+		catch (ReflectiveOperationException e) {
+			throw new RuntimeException("failed to get HttpServletResponse from PageContext", e);
+		}
+	}
+
 	public final static String getDirectoryFromPath(String path) {
 		int posOfLastDel = path.lastIndexOf('/');
 		String parent = "";

@@ -789,7 +789,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	private void handleHttpResponse(byte[] pdf, String saveAsName) throws Exception {
-		Object rsp = pageContext.getHttpServletResponse();
+		Object rsp = PDFDocument.getHttpServletResponse(pageContext);
 		Class<?> rspClass = rsp.getClass();
 
 		// isCommitted()
