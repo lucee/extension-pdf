@@ -544,7 +544,7 @@ public abstract class PDFDocument {
 	protected final static URL getRequestURL(PageContext pc) {
 		if (pc == null) return null;
 		try {
-			Object req = pc.getHttpServletRequest();
+			Object req = getHttpServletRequest(pc);
 			return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(getDirectoryFromPath(getRequestURL(req, false)));
 		}
 		catch (Throwable t) {
@@ -580,7 +580,7 @@ public abstract class PDFDocument {
 
 	public static String getDomain(PageContext pc) {
 		try {
-			Object req = pc.getHttpServletRequest();
+			Object req = getHttpServletRequest(pc);
 			Class<?> reqClass = req.getClass();
 			boolean isSecure = (boolean) reqClass.getMethod("isSecure").invoke(req);
 			String serverName = (String) reqClass.getMethod("getServerName").invoke(req);
@@ -602,7 +602,7 @@ public abstract class PDFDocument {
 	protected static URL getBase(PageContext pc) throws MalformedURLException, PageException, RuntimeException {
 		if (pc == null) return null;
 		try {
-			Object req = pc.getHttpServletRequest();
+			Object req = getHttpServletRequest(pc);
 			String userAgent = (String) req.getClass().getMethod("getHeader", String.class).invoke(req, "User-Agent");
 			if (!Util.isEmpty(userAgent) && userAgent.startsWith("Java")) return null;
 			String url = getRequestURL(req, false);
@@ -610,6 +610,15 @@ public abstract class PDFDocument {
 		}
 		catch (ReflectiveOperationException e) {
 			return null;
+		}
+	}
+
+	public static Object getHttpServletRequest(PageContext pc) {
+		try {
+			return pc.getClass().getMethod("getHttpServletRequest").invoke(pc);
+		}
+		catch (ReflectiveOperationException e) {
+			throw new RuntimeException("failed to get HttpServletRequest from PageContext", e);
 		}
 	}
 
