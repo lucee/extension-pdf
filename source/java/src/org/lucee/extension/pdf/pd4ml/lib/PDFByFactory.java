@@ -19,7 +19,7 @@ public class PDFByFactory {
 					}
 					catch (Throwable t) {
 						if (t instanceof ThreadDeath) throw (ThreadDeath) t;
-						log.error("PDF", t);
+						log.log(Log.LEVEL_INFO, "PDF", t);
 						instance = new PDFByInnerReflection(config);
 						log.info("PDF", "using PD4ML via reflection from bundled version");
 					}

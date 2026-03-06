@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip="true"{
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdfx" skip="true"{
     function run( testResults, testBox ) {
         describe("Testcase for LDEV-3781", function() {
             it( title="Checking cfdocument saveAsName attribute", body=function( currentSpec ) {

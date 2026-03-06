@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true {
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdfx" skip=true {
 	function run( testResults, testBox ) {
 		describe("Testcase for LDEV-4256", function() {
 			it( title="check cfdocument with the style float right in table", body=function( currentSpec ) {

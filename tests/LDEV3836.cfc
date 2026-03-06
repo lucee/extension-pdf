@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdfx" {
     function run( testResults, testBox ) {
         describe("Testcase for LDEV-3836", function() {
             it( title="PDF modern Engine Chinese font test with font directory attribute", body=function( currentSpec ) {

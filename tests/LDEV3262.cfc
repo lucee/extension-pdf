@@ -1,4 +1,4 @@
-component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true{
+component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdfx" skip=true{
 	function run( testResults, textbox ) {
 		describe("testcase for LDEV-3262", function() {
 			it(title="checking content-length in response header for cfdocument", body=function( currentSpec ) {

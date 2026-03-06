@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase"  labels="pdf"{
+component extends="org.lucee.cfml.test.LuceeTestCase"  labels="pdfx"{
     function testPDFWaterMark (){
         cfdocument (format="PDF", name="local.test") {
             echo("<H1>I am a watermark test</H1>");

@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip="true" {
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdfx" skip="true" {
 	function run( testResults, testBox ) {
 		describe("Testcase for LDEV-1004", function() {
 			it( title="check placeholders are resolved (modern)" , body=function( currentSpec ) {

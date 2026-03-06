@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdfx" {
 
 	function beforeAll(){
 		variables.srcPdf = getTempFile(getTempDirectory(),"LDEV-4329-src", "pdf");

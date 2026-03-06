@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdfx" {
     function run( testResults, testBox ) {
         describe("Testcase for LDEV-3575 & LDEV-1500", function() {
             it( title="LDEV-3575, cfdocument with orientation and fontdirectory attribute", body=function( currentSpec ) {

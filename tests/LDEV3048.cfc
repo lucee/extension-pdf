@@ -1,4 +1,4 @@
-component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
+component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdfx" {
 
 	function beforeAll() {
 		variables.outputDir = getDirectoryFromPath(getCurrentTemplatePath()) & "LDEV3048_images\";

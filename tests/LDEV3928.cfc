@@ -1,4 +1,4 @@
-component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
+component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdfx" {
 	function run( testResults , testBox ) {
 		describe( "Test case for LDEV-3928", function() {
 			it(title="CFPDF action=extracttext with https resource", body=function( currentSpec ) {
