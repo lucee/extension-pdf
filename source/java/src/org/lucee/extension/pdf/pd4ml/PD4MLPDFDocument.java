@@ -130,8 +130,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 			try {
 				body = beautifyHTML(pc, new InputSource(new StringReader(body)), base);
 			}
-			catch (Exception e) {
-			}
+			catch (Exception e) {}
 			pd4ml.render(body, os, base);
 
 		}
@@ -154,7 +153,7 @@ public final class PD4MLPDFDocument extends PDFDocument {
 					String abs = srcfile.getAbsolutePath();
 					String contract = ClassUtil.ContractPath(pc, abs);
 					if (!abs.equals(contract)) {
-						base = engine.getHTTPUtil().toURL(getDomain(pc.getHttpServletRequest()) + contract);
+						base = engine.getHTTPUtil().toURL(getDomain(pc) + contract);
 					}
 
 				}

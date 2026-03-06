@@ -43,7 +43,6 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lucee.commons.io.res.ContentType;
 import lucee.commons.io.res.Resource;
 import lucee.commons.net.http.HTTPResponse;
@@ -372,17 +371,6 @@ public abstract class PDFDocument {
 		tempFiles.iterator();
 	}
 
-	protected final static URL getRequestURL(PageContext pc) {
-		if (pc == null) return null;
-		try {
-			return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(getDirectoryFromPath(getRequestURL(pc.getHttpServletRequest(), false)));
-		}
-		catch (Throwable t) {
-			if (t instanceof ThreadDeath) throw (ThreadDeath) t;
-			return null;
-		}
-	}
-
 	public final PDFPageMark getHeader() {
 		return header;
 	}
@@ -553,20 +541,76 @@ public abstract class PDFDocument {
 		return fontembed;
 	}
 
-	protected final static String getRequestURL(HttpServletRequest req, boolean includeQueryString) {
-		StringBuffer sb = req.getRequestURL();
-		int maxpos = sb.indexOf("/", 8);
-		if (maxpos > -1) {
-			if (req.isSecure()) {
-				if (sb.substring(maxpos - 4, maxpos).equals(":443")) sb.delete(maxpos - 4, maxpos);
-			}
-			else {
-				if (sb.substring(maxpos - 3, maxpos).equals(":80")) sb.delete(maxpos - 3, maxpos);
-			}
-
-			if (includeQueryString && !Util.isEmpty(req.getQueryString())) sb.append('?').append(req.getQueryString());
+	protected final static URL getRequestURL(PageContext pc) {
+		if (pc == null) return null;
+		try {
+			Object req = pc.getHttpServletRequest();
+			return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(getDirectoryFromPath(getRequestURL(req, false)));
 		}
-		return sb.toString();
+		catch (Throwable t) {
+			if (t instanceof ThreadDeath) throw (ThreadDeath) t;
+			return null;
+		}
+	}
+
+	private final static String getRequestURL(Object req, boolean includeQueryString) {
+		try {
+			Class<?> reqClass = req.getClass();
+			StringBuffer sb = (StringBuffer) reqClass.getMethod("getRequestURL").invoke(req);
+			int maxpos = sb.indexOf("/", 8);
+			if (maxpos > -1) {
+				boolean isSecure = (boolean) reqClass.getMethod("isSecure").invoke(req);
+				if (isSecure) {
+					if (sb.substring(maxpos - 4, maxpos).equals(":443")) sb.delete(maxpos - 4, maxpos);
+				}
+				else {
+					if (sb.substring(maxpos - 3, maxpos).equals(":80")) sb.delete(maxpos - 3, maxpos);
+				}
+				if (includeQueryString) {
+					String qs = (String) reqClass.getMethod("getQueryString").invoke(req);
+					if (!Util.isEmpty(qs)) sb.append('?').append(qs);
+				}
+			}
+			return sb.toString();
+		}
+		catch (Exception e) {
+			return "";
+		}
+	}
+
+	public static String getDomain(PageContext pc) {
+		try {
+			Object req = pc.getHttpServletRequest();
+			Class<?> reqClass = req.getClass();
+			boolean isSecure = (boolean) reqClass.getMethod("isSecure").invoke(req);
+			String serverName = (String) reqClass.getMethod("getServerName").invoke(req);
+			int serverPort = (int) reqClass.getMethod("getServerPort").invoke(req);
+			String contextPath = (String) reqClass.getMethod("getContextPath").invoke(req);
+			StringBuilder sb = new StringBuilder();
+			sb.append(isSecure ? "https://" : "http://");
+			sb.append(serverName);
+			sb.append(':');
+			sb.append(serverPort);
+			if (!Util.isEmpty(contextPath)) sb.append(contextPath);
+			return sb.toString();
+		}
+		catch (Exception e) {
+			return "";
+		}
+	}
+
+	protected static URL getBase(PageContext pc) throws MalformedURLException, PageException, RuntimeException {
+		if (pc == null) return null;
+		try {
+			Object req = pc.getHttpServletRequest();
+			String userAgent = (String) req.getClass().getMethod("getHeader", String.class).invoke(req, "User-Agent");
+			if (!Util.isEmpty(userAgent) && userAgent.startsWith("Java")) return null;
+			String url = getRequestURL(req, false);
+			return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(url, -1, true);
+		}
+		catch (ReflectiveOperationException e) {
+			return null;
+		}
 	}
 
 	public final static String getDirectoryFromPath(String path) {
@@ -579,16 +623,6 @@ public abstract class PDFDocument {
 		else if (path.startsWith(".")) parent = String.valueOf(File.separatorChar);
 		else parent = String.valueOf(File.separatorChar);
 		return parent;
-	}
-
-	public static String getDomain(HttpServletRequest req) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(req.isSecure() ? "https://" : "http://");
-		sb.append(req.getServerName());
-		sb.append(':');
-		sb.append(req.getServerPort());
-		if (!Util.isEmpty(req.getContextPath())) sb.append(req.getContextPath());
-		return sb.toString();
 	}
 
 	protected static URL searchBaseURL(Document doc) {
@@ -611,8 +645,7 @@ public abstract class PDFDocument {
 							try {
 								return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(href);
 							}
-							catch (MalformedURLException e) {
-							}
+							catch (MalformedURLException e) {}
 						}
 					}
 
@@ -734,18 +767,6 @@ public abstract class PDFDocument {
 		if (footer != null) footer.setIndex(i);
 	}
 
-	protected static URL getBase(PageContext pc) throws MalformedURLException, PageException, RuntimeException {
-		// PageContext pc = Thread LocalPageContext.get();
-		if (pc == null) return null;
-
-		String userAgent = pc.getHttpServletRequest().getHeader("User-Agent");
-		// bug in pd4ml-> html badse definition create a call
-		if (!Util.isEmpty(userAgent) && (userAgent.startsWith("Java"))) return null;
-
-		String url = getRequestURL(pc.getHttpServletRequest(), false);
-		return CFMLEngineFactory.getInstance().getHTTPUtil().toURL(url, -1, true);
-	}
-
 	protected void toLocalSource(CFMLEngine engine, PageContext pc, Node n, String hostPort) {
 		if (n.getNodeName().equalsIgnoreCase("img") && n instanceof Element) {
 			Element e = (Element) n;
@@ -757,8 +778,7 @@ public abstract class PDFDocument {
 				}
 				else e.setAttribute("src", cleanBase64Image(src));
 			}
-			catch (Exception mue) {
-			}
+			catch (Exception mue) {}
 		}
 		else {
 			NodeList children = n.getChildNodes();
@@ -789,8 +809,7 @@ public abstract class PDFDocument {
 				}
 			}
 		}
-		catch (Exception e) {
-		}
+		catch (Exception e) {}
 		return url.toExternalForm();
 	}
 
@@ -807,8 +826,7 @@ public abstract class PDFDocument {
 			}
 			return ((File) res).toURI().toURL().toString();
 		}
-		catch (Exception e) {
-		}
+		catch (Exception e) {}
 
 		// local base 64
 		try {
@@ -828,8 +846,7 @@ public abstract class PDFDocument {
 				}
 			}
 		}
-		catch (Exception e) {
-		}
+		catch (Exception e) {}
 
 		// simply cleaned path
 		try {

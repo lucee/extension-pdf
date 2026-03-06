@@ -36,6 +36,7 @@ import java.util.Set;
 
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.lucee.extension.pdf.PDFStruct;
+import org.lucee.extension.pdf.tag.Constants;
 import org.lucee.extension.pdf.util.PDFUtil;
 
 import com.lowagie.text.DocumentException;
@@ -65,51 +66,7 @@ import lucee.runtime.util.Cast;
 import lucee.runtime.util.ClassUtil;
 import lucee.runtime.util.Strings;
 
-public class PDF extends BodyTagImpl {
-
-	private static final int ACTION_ADD_WATERMARK = 0;
-	private static final int ACTION_DELETE_PAGES = 1;
-	private static final int ACTION_GET_INFO = 2;
-	private static final int ACTION_MERGE = 3;
-	private static final int ACTION_PROCESSDDX = 5;
-	private static final int ACTION_PROTECT = 5;
-	private static final int ACTION_READ = 6;
-	private static final int ACTION_REMOVE_WATERMARK = 7;
-	private static final int ACTION_SET_INFO = 8;
-	private static final int ACTION_THUMBNAIL = 9;
-	private static final int ACTION_WRITE = 10;
-	private static final int ACTION_EXTRACT_TEXT = 11;
-
-	private static final int ACTION_ADD_HEADER = 12;
-	private static final int ACTION_ADD_FOOTER = 13;
-	private static final int ACTION_OPEN = 14;
-	private static final int ACTION_EXTRACT_IMAGES = 15;
-	private static final int ACTION_EXTRACT_BOOKMARKS = 16;
-
-	private static final String FORMAT_JPG = "jpg";
-	private static final String FORMAT_TIFF = "tiff";
-	private static final String FORMAT_PNG = "png";
-
-	private static final int ORDER_TIME = 0;
-	private static final int ORDER_NAME = 1;
-
-	private static final int RESOLUTION_HIGH = 0;
-	private static final int RESOLUTION_LOW = 1;
-
-	private static final int SAVE_OPTION_FULL = 0;
-	private static final int SAVE_OPTION_INCREMENTAL = 1;
-	private static final int SAVE_OPTION_LINEAR = 2;
-
-	public static final int TYPE_STRING = 1;
-	public static final int TYPE_XML = 2;
-
-	private static final int NUMBERFORMAT_LOWERCASEROMAN = 1;
-	private static final int NUMBERFORMAT_NUMERIC = 2;
-	private static final int NUMBERFORMAT_UPPERCASEROMAN = 3;
-
-	// private static final PDF_FILTER =
-	// CFMLEngineFactory.getInstance().getResourceUtil().getExtensionResourceFilter("pdf", false);
-	private static final int UNDEFINED = Integer.MIN_VALUE;
+public class PDF extends BodyTagImpl implements Constants {
 
 	private int action = ACTION_PROCESSDDX;
 	private boolean ascending = false;
@@ -318,8 +275,9 @@ public class PDF extends BodyTagImpl {
 		else if ("extract_images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extractbookmarks".equals(strAction)) action = ACTION_EXTRACT_BOOKMARKS;
 
-		else throw engine.getExceptionUtil().createApplicationException(
-				"Invalid PDF action [" + strAction + "], supported actions are " + "[addHeader, addFooter, addWatermark, deletePages, extractBookmarks, extractImage, extractText, getInfo, merge, open, "
+		else throw engine.getExceptionUtil()
+				.createApplicationException("Invalid PDF action [" + strAction + "], supported actions are "
+						+ "[addHeader, addFooter, addWatermark, deletePages, extractBookmarks, extractImage, extractText, getInfo, merge, open, "
 						+ "removePassword, protect, read, removeWatermark, setInfo, thumbnail, write]");
 
 	}
@@ -375,7 +333,8 @@ public class PDF extends BodyTagImpl {
 	 * @param destination the destination to set
 	 */
 	public void setDestination(String destination) throws PageException {
-		if (engine.getStringUtil().isEmpty(destination, true)) throw engine.getExceptionUtil().createApplicationException("Attribute [destination] has an invalid value [" + destination + "], it cannot be empty value");
+		if (engine.getStringUtil().isEmpty(destination, true))
+			throw engine.getExceptionUtil().createApplicationException("Attribute [destination] has an invalid value [" + destination + "], it cannot be empty value");
 		this.destination = engine.getResourceUtil().toResourceNotExisting(pageContext, destination);
 	}
 
@@ -701,9 +660,10 @@ public class PDF extends BodyTagImpl {
 			else if (ACTION_OPEN == action) doActionProtect(false);
 			else if (ACTION_THUMBNAIL == action) doActionThumbnail();
 			else if (ACTION_EXTRACT_IMAGES == action) doActionExtractImages();
-			else if (ACTION_EXTRACT_TEXT == action) { doActionExtractText(); }
+			else if (ACTION_EXTRACT_TEXT == action) {
+				doActionExtractText();
+			}
 			else if (ACTION_EXTRACT_BOOKMARKS == action) doActionExtractBookmarks();
-			
 
 			// else if(ACTION_PROCESSDDX==action) throw
 			// engine.getExceptionUtil().createApplicationException("action [processddx] not supported");
@@ -825,8 +785,7 @@ public class PDF extends BodyTagImpl {
 			try {
 				if (stamper != null) stamper.close();
 			}
-			catch (IOException ioe) {
-			}
+			catch (IOException ioe) {}
 			;
 			Util.closeEL(os);
 			if (os instanceof ByteArrayOutputStream) {
@@ -834,7 +793,10 @@ public class PDF extends BodyTagImpl {
 				if (!Util.isEmpty(name)) {
 					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
 				}
-				else if (destination == null && doc.getResource() != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination and name attributes specify means add header or footer to the source file
+				else if (destination == null && doc.getResource() != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination and name attributes
+																																			// specify means add header or footer to
+																																			// the source file
 			}
 		}
 
@@ -917,14 +879,14 @@ public class PDF extends BodyTagImpl {
 
 		// scale
 		if (scale < 1 || scale > 100) throw engine.getExceptionUtil().createApplicationException("Attribute [scale] the value [" + scale + "] must between the range 1 to 100");
-		
+
 		// destination
 		if (destination == null) destination = engine.getResourceUtil().toResourceNotExisting(pageContext, "thumbnails");
-		
+
 		if (destination.isFile()) throw engine.getExceptionUtil().createApplicationException("The attribute [destination] for the tag [cfpdf] is not a directory");
 
 		if (destination.exists()) {
-		 	if (!overwrite) throw engine.getExceptionUtil().createApplicationException("Destination directory [" + destination + "] already exists");
+			if (!overwrite) throw engine.getExceptionUtil().createApplicationException("Destination directory [" + destination + "] already exists");
 		}
 		else destination.mkdirs();
 
@@ -940,7 +902,7 @@ public class PDF extends BodyTagImpl {
 
 			// imagePrefix
 			Resource resource;
-			if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? getName(resource.getName()): "thumbnail";
+			if (imagePrefix == null) imagePrefix = (resource = doc.getResource()) != null ? getName(resource.getName()) : "thumbnail";
 
 			PDFUtil.thumbnail(pageContext, doc, destination.toString(), pageSet, format, imagePrefix, scale, overwrite);
 		}
@@ -962,14 +924,14 @@ public class PDF extends BodyTagImpl {
 		byte[] barr;
 
 		if (image != null) {
-			if(image instanceof String){
+			if (image instanceof String) {
 				Resource res = engine.getResourceUtil().toResourceExisting(pageContext, (String) image);
 				img = Image.getInstance(res.getPath());
 				// TODO lucee.runtime.img.Image ri =
 				// lucee.runtime.img.Image.createImage(pageContext,image,false,false,true,null);
 				// TODO img=Image.getInstance(ri.getBufferedImage(),null,false);
 			}
-			else{
+			else {
 				barr = engine.getCastUtil().toBinary(image);
 				img = Image.getInstance(barr);
 			}
@@ -1010,7 +972,7 @@ public class PDF extends BodyTagImpl {
 
 		// output
 		boolean destIsSource = false;
-		if(destination != null && doc.getResource() != null && destination.equals(doc.getResource())) destIsSource = true;
+		if (destination != null && doc.getResource() != null && destination.equals(doc.getResource())) destIsSource = true;
 		OutputStream os = null;
 		if (!Util.isEmpty(name) || destIsSource || destination == null) {
 			os = new ByteArrayOutputStream();
@@ -1061,7 +1023,10 @@ public class PDF extends BodyTagImpl {
 				if (!Util.isEmpty(name)) {
 					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
 				}
-				else if(destination == null && doc.getResource() != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination and name attribute specify means addWatermark to source file
+				else if (destination == null && doc.getResource() != null)
+					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination and name attribute
+																																			// specify means addWatermark to source
+																																			// file
 			}
 		}
 	}
@@ -1176,7 +1141,8 @@ public class PDF extends BodyTagImpl {
 
 		if (source == null && params == null && directory == null) throw engine.getExceptionUtil()
 				.createApplicationException("At least one of the following combinations is required, attribute [source], attribute [directory] or [cfpdfparam] child tags");
-		if (source != null && directory != null) throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [source, directory] at the same time, only specify one");
+		if (source != null && directory != null)
+			throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [source, directory] at the same time, only specify one");
 		if (destination == null && Util.isEmpty(name, true))
 			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
 		if (destination != null && destination.exists() && !overwrite)
@@ -1194,7 +1160,7 @@ public class PDF extends BodyTagImpl {
 				int len = arr.size();
 				for (int i = 1; i <= len; i++) {
 					docs.add(doc = toPDFDocument(arr.getE(i), password, null));
-					if(doc.getResource() != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
+					if (doc.getResource() != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 					doc.setPages(pages);
 				}
 			}
@@ -1202,7 +1168,7 @@ public class PDF extends BodyTagImpl {
 				String[] sources = engine.getListUtil().toStringArrayTrim(engine.getListUtil().toArrayRemoveEmpty((String) source, ","));
 				for (int i = 0; i < sources.length; i++) {
 					docs.add(doc = toPDFDocument(sources[i], password, null));
-					if(doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
+					if (doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 					doc.setPages(pages);
 				}
 			}
@@ -1222,7 +1188,7 @@ public class PDF extends BodyTagImpl {
 			while (it.hasNext()) {
 				param = (PDFParamBean) it.next();
 				docs.add(doc = toPDFDocument(param.getSource(), param.getPassword(), directory));
-				if(doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
+				if (doc.getResource() != null && destination != null && destination.equals(doc.getResource()) && !destIsSource) destIsSource = true;
 				doc.setPages(param.getPages());
 			}
 		}
@@ -1355,14 +1321,16 @@ public class PDF extends BodyTagImpl {
 		PdfReader pr = doc.getPdfReader();
 		OutputStream os = new ByteArrayOutputStream();
 
-		if (destination != null && name != null) throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [destination, name] at the same time, only specify one");
+		if (destination != null && name != null)
+			throw engine.getExceptionUtil().createApplicationException("You cannot use both attributes [destination, name] at the same time, only specify one");
 
 		try {
 			if (destination == null) {
 				if (Util.isEmpty(name)) {
 					if (doc.getResource() != null) destination = doc.getResource();
 					else if (source instanceof String && doc.getResource() == null) name = (String) source;
-					else throw engine.getExceptionUtil().createApplicationException("PDF attribute [source] is not a resource (file) or variable, you must specify one of the following attributes [destination, name]");
+					else throw engine.getExceptionUtil().createApplicationException(
+							"PDF attribute [source] is not a resource (file) or variable, you must specify one of the following attributes [destination, name]");
 				}
 			}
 			else if (destination.exists() && !overwrite) throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
@@ -1443,11 +1411,11 @@ public class PDF extends BodyTagImpl {
 			Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
 			if (destination == null && Util.isEmpty(name, true))
-			throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
+				throw engine.getExceptionUtil().createApplicationException("At least one of the following attributes is required [destination, name]");
 			if (destination != null && destination.exists() && !overwrite)
 				throw engine.getExceptionUtil().createApplicationException("Destination file [" + destination + "] already exists");
 
-			if(!Util.isEmpty(name, true)) pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type, destination));
+			if (!Util.isEmpty(name, true)) pageContext.setVariable(name, PDFUtil.extractText(doc, pageSet, type, destination));
 			else PDFUtil.extractText(doc, pageSet, type, destination);
 		}
 		finally {
@@ -1462,7 +1430,7 @@ public class PDF extends BodyTagImpl {
 
 		try {
 			if (Util.isEmpty(name, true)) throw engine.getExceptionUtil().createApplicationException("The [name] attribute is required");
-			pageContext.setVariable(name, PDFUtil.extractBookmarks(pageContext,reader));
+			pageContext.setVariable(name, PDFUtil.extractBookmarks(pageContext, reader));
 		}
 		finally {
 			reader.close();
@@ -1480,7 +1448,7 @@ public class PDF extends BodyTagImpl {
 		if (pages == null || pages.equals("*")) pages = "1-" + len + "";
 		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
 
-		PDFUtil.extractImages(pageContext,doc,pageSet,destination,imagePrefix, format, overwrite);
+		PDFUtil.extractImages(pageContext, doc, pageSet, destination, imagePrefix, format, overwrite);
 	}
 
 	private Object allowed(boolean encrypted, int permissions, int permission) {
@@ -1508,8 +1476,7 @@ public class PDF extends BodyTagImpl {
 			try {
 				obj = pageContext.getVariable(str);
 			}
-			catch (PageException pe) {
-			}
+			catch (PageException pe) {}
 			if (obj != null) return toPDFDocument(obj, password, directory, false);
 
 			if (directory != null) {

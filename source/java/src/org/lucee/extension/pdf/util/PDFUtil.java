@@ -20,9 +20,8 @@
 package org.lucee.extension.pdf.util;
 
 import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
-import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -34,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.imageio.ImageIO;
+
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPageTree;
@@ -44,7 +45,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
-import org.lucee.extension.pdf.tag.jakarta.PDF;
+import org.lucee.extension.pdf.tag.Constants;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
@@ -61,9 +62,9 @@ import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
-import lucee.runtime.util.ListUtil;
 import lucee.runtime.type.Array;
 import lucee.runtime.type.Struct;
+import lucee.runtime.util.ListUtil;
 
 public class PDFUtil {
 
@@ -354,7 +355,7 @@ public class PDFUtil {
 		PDFTextStripper stripper = new PDFTextStripper();
 		if (destination != null) stripper.setLineSeparator(" ");
 
-		if (type == PDF.TYPE_XML) {
+		if (type == Constants.TYPE_XML) {
 			sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 			sb.append("<DocText>");
 			sb.append("<TextPerPage>");
@@ -363,15 +364,15 @@ public class PDFUtil {
 		while (it.hasNext()) {
 			PDDocument document = new PDDocument();
 			p = it.next();
-			if (type == PDF.TYPE_XML) sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
+			if (type == Constants.TYPE_XML) sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
 			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
 			document.addPage(pdDoc.getDocumentCatalog().getPages().get(p - 1));
 			stripper.setSortByPosition(true);
 			String text = stripper.getText(document);
 			sb.append(text);
-			if (type == PDF.TYPE_XML) sb.append("</page>");
+			if (type == Constants.TYPE_XML) sb.append("</page>");
 		}
-		if (type == PDF.TYPE_XML) {
+		if (type == Constants.TYPE_XML) {
 			sb.append("</TextPerPage>");
 			sb.append("</DocText>");
 		}
@@ -391,7 +392,8 @@ public class PDFUtil {
 		// return pdDoc.getDocumentCatalog().getAllPages().get(2);
 	}
 
-	public static void thumbnail(PageContext pc, PDFStruct doc, String destination, Set<Integer> pageNumbers, String format, String imagePrefix, int scale, boolean overwrite) throws IOException {
+	public static void thumbnail(PageContext pc, PDFStruct doc, String destination, Set<Integer> pageNumbers, String format, String imagePrefix, int scale, boolean overwrite)
+			throws IOException {
 
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 
@@ -419,13 +421,14 @@ public class PDFUtil {
 		}
 	}
 
-	public static void extractImages(PageContext pc,PDFStruct doc, Set<Integer> pageNumbers,Resource destination, String imagePrefix, String format, boolean overwrite) throws IOException, InvalidPasswordException,PageException {
+	public static void extractImages(PageContext pc, PDFStruct doc, Set<Integer> pageNumbers, Resource destination, String imagePrefix, String format, boolean overwrite)
+			throws IOException, InvalidPasswordException, PageException {
 
 		PDDocument pdDoc = doc.toPDDocument();
 		int n = pdDoc.getNumberOfPages();
 		Iterator<Integer> it = pageNumbers.iterator();
 		int p;
-		PDPageTree pages= pdDoc.getPages();
+		PDPageTree pages = pdDoc.getPages();
 		int i = 1;
 		while (it.hasNext()) {
 			p = it.next();
@@ -434,49 +437,49 @@ public class PDFUtil {
 
 			// workjaround, getXObjectNames() returns images in reverse order
 			ArrayList<COSName> xObjectNamesReversed = new ArrayList<>();
-			for (COSName name : pdResources.getXObjectNames()) {
+			for (COSName name: pdResources.getXObjectNames()) {
 				xObjectNamesReversed.add(name);
 			}
 			Collections.reverse(xObjectNamesReversed);
 
-			for (COSName name : xObjectNamesReversed) {
+			for (COSName name: xObjectNamesReversed) {
 				PDXObject o = pdResources.getXObject(name);
-				
-					if (o instanceof PDImageXObject) {
-						PDImageXObject image = (PDImageXObject)o;
-						String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
-						CFMLEngine engine = CFMLEngineFactory.getInstance();
-						Resource res = engine.getResourceUtil().toResourceNotExisting(pc,filename);
-						if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");
-						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-						ImageIO.write(image.getImage(), format, baos); 
-						CFMLEngineFactory.getInstance().getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()),res.getOutputStream(),true, true);
-						i++;
+
+				if (o instanceof PDImageXObject) {
+					PDImageXObject image = (PDImageXObject) o;
+					String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
+					CFMLEngine engine = CFMLEngineFactory.getInstance();
+					Resource res = engine.getResourceUtil().toResourceNotExisting(pc, filename);
+					if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					ImageIO.write(image.getImage(), format, baos);
+					CFMLEngineFactory.getInstance().getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res.getOutputStream(), true, true);
+					i++;
 				}
 			}
 		}
 
 	}
 
-	public static Object extractBookmarks(PageContext pc, PdfReader reader) throws IOException, InvalidPasswordException,PageException {
+	public static Object extractBookmarks(PageContext pc, PdfReader reader) throws IOException, InvalidPasswordException, PageException {
 		List<HashMap<String, Object>> pdfBookmarks = SimpleBookmark.getBookmark(reader);
 		Array bookmarks = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
-		if (pdfBookmarks != null){
+		if (pdfBookmarks != null) {
 			_extractBookmarks(pdfBookmarks, bookmarks);
 		}
 		return bookmarks;
 	}
 
-	 private static void _extractBookmarks(List<HashMap<String, Object>> pdfBookmarks, Array bookmarks) throws PageException {
-		for (HashMap<String, Object> bm : pdfBookmarks) {
+	private static void _extractBookmarks(List<HashMap<String, Object>> pdfBookmarks, Array bookmarks) throws PageException {
+		for (HashMap<String, Object> bm: pdfBookmarks) {
 			Struct sct = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
-			sct.set("Title", ((String)bm.get("Title")));
-			String page = (String)bm.get("Page"); // space delimited list: pagenumber destination x-coord y-coord zoomlevel
+			sct.set("Title", (bm.get("Title")));
+			String page = (String) bm.get("Page"); // space delimited list: pagenumber destination x-coord y-coord zoomlevel
 			String[] pageParts = page.split(" ");
 			sct.setEL("PageNumber", Integer.parseInt(pageParts[0]));
 			sct.setEL("Page", page);
-			sct.setEL("Action", ((String)bm.get("Action")));
-			//sct.setEL("bm", CFMLEngineFactory.getInstance().getCastUtil().toStruct(bm));
+			sct.setEL("Action", (bm.get("Action")));
+			// sct.setEL("bm", CFMLEngineFactory.getInstance().getCastUtil().toStruct(bm));
 			bookmarks.appendEL(sct);
 			List<HashMap<String, Object>> kids = (List<HashMap<String, Object>>) bm.get("Kids");
 			if (kids != null) {

@@ -18,6 +18,8 @@
  **/
 package org.lucee.extension.pdf.xhtmlrenderer;
 
+import static org.lucee.extension.pdf.PDFDocument.getDomain;
+
 import java.awt.Dimension;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -143,7 +145,7 @@ public final class FSPDFDocument extends PDFDocument {
 					String abs = srcfile.getAbsolutePath();
 					String contract = ClassUtil.ContractPath(pc, abs);
 					if (!abs.equals(contract)) {
-						base = engine.getHTTPUtil().toURL(getDomain(pc.getHttpServletRequest()) + contract);
+						base = engine.getHTTPUtil().toURL(getDomain(pc) + contract);
 					}
 				}
 

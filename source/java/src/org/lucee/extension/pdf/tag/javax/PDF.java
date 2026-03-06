@@ -36,6 +36,7 @@ import java.util.Set;
 
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.lucee.extension.pdf.PDFStruct;
+import org.lucee.extension.pdf.tag.Constants;
 import org.lucee.extension.pdf.util.PDFUtil;
 
 import com.lowagie.text.DocumentException;
@@ -65,51 +66,7 @@ import lucee.runtime.util.Cast;
 import lucee.runtime.util.ClassUtil;
 import lucee.runtime.util.Strings;
 
-public class PDF extends BodyTagImpl {
-
-	private static final int ACTION_ADD_WATERMARK = 0;
-	private static final int ACTION_DELETE_PAGES = 1;
-	private static final int ACTION_GET_INFO = 2;
-	private static final int ACTION_MERGE = 3;
-	private static final int ACTION_PROCESSDDX = 5;
-	private static final int ACTION_PROTECT = 5;
-	private static final int ACTION_READ = 6;
-	private static final int ACTION_REMOVE_WATERMARK = 7;
-	private static final int ACTION_SET_INFO = 8;
-	private static final int ACTION_THUMBNAIL = 9;
-	private static final int ACTION_WRITE = 10;
-	private static final int ACTION_EXTRACT_TEXT = 11;
-
-	private static final int ACTION_ADD_HEADER = 12;
-	private static final int ACTION_ADD_FOOTER = 13;
-	private static final int ACTION_OPEN = 14;
-	private static final int ACTION_EXTRACT_IMAGES = 15;
-	private static final int ACTION_EXTRACT_BOOKMARKS = 16;
-
-	private static final String FORMAT_JPG = "jpg";
-	private static final String FORMAT_TIFF = "tiff";
-	private static final String FORMAT_PNG = "png";
-
-	private static final int ORDER_TIME = 0;
-	private static final int ORDER_NAME = 1;
-
-	private static final int RESOLUTION_HIGH = 0;
-	private static final int RESOLUTION_LOW = 1;
-
-	private static final int SAVE_OPTION_FULL = 0;
-	private static final int SAVE_OPTION_INCREMENTAL = 1;
-	private static final int SAVE_OPTION_LINEAR = 2;
-
-	public static final int TYPE_STRING = 1;
-	public static final int TYPE_XML = 2;
-
-	private static final int NUMBERFORMAT_LOWERCASEROMAN = 1;
-	private static final int NUMBERFORMAT_NUMERIC = 2;
-	private static final int NUMBERFORMAT_UPPERCASEROMAN = 3;
-
-	// private static final PDF_FILTER =
-	// CFMLEngineFactory.getInstance().getResourceUtil().getExtensionResourceFilter("pdf", false);
-	private static final int UNDEFINED = Integer.MIN_VALUE;
+public class PDF extends BodyTagImpl implements Constants {
 
 	private int action = ACTION_PROCESSDDX;
 	private boolean ascending = false;
