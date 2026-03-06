@@ -21,5 +21,6 @@
 	<classpathentry kind="lib" path="libs/jakarta.jakartaee-api-10.0.0.jar"/>
 	<classpathentry kind="lib" path="libs/lucee-7.0.0.115-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="libs/pd4ml-4.0.22.jar"/>
+	<classpathentry kind="lib" path="libs/javax.servlet.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

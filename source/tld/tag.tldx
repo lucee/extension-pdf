@@ -18,7 +18,8 @@
 	<!-- Document -->
 	<tag>
 		<name>document</name>
-		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.Document</tag-class>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.jakarta.Document</tag-class>
+		<javax-tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.javax.Document</javax-tag-class>
 		<body-content>free</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>
 		<script>
@@ -327,7 +328,8 @@
 	<!-- DocumentItem -->
 	<tag>
 		<name>documentitem</name>
-		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.DocumentItem</tag-class>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.jakarta.DocumentItem</tag-class>
+		<javax-tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.javax.DocumentItem</javax-tag-class>
 		<body-content>free</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>
 		<script>
@@ -375,7 +377,8 @@ Determines if the contents of the cfdocumentitem tag body has to be evaluated at
 	<!-- DocumentSection -->
 	<tag>
 		<name>documentsection</name>
-		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.DocumentSection</tag-class>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.jakarta.DocumentSection</tag-class>
+		<javax-tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.javax.DocumentSection</javax-tag-class>
 		<body-content>free</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>
 		<script>
@@ -488,7 +491,8 @@ Determines if the contents of the cfdocumentitem tag body has to be evaluated at
 	<!-- PDF -->
 	<tag>
 		<name>pdf</name>
-		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.PDF</tag-class>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.jakarta.PDF</tag-class>
+		<javax-tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.javax.PDF</javax-tag-class>
 		<body-content>free</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>
 		<script>
@@ -973,7 +977,8 @@ Manipulates existing PDF documents. The following list describes some of the tas
 	<!-- PDFParam -->
 	<tag>
 		<name>PDFParam</name>
-		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.PDFParam</tag-class>
+		<tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.jakarta.PDFParam</tag-class>
+		<javax-tag-class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.tag.javax.PDFParam</javax-tag-class>
 		<body-content>empty</body-content>
 		<body-rtexprvalue>false</body-rtexprvalue>
 		<script>

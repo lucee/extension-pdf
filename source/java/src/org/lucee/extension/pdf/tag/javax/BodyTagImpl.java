@@ -17,11 +17,10 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  * 
  **/
-package org.lucee.extension.pdf.tag;
+package org.lucee.extension.pdf.tag.javax;
 
-import jakarta.servlet.jsp.tagext.BodyContent;
-import jakarta.servlet.jsp.tagext.BodyTag;
-import lucee.runtime.exp.PageException;
+import javax.servlet.jsp.tagext.BodyContent;
+import javax.servlet.jsp.tagext.BodyTag;
 
 /**
  * Implementation of the Tag
@@ -36,12 +35,12 @@ public abstract class BodyTagImpl extends TagImpl implements BodyTag {
 	}
 
 	@Override
-	public void doInitBody() throws PageException {
+	public void doInitBody() {
 
 	}
 
 	@Override
-	public int doAfterBody() throws PageException {
+	public int doAfterBody() {
 		return SKIP_BODY;
 	}
 

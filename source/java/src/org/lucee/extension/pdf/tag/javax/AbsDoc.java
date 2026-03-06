@@ -1,6 +1,7 @@
-package org.lucee.extension.pdf.tag;
+package org.lucee.extension.pdf.tag.javax;
 
 import org.lucee.extension.pdf.PDFDocument;
+
 import lucee.runtime.exp.PageException;
 
 public interface AbsDoc {

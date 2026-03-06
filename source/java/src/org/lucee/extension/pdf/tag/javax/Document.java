@@ -17,7 +17,7 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *
  **/
-package org.lucee.extension.pdf.tag;
+package org.lucee.extension.pdf.tag.javax;
 
 import java.awt.Dimension;
 import java.io.ByteArrayInputStream;
@@ -45,7 +45,6 @@ import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.PdfSmartCopy;
 import com.lowagie.text.pdf.SimpleBookmark;
 
-import jakarta.servlet.http.HttpServletResponse;
 import lucee.Info;
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
@@ -232,8 +231,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				return existing;
 			}
 		}
-		catch (Exception e) {
-		}
+		catch (Exception e) {}
 		return null;
 	}
 
@@ -669,8 +667,15 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	@Override
-	public int doStartTag() throws PageException {
-		if (fontdir == null) getPDFDocument().setFontDirectory(getApplicationSettings().getFontDirectory());
+	public int doStartTag() {
+		if (fontdir == null) {
+			try {
+				getPDFDocument().setFontDirectory(getApplicationSettings().getFontDirectory());
+			}
+			catch (PageException pe) {
+				throw engine.getExceptionUtil().createPageRuntimeException(pe);
+			}
+		}
 		/*
 		 * Struct cfdoc = engine.getCreationUtil().createStruct(); // TODO make a read only struct
 		 * cfdoc.setEL("currentpagenumber", "{currentpagenumber}"); cfdoc.setEL("totalpagecount",
@@ -682,28 +687,25 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	@Override
-	public void doInitBody() {
-	}
+	public void doInitBody() {}
 
 	@Override
-	public int doAfterBody() throws PageException {
-		sectionCounter = 0; // must be 0 for the next round
-		if (pdf == null) { // first run of the tag
-			getPDFDocument().setBody(bodyContent.getString());
-		}
-		/*
-		 * try { bodyContent.clear(); } catch (IOException e) {}
-		 */
+	public int doAfterBody() {
 		try {
+			sectionCounter = 0; // must be 0 for the next round
+			if (pdf == null) { // first run of the tag
+				getPDFDocument().setBody(bodyContent.getString());
+			}
+
 			return _doAfterBody();
 		}
 		catch (Exception e) {
-			throw engine.getCastUtil().toPageException(e);
+			throw engine.getExceptionUtil().createPageRuntimeException(engine.getCastUtil().toPageException(e));
 		}
 	}
 
 	@Override
-	public int doEndTag() throws PageException {
+	public int doEndTag() {
 		return EVAL_PAGE;
 	}
 
@@ -764,12 +766,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			renderUpdate(pdf, null);
 		}
 		else {
-			HttpServletResponse rsp = pageContext.getHttpServletResponse();
-			if (rsp.isCommitted())
-				throw engine.getExceptionUtil().createApplicationException("content is already flushed", "you can't rewrite head of response after part of the page is flushed");
-			rsp.setContentType("application/pdf");
-			rsp.setContentLength(pdf.length);
-			if (!Util.isEmpty(saveAsName, true)) rsp.setHeader("Content-Disposition", "inline; filename=\"" + saveAsName + "\"");
+			handleHttpResponse(pdf, saveAsName);
 
 			OutputStream os = getOutputStream();
 			try {
@@ -789,6 +786,26 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		}
 		return SKIP_BODY;
 
+	}
+
+	private void handleHttpResponse(byte[] pdf, String saveAsName) throws Exception {
+		Object rsp = pageContext.getHttpServletResponse();
+		Class<?> rspClass = rsp.getClass();
+
+		// isCommitted()
+		boolean committed = (boolean) rspClass.getMethod("isCommitted").invoke(rsp);
+		if (committed)
+			throw engine.getExceptionUtil().createApplicationException("content is already flushed", "you can't rewrite head of response after part of the page is flushed");
+
+		// setContentType(String)
+		rspClass.getMethod("setContentType", String.class).invoke(rsp, "application/pdf");
+
+		// setContentLength(int)
+		rspClass.getMethod("setContentLength", int.class).invoke(rsp, pdf.length);
+
+		// setHeader(String, String)
+		if (!Util.isEmpty(saveAsName, true))
+			rspClass.getMethod("setHeader", String.class, String.class).invoke(rsp, "Content-Disposition", "inline; filename=\"" + saveAsName + "\"");
 	}
 
 	private boolean hasEvalAtPrint(ArrayList<PDFDocument> documents2) {

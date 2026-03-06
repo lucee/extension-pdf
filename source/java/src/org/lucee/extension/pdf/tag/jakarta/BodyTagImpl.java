@@ -17,52 +17,37 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  * 
  **/
-package org.lucee.extension.pdf.tag;
+package org.lucee.extension.pdf.tag.jakarta;
 
-public class PDFParamBean {
-	private String pages;
-	private String password;
-	private Object source;
+import jakarta.servlet.jsp.tagext.BodyContent;
+import jakarta.servlet.jsp.tagext.BodyTag;
+import lucee.runtime.exp.PageException;
 
-	/**
-	 * @return the pages
-	 */
-	public String getPages() {
-		return pages;
+/**
+ * Implementation of the Tag
+ */
+public abstract class BodyTagImpl extends TagImpl implements BodyTag {
+
+	protected BodyContent bodyContent = null;
+
+	@Override
+	public void setBodyContent(BodyContent bodyContent) {
+		this.bodyContent = bodyContent;
 	}
 
-	/**
-	 * @param pages the pages to set
-	 */
-	public void setPages(String pages) {
-		this.pages = pages;
+	@Override
+	public void doInitBody() throws PageException {
+
 	}
 
-	/**
-	 * @return the password
-	 */
-	public String getPassword() {
-		return password;
+	@Override
+	public int doAfterBody() throws PageException {
+		return SKIP_BODY;
 	}
 
-	/**
-	 * @param password the password to set
-	 */
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	/**
-	 * @return the source
-	 */
-	public Object getSource() {
-		return source;
-	}
-
-	/**
-	 * @param source the source to set
-	 */
-	public void setSource(Object source) {
-		this.source = source;
+	@Override
+	public void release() {
+		super.release();
+		bodyContent = null;
 	}
 }

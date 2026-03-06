@@ -17,7 +17,7 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  * 
  **/
-package org.lucee.extension.pdf.tag;
+package org.lucee.extension.pdf.tag.jakarta;
 
 import jakarta.servlet.jsp.tagext.Tag;
 import lucee.loader.engine.CFMLEngineFactory;
