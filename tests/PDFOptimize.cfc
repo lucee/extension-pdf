@@ -4,10 +4,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	// PDFBox: Remove attachments, bookmarks, metadata, JS, thumbnails
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFOptimize/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFOptimize/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a test PDF with various elements
 		document fileName="#path#source.pdf" overwrite=true bookmark=true {

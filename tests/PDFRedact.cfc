@@ -6,10 +6,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true {
 	// PDFBox: PDAnnotation for redaction
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFRedact/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFRedact/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a test PDF with sensitive content
 		document fileName="#path#source.pdf" overwrite=true {
@@ -60,6 +60,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true {
 	}
 
 	function afterAll() {
-		if ( directoryExists( variables.path ) ) directoryDelete( variables.path, true );
+		// Cleanup before run, not after - leave artifacts for inspection
 	}
 }

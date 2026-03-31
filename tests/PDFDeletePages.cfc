@@ -1,10 +1,10 @@
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFDeletePages/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFDeletePages/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a 3-page PDF
 		document fileName="#path#source.pdf" overwrite=true {
@@ -67,6 +67,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	function afterAll() {
-		if ( directoryExists( variables.path ) ) directoryDelete( variables.path, true );
+		// Cleanup before run, not after - leave artifacts for inspection
 	}
 }

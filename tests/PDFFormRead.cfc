@@ -5,10 +5,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	// PDFBox: PDAcroForm, PDField
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFFormRead/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFFormRead/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Note: Testing form features requires PDFs with actual form fields
 		// These would typically be created in Acrobat

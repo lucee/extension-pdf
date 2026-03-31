@@ -11,4 +11,5 @@ target/*
 /cache
 /.claude
 /test-output
-/.claude
+**/generated/
+.vscode/settings.json

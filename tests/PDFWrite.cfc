@@ -1,10 +1,10 @@
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFWrite/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFWrite/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a PDF in memory
 		document name="variables.pdfVar" {
@@ -48,6 +48,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	function afterAll() {
-		if ( directoryExists( variables.path ) ) directoryDelete( variables.path, true );
+		// Cleanup before run, not after - leave artifacts for inspection
 	}
 }

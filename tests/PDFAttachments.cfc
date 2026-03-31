@@ -4,10 +4,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	// PDFBox: PDEmbeddedFile, PDComplexFileSpecification, PDEmbeddedFilesNameTreeNode
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFAttachments/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFAttachments/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a test PDF
 		document fileName="#path#source.pdf" overwrite=true {

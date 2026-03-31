@@ -5,10 +5,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	// PDFBox: PDAcroForm.getFields(), PDSignatureField
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFSignatureFields/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFSignatureFields/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Note: Testing signature features requires PDFs with actual signature fields
 		// These would typically be created in Acrobat or via PDFBox

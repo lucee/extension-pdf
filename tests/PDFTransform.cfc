@@ -4,10 +4,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	// PDFBox: PDPage.setRotation(), media box scaling
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFTransform/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFTransform/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a test PDF
 		document fileName="#path#source.pdf" overwrite=true {

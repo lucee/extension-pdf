@@ -1,9 +1,9 @@
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function beforeAll() {
-		variables.outputDir = getDirectoryFromPath(getCurrentTemplatePath()) & "LDEV3048_images\";
+		variables.outputDir = getDirectoryFromPath(getCurrentTemplatePath()) & "LDEV3048_images/generated/";
 		if (!directoryExists( variables.outputDir ) )
-			directoryCreate( variables.outputDir );
+			directoryCreate( variables.outputDir, true, true );
 
 		var img1file = getTempFile( variables.outputDir, "ldev3048-1", "png" );
 		var img2file = getTempFile( variables.outputDir, "ldev3048-2", "png" );
@@ -131,7 +131,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	function afterAll() {
-		if ( directoryExists( variables.outputDir ) )
-			directoryDelete(variables.outputDir, true);
+		// Cleanup before run, not after - leave artifacts for inspection
 	}
 }

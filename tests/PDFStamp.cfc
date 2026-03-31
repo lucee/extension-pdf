@@ -5,10 +5,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	// Standard stamp annotations with iconName are not yet supported
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFStamp/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFStamp/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a multi-page test PDF
 		document fileName="#path#source.pdf" overwrite=true {

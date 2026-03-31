@@ -1,10 +1,10 @@
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath(getCurrentTemplatePath()) & "LDEV4245\";
+		variables.path = getDirectoryFromPath(getCurrentTemplatePath()) & "LDEV4245/generated/";
 		afterAll();
 
-		if (!directoryExists(variables.path)) directoryCreate(variables.path);
+		if (!directoryExists(variables.path)) directoryCreate(variables.path, true, true);
 		document fileName="#path#pdfFile.pdf" name="pdfVar" overwrite=true {
 			writeoutput("test pdf file");
 		}
@@ -30,6 +30,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	function afterAll() {
-		if (directoryExists(variables.path)) directoryDelete(variables.path, true);
+		// Cleanup before run, not after - leave artifacts for inspection
 	}
 }

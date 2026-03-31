@@ -1,11 +1,11 @@
 component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function beforeAll() {
-		variables.dir = getDirectoryFromPath(getCurrentTemplatePath()) & "_LDEV967";
+		variables.dir = getDirectoryFromPath(getCurrentTemplatePath()) & "_LDEV967/generated/";
 		variables.file = dir & "/test967.pdf";
 		variables.thumbnaildir = dir & "/thumbDir";
 
-		if(!directoryExists(variables.dir)) directoryCreate(variables.dir);
+		if(!directoryExists(variables.dir)) directoryCreate(variables.dir, true, true);
 
 		document filename="#file#" name="res" overwrite=true {
 			loop times="5" {
@@ -81,6 +81,6 @@ component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	function afterAll() {
-		if (directoryExists(variables.dir)) directoryDelete(variables.dir, true);
+		// Cleanup before run, not after - leave artifacts for inspection
 	}
 }

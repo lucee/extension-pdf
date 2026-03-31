@@ -4,10 +4,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	// PDFBox: PDAcroForm, PDField.setValue()
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFFormPopulate/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFFormPopulate/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create test XML data
 		variables.testXML = '<?xml version="1.0"?>

@@ -4,9 +4,9 @@ Update `CHANGELOG.md` when adding new features, bug fixes
 
 ## Test Approach
 
-leave artfifacts in place for visual inspection, cleanup before each test run
+leave artifacts in place for visual inspection, cleanup before each test run
 
-always place generated artifacts in a separate sub directory with a `.gitignore`
+place all generated artifacts in a `generated/` subdirectory (ignored globally via `**/generated/` in `.gitignore`)
 
 ## Build and test
 

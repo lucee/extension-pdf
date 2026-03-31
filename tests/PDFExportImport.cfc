@@ -5,10 +5,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true {
 	// Export/import comments (XFDF) and metadata (XMP)
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFExportImport/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFExportImport/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a test PDF with metadata
 		document fileName="#path#source.pdf" overwrite=true {
@@ -112,6 +112,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true {
 	}
 
 	function afterAll() {
-		if ( directoryExists( variables.path ) ) directoryDelete( variables.path, true );
+		// Cleanup before run, not after - leave artifacts for inspection
 	}
 }

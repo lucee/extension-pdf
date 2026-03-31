@@ -5,10 +5,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	// Similar to optimize but security-focused
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFSanitize/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFSanitize/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a test PDF with various elements
 		document fileName="#path#source.pdf" overwrite=true {

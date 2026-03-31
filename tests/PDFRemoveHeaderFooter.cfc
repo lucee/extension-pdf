@@ -5,10 +5,10 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true {
 	// Requires content stream parsing - headers/footers have no standard location
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFRemoveHeaderFooter/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFRemoveHeaderFooter/generated/";
 		afterAll();
 
-		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
+		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
 		// Create a PDF with headers and footers
 		document fileName="#path#source.pdf" overwrite=true {
@@ -50,6 +50,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true {
 	}
 
 	function afterAll() {
-		if ( directoryExists( variables.path ) ) directoryDelete( variables.path, true );
+		// Cleanup before run, not after - leave artifacts for inspection
 	}
 }
