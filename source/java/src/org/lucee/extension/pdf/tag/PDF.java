@@ -1493,7 +1493,13 @@ public class PDF extends BodyTagImpl {
 							PDEmbeddedFile embeddedFile = fileSpec.getEmbeddedFile();
 
 							if (embeddedFile != null) {
-								Resource outFile = destination.getRealResource(filename);
+								// Strip path components to prevent traversal (e.g. "../../evil.txt" -> "evil.txt")
+								String safeName = filename.replace('\\', '/');
+								int lastSlash = safeName.lastIndexOf('/');
+								if (lastSlash >= 0) safeName = safeName.substring(lastSlash + 1);
+								if (Util.isEmpty(safeName)) continue;
+
+								Resource outFile = destination.getRealResource(safeName);
 								if (outFile.exists() && !overwrite) {
 									if (stopOnError)
 										throw engine.getExceptionUtil().createApplicationException("File [" + outFile + "] already exists");

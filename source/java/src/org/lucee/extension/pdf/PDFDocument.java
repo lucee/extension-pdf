@@ -698,7 +698,9 @@ public class PDFDocument {
 		}
 
 		try {
-			org.jsoup.Connection conn = Jsoup.connect(urlStr);
+			org.jsoup.Connection conn = Jsoup.connect(urlStr)
+				.timeout(15000) // 15 second timeout
+				.maxBodySize(0); // no limit on response size
 			if (!Util.isEmpty(userAgent)) {
 				conn.userAgent(userAgent);
 			}
