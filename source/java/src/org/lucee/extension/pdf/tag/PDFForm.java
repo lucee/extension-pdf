@@ -342,6 +342,11 @@ public class PDFForm extends BodyTagImpl {
 		if ( strXml != null ) {
 			try {
 				DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+				factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+				factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+				factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+				factory.setXIncludeAware(false);
+				factory.setExpandEntityReferences(false);
 				DocumentBuilder builder = factory.newDocumentBuilder();
 				org.w3c.dom.Document xmlDoc = builder.parse( new ByteArrayInputStream( strXml.getBytes( "UTF-8" ) ) );
 				processXmlNode( xmlDoc.getDocumentElement(), acroForm );

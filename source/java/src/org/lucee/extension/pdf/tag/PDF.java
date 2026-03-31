@@ -368,8 +368,16 @@ public class PDF extends BodyTagImpl {
 
 	public void setFilter(String pattern) throws PageException {
 		if (Util.isEmpty(pattern)) return;
-		final String glob = pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".");
-		filter = res -> res.getName().matches("(?i)" + glob);
+		// Convert glob to regex safely: split on * and ?, quote everything else
+		StringBuilder regex = new StringBuilder("(?i)");
+		for (int i = 0; i < pattern.length(); i++) {
+			char c = pattern.charAt(i);
+			if (c == '*') regex.append(".*");
+			else if (c == '?') regex.append(".");
+			else regex.append(java.util.regex.Pattern.quote(String.valueOf(c)));
+		}
+		final String re = regex.toString();
+		filter = res -> res.getName().matches(re);
 	}
 
 	public void setAscending(boolean ascending) {

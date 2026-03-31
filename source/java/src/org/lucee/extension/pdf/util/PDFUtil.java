@@ -298,6 +298,10 @@ public class PDFUtil {
 		}
 	}
 
+	private static String escapeXml(String text) {
+		return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+	}
+
 	public static Map<String, String> generateGoToBookMark(String title, int page) {
 		return generateGoToBookMark(title, page, 0, 731);
 	}
@@ -374,6 +378,7 @@ public class PDFUtil {
 					document.addPage(pdDoc.getDocumentCatalog().getPages().get(p - 1));
 					stripper.setSortByPosition(true);
 					String text = stripper.getText(document);
+					if (type == PDF.TYPE_XML) text = escapeXml(text);
 					sb.append(text);
 					if (type == PDF.TYPE_XML) sb.append("</page>");
 				}
@@ -406,7 +411,9 @@ public class PDFUtil {
 				// thumbnail image file destination
 				String imageDestination = destination + "/" + imagePrefix + "_page_" + p + "." + format;
 
-				BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
+				// Map scale (1-100) to DPI: scale 100 = 300 DPI, scale 25 = 75 DPI
+				int dpi = Math.max(1, scale * 3);
+				BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, dpi);
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
 				Resource res = engine.getResourceUtil().toResourceNotExisting(pc, imageDestination);

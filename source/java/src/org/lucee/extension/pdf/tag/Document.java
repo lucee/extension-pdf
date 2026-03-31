@@ -344,7 +344,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 */
 	public void setFilename(String filename) throws PageException {
 		this.filename = engine.getResourceUtil().toResourceNotExisting(pageContext, filename);
-		// pageContext.getConfig().getSecurityManager().checkFileLocation(this.filename);
+		pageContext.getConfig().getSecurityManager().checkFileLocation(this.filename);
 	}
 
 	/**
@@ -772,7 +772,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				throw engine.getExceptionUtil().createApplicationException("content is already flushed", "you can't rewrite head of response after part of the page is flushed");
 			rsp.setContentType("application/pdf");
 			rsp.setContentLength(pdf.length);
-			if (!Util.isEmpty(saveAsName, true)) rsp.setHeader("Content-Disposition", "inline; filename=\"" + saveAsName + "\"");
+			if (!Util.isEmpty(saveAsName, true)) rsp.setHeader("Content-Disposition", "inline; filename=\"" + saveAsName.replaceAll("[\\r\\n\"]", "") + "\"");
 
 			OutputStream os = getOutputStream();
 			try {
