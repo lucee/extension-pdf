@@ -66,9 +66,7 @@ public class PDFPageMark {
 	}
 
 	public String getHtmlTemplate() {
-		if (htmlTemplates.size() == 0) return "";
-		if (htmlTemplates.size() == 1) return htmlTemplates.get(0);
-		return htmlTemplates.get(hfIndex);
+		return getHtml(hfIndex);
 	}
 
 	public void addHtmlTemplate(String htmlTemplate) {

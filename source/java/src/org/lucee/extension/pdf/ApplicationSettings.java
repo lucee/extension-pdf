@@ -15,7 +15,7 @@ public class ApplicationSettings {
 	private final int type;
 	private final File fontDirectory;
 
-	private static boolean init = false;
+	private static volatile boolean init = false;
 
 	public ApplicationSettings(int type, File fontDirectory) {
 		this.type = type;
@@ -66,7 +66,7 @@ public class ApplicationSettings {
 			}
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			// silent - font/PDF config errors should not break the application
 		}
 		if (fontDirectory == null) {
 			fontDirectory = getDefaultFontDirectory(pc.getConfig());
@@ -90,7 +90,7 @@ public class ApplicationSettings {
 			FontsJarExtractor.extract(dir);
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			// silent - font/PDF config errors should not break the application
 		}
 	}
 }

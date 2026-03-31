@@ -62,7 +62,4 @@ public class FontsJarExtractor {
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
-		extract(new File("/Users/mic/Tmp3/target"));
-	}
 }

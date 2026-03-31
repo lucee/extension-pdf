@@ -126,7 +126,7 @@ public class XMLUtil {
 				transformerFactory = (TransformerFactory) clazz.getMethod("getTransformerFactory", new Class[0]).invoke(null, new Object[0]);
 			}
 			catch (Exception e) {
-				e.printStackTrace();
+				// fallback if Lucee's XMLUtil is not available
 				transformerFactory = TransformerFactory.newInstance();
 			}
 		}

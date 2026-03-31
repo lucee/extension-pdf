@@ -155,8 +155,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	 * @param strMimetype the mimetype to set
 	 */
 	public void setMimetype(String strMimetype) throws PageException {
-		getPDFDocument().setMimetype(strMimetype);
-		strMimetype = strMimetype.toLowerCase().trim();
+		getPDFDocument().setMimetype(strMimetype.toLowerCase().trim());
 	}
 
 	public void setHeader(PDFPageMark header) {
