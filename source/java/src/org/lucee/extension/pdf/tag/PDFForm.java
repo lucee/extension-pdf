@@ -398,10 +398,7 @@ public class PDFForm extends BodyTagImpl {
 
 			// Treat as file path
 			Resource res = engine.getResourceUtil().toResourceExisting( pageContext, strSource );
-			if ( !Util.isEmpty( password ) ) {
-				return Loader.loadPDF( new RandomAccessReadBuffer( res.getInputStream() ), password );
-			}
-			return Loader.loadPDF( new RandomAccessReadBuffer( res.getInputStream() ) );
+			return loadFromResource( res, password );
 		}
 
 		// Source is a PDFStruct
@@ -415,15 +412,25 @@ public class PDFForm extends BodyTagImpl {
 
 		// Source is a Resource (file)
 		if ( source instanceof Resource ) {
-			Resource res = (Resource) source;
-			if ( !Util.isEmpty( password ) ) {
-				return Loader.loadPDF( new RandomAccessReadBuffer( res.getInputStream() ), password );
-			}
-			return Loader.loadPDF( new RandomAccessReadBuffer( res.getInputStream() ) );
+			return loadFromResource( (Resource) source, password );
 		}
 
 		throw engine.getExceptionUtil().createApplicationException(
 				"Invalid source type [" + source.getClass().getName() + "] for pdfform" );
+	}
+
+	private PDDocument loadFromResource( Resource res, String password ) throws IOException {
+		InputStream is = res.getInputStream();
+		try {
+			if ( !Util.isEmpty( password ) ) {
+				return Loader.loadPDF( new RandomAccessReadBuffer( is ), password );
+			}
+			return Loader.loadPDF( new RandomAccessReadBuffer( is ) );
+		}
+		catch (Throwable t) {
+			Util.closeEL( is );
+			throw t;
+		}
 	}
 
 	private String escapeXmlName( String name ) {

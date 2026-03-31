@@ -162,6 +162,7 @@ public class PDFUtil {
 			throws PageException, IOException {
 
 		PDDocument resultDoc = new PDDocument();
+		List<PDDocument> srcDocs = new ArrayList<>();
 
 		try {
 			for (int i = 0; i < docs.length; i++) {
@@ -175,6 +176,7 @@ public class PDFUtil {
 					if (!stopOnError) continue;
 					throw CFMLEngineFactory.getInstance().getCastUtil().toPageException(t);
 				}
+				srcDocs.add(srcDoc);
 
 				int n = srcDoc.getNumberOfPages();
 
@@ -202,6 +204,9 @@ public class PDFUtil {
 			resultDoc.save(os);
 		}
 		finally {
+			for (PDDocument srcDoc : srcDocs) {
+				try { srcDoc.close(); } catch (IOException e) { /* ignore */ }
+			}
 			resultDoc.close();
 		}
 	}
@@ -340,13 +345,9 @@ public class PDFUtil {
 	}
 
 	public static BufferedImage toImage(PDFStruct doc) throws PageException, IOException {
-		return new PDFRenderer(doc.toPDDocument()).renderImage(0, 1); // 0 is page number, 1 is scale
-	}
-
-	public static void writeImages(byte[] input, Set pages, Resource outputDirectory, String prefix, String format, int scale, boolean overwrite, boolean goodQuality,
-			boolean transparent) throws PageException, IOException {
-		// TODO PDF2Image.getInstance().writeImages(input, pages, outputDirectory, prefix, format, scale,
-		// overwrite, goodQuality, transparent);
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			return new PDFRenderer(pdDoc).renderImage(0, 1);
+		}
 	}
 
 	public static Object extractText(PDFStruct doc, Set<Integer> pageNumbers, int type, Resource destination) throws IOException, InvalidPasswordException {

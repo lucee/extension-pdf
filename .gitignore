@@ -13,3 +13,4 @@ target/*
 /test-output
 **/generated/
 .vscode/settings.json
+.flattened-pom.xml

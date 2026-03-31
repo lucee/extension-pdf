@@ -58,6 +58,7 @@ public class PDFStruct extends StructSupport implements Struct {
 	private final String password;
 	private Resource resource;
 	private Set<Integer> pages;
+	private Struct cachedInfo;
 
 	public PDFStruct(byte[] barr, String password) {
 		this.barr = barr;
@@ -232,6 +233,7 @@ public class PDFStruct extends StructSupport implements Struct {
 	}
 
 	public Struct getInfo() {
+		if (cachedInfo != null) return cachedInfo;
 		PDDocument pdDoc = null;
 		try {
 			pdDoc = toPDDocument();
@@ -304,6 +306,7 @@ public class PDFStruct extends StructSupport implements Struct {
 				}
 			}
 
+			cachedInfo = info;
 			return info;
 		}
 		catch (IOException ioe) {

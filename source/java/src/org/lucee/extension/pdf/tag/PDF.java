@@ -367,7 +367,9 @@ public class PDF extends BodyTagImpl {
 	}
 
 	public void setFilter(String pattern) throws PageException {
-		// TODO: implement filter
+		if (Util.isEmpty(pattern)) return;
+		final String glob = pattern.replace(".", "\\.").replace("*", ".*").replace("?", ".");
+		filter = res -> res.getName().matches("(?i)" + glob);
 	}
 
 	public void setAscending(boolean ascending) {
@@ -644,6 +646,8 @@ public class PDF extends BodyTagImpl {
 			else if (ACTION_OPTIMIZE == action) doActionOptimize();
 			else if (ACTION_SANITIZE == action) doActionSanitize();
 			else if (ACTION_ADD_STAMP == action) doActionAddStamp();
+			else throw engine.getExceptionUtil().createApplicationException(
+				"attribute [action] is required for tag [cfpdf]");
 		}
 		catch (Exception e) {
 			throw engine.getCastUtil().toPageException(e);

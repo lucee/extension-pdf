@@ -77,7 +77,7 @@ public class PDFDocument {
 	// Font embed options
 	public static final int FONT_EMBED_YES = 1;
 	public static final int FONT_EMBED_NO = 2;
-	public static final int FONT_EMBED_SELECCTIVE = 3;
+	public static final int FONT_EMBED_SELECTIVE = 3;
 
 	// Encryption options
 	public static final int ENC_NONE = 0;
@@ -720,12 +720,7 @@ public class PDFDocument {
 	 */
 	public String handlePageNumbers(String content) {
 		if (content == null) return content;
-		// These placeholders get replaced at runtime with CSS page counters
-		content = content.replace("{currentpagenumber}", "<span class=\"page-number\"></span>");
-		content = content.replace("{totalpagecount}", "<span class=\"page-count\"></span>");
-		content = content.replace("{currentsectionpagenumber}", "<span class=\"page-number\"></span>");
-		content = content.replace("{totalsectionpagecount}", "<span class=\"page-count\"></span>");
-		return content;
+		return processPageVariables(content);
 	}
 
 	/**

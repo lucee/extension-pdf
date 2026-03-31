@@ -578,8 +578,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @throws PageException
 	 */
 	public void setMimetype(String strMimetype) throws PageException {
-		this.attrMimetype = strMimetype;
-		strMimetype = strMimetype.toLowerCase().trim();
+		this.attrMimetype = strMimetype.toLowerCase().trim();
 	}
 
 	public void setHeader(PDFPageMark header) throws PageException {
@@ -600,7 +599,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		fontembed = fontembed.trim();
 		Boolean fe = engine.getCastUtil().toBoolean(fontembed, null);
 		if (fe == null) {
-			if ("selective".equalsIgnoreCase(fontembed)) this.attrFontembed = PDFDocument.FONT_EMBED_SELECCTIVE;
+			if ("selective".equalsIgnoreCase(fontembed)) this.attrFontembed = PDFDocument.FONT_EMBED_SELECTIVE;
 			else throw engine.getExceptionUtil().createAbortException("invalid value for fontembed [" + fontembed + "], valid values for fontembed are [yes,no,selective]");
 		}
 		else if (fe.booleanValue()) {
@@ -828,26 +827,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			// This allows for mixed-orientation PDFs.
 			dimension = getDimension(pdfDocs[index].getOrientation());
 
-			int multiCount = getMultipleHF(pdfDocs[index]);
-			// multiple header/footer
-			if (multiCount > 1) {
-				byte[][] tmp = new byte[multiCount][];
-				for (int i = 0; i < multiCount; i++) {
-					pdfDocs[index].setHFIndex(i);
-					tmp[i] = pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks);
-				}
-				try {
-					pdfBytes[index] = mergePdfBytes(tmp);
-				}
-				catch (Exception e) {
-					CFMLEngine eng = CFMLEngineFactory.getInstance();
-					throw eng.getExceptionUtil().createPageRuntimeException(eng.getCastUtil().toPageException(e));
-				}
-			}
-			else {
-				pdfBytes[index] = pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks);
-			}
-			pdfDocs[index].setHFIndex(0);
+			pdfBytes[index] = pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks);
 
 			// Get page count using PDFBox
 			try (PDDocument pdDoc = Loader.loadPDF(new RandomAccessReadBuffer(pdfBytes[index]))) {
@@ -949,25 +929,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		item.setTitle( title );
 		item.setDestination( dest );
 		outline.addLast( item );
-	}
-
-	private byte[] mergePdfBytes(byte[][] pdfBytesArray) throws IOException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		PDFMergerUtility merger = new PDFMergerUtility();
-		merger.setDestinationStream(baos);
-
-		for (byte[] pdfBytes : pdfBytesArray) {
-			merger.addSource(new RandomAccessReadBuffer(pdfBytes));
-		}
-
-		merger.mergeDocuments(null);
-		return baos.toByteArray();
-	}
-
-	private int getMultipleHF(PDFDocument doc) {
-		// OpenHTMLToPDF uses CSS counters for page numbers, so we always render once.
-		// The old multi-render approach was for PD4ML/Flying Saucer which are no longer used.
-		return 1;
 	}
 
 	private void renderUpdate(byte[] pdf, OutputStream os) throws Exception {
