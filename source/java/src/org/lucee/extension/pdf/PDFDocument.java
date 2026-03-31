@@ -477,11 +477,13 @@ public class PDFDocument {
 
 			builder.toStream(baos);
 
-			// Route OpenHTMLToPDF logging through Lucee (uncomment when done debugging)
-			// Log pdfLog = pc.getConfig().getLog("pdf");
-			// Logger ohtLogger = Logger.getLogger("com.openhtmltopdf");
-			// ohtLogger.setUseParentHandlers(false);
-			// ohtLogger.addHandler(new LuceeLogHandler(pdfLog));
+			// Route OpenHTMLToPDF logging through Lucee's pdf log
+			Log pdfLog = pc.getConfig().getLog("pdf");
+			if (pdfLog != null) {
+				Logger ohtLogger = Logger.getLogger("com.openhtmltopdf");
+				ohtLogger.setUseParentHandlers(false);
+				ohtLogger.addHandler(new LuceeLogHandler(pdfLog));
+			}
 
 			builder.run();
 
