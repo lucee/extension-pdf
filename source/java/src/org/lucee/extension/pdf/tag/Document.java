@@ -861,45 +861,84 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 		byte[] mergedPdf = baos.toByteArray();
 
-		// Add bookmarks if enabled and we have named sections
-		if (doBookmarks && pdfDocs.length > 0) {
-			mergedPdf = addBookmarks(mergedPdf, pdfDocs);
+		// Add bookmarks: section names, explicit bookmarks, and HTML heading bookmarks
+		if (pdfDocs.length > 0) {
+			boolean hasBookmarks = false;
+
+			// Check for section bookmarks
+			if (doBookmarks) {
+				for (PDFDocument doc : pdfDocs) {
+					if (!Util.isEmpty( doc.getName() )) { hasBookmarks = true; break; }
+				}
+			}
+
+			// Check for explicit bookmarks (cfdocumentitem type="bookmark")
+			for (PDFDocument doc : pdfDocs) {
+				if (!doc.getBookmarkNames().isEmpty()) { hasBookmarks = true; break; }
+			}
+
+			// Check for HTML heading bookmarks
+			if (doHtmlBookmarks) {
+				for (PDFDocument doc : pdfDocs) {
+					if (!doc.getHtmlHeadingNames().isEmpty()) { hasBookmarks = true; break; }
+				}
+			}
+
+			if (hasBookmarks) {
+				mergedPdf = addBookmarks( mergedPdf, pdfDocs, doBookmarks, doHtmlBookmarks );
+			}
 		}
 
 		return mergedPdf;
 	}
 
-	private byte[] addBookmarks(byte[] pdfBytes, PDFDocument[] pdfDocs) throws IOException {
-		try (PDDocument pdDoc = Loader.loadPDF(new RandomAccessReadBuffer(pdfBytes))) {
+	private byte[] addBookmarks( byte[] pdfBytes, PDFDocument[] pdfDocs, boolean doSectionBookmarks, boolean doHtmlBookmarks ) throws IOException {
+		try (PDDocument pdDoc = Loader.loadPDF( new RandomAccessReadBuffer( pdfBytes ) )) {
 			PDDocumentOutline outline = new PDDocumentOutline();
-			pdDoc.getDocumentCatalog().setDocumentOutline(outline);
+			pdDoc.getDocumentCatalog().setDocumentOutline( outline );
 
 			PDPageTree pages = pdDoc.getPages();
 			int totalPages = pages.getCount();
 
 			for (PDFDocument doc : pdfDocs) {
-				String name = doc.getName();
-				if (Util.isEmpty(name)) continue;
-
 				int pageIndex = doc.getPageOffset();
-				if (pageIndex >= 0 && pageIndex < totalPages) {
-					PDPage page = pages.get(pageIndex);
-					PDPageFitDestination dest = new PDPageFitDestination();
-					dest.setPage(page);
 
-					PDOutlineItem item = new PDOutlineItem();
-					item.setTitle(name);
-					item.setDestination(dest);
-					outline.addLast(item);
+				// Section bookmarks (from cfdocumentsection name="...")
+				if (doSectionBookmarks && !Util.isEmpty( doc.getName() )) {
+					addOutlineItem( outline, pages, totalPages, doc.getName(), pageIndex );
+				}
+
+				// Explicit bookmarks (from cfdocumentitem type="bookmark")
+				for (String bmName : doc.getBookmarkNames()) {
+					addOutlineItem( outline, pages, totalPages, bmName, pageIndex );
+				}
+
+				// HTML heading bookmarks (from h1-h6 when htmlbookmark=true)
+				if (doHtmlBookmarks) {
+					for (String heading : doc.getHtmlHeadingNames()) {
+						addOutlineItem( outline, pages, totalPages, heading, pageIndex );
+					}
 				}
 			}
 
 			outline.openNode();
 
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			pdDoc.save(baos);
+			pdDoc.save( baos );
 			return baos.toByteArray();
 		}
+	}
+
+	private void addOutlineItem( PDDocumentOutline outline, PDPageTree pages, int totalPages, String title, int pageIndex ) {
+		if (pageIndex < 0 || pageIndex >= totalPages) return;
+		PDPage page = pages.get( pageIndex );
+		PDPageFitDestination dest = new PDPageFitDestination();
+		dest.setPage( page );
+
+		PDOutlineItem item = new PDOutlineItem();
+		item.setTitle( title );
+		item.setDestination( dest );
+		outline.addLast( item );
 	}
 
 	private byte[] mergePdfBytes(byte[][] pdfBytesArray) throws IOException {

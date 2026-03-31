@@ -21,7 +21,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect(pdfinfo.author).toBe("lucee");
 			});
 			it(title="cfpdf setinfo with destination and pdf file as source", body=function( currentSpec )  {
-				pdf action="setinfo" source="#variables.path#/test.pdf" info="#{"author":"lucee"}#" destination="#path#/testRes.pdf";
+				pdf action="setinfo" source="#variables.path#/test.pdf" info="#{"author":"lucee"}#" destination="#path#/testRes.pdf" overwrite=true;
 
 				pdf action="getInfo" source="#variables.path#/testRes.pdf" name="local.pdfInfo";
 				expect(pdfinfo.author).toBe("lucee");

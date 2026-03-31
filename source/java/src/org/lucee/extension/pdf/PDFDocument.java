@@ -25,6 +25,8 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.jsoup.Jsoup;
@@ -119,6 +121,8 @@ public class PDFDocument {
 	private int pageOffset = 0;
 	private int pages = 0;
 	private int hfIndex = 0;
+	private final List<String> bookmarkNames = new ArrayList<>();
+	private final List<String> htmlHeadingNames = new ArrayList<>();
 
 	private static final CFMLEngine engine = CFMLEngineFactory.getInstance();
 
@@ -307,6 +311,22 @@ public class PDFDocument {
 		return htmlBookmark;
 	}
 
+	/**
+	 * Add a bookmark at the current position in the document.
+	 * Called by DocumentItem when type="bookmark".
+	 */
+	public void addBookmark( String bookmarkName ) {
+		bookmarkNames.add( bookmarkName );
+	}
+
+	public List<String> getBookmarkNames() {
+		return bookmarkNames;
+	}
+
+	public List<String> getHtmlHeadingNames() {
+		return htmlHeadingNames;
+	}
+
 	public boolean getLocalUrl() {
 		return localUrl;
 	}
@@ -405,6 +425,20 @@ public class PDFDocument {
 			// Inject CSS for page size and margins
 			String pageCSS = buildPageCSS(dimension, unitFactor);
 			injectPageCSS(jsoupDoc, pageCSS);
+
+			// Collect HTML heading texts for post-render bookmark generation
+			if (doHtmlBookmarks) {
+				htmlHeadingNames.clear();
+				org.jsoup.nodes.Element jsoupBody = jsoupDoc.body();
+				if (jsoupBody != null) {
+					for (org.jsoup.nodes.Element heading : jsoupBody.select( "h1, h2, h3, h4, h5, h6" )) {
+						String text = heading.text();
+						if (!Util.isEmpty( text )) {
+							htmlHeadingNames.add( text );
+						}
+					}
+				}
+			}
 
 			// Re-convert after CSS injection
 			w3cDoc = w3cDom.fromJsoup(jsoupDoc);
@@ -535,6 +569,11 @@ public class PDFDocument {
 		}
 	}
 
+	/**
+	 * Inject OpenHTMLToPDF bookmark elements into the document.
+	 * Handles both explicit bookmarks (from cfdocumentitem type="bookmark")
+	 * and HTML heading bookmarks (when htmlbookmark=true).
+	 */
 	/**
 	 * Convert local file paths in src attributes to file:// URIs.
 	 * OpenHTMLToPDF requires proper URIs, not Windows paths like d:\path\file.png
