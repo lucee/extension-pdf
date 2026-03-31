@@ -695,8 +695,6 @@ public class PDFDocument {
 			}
 		}
 
-		// TODO: Implement proper URL fetching with proxy/auth support
-		// For now, use JSoup for basic URL fetching
 		try {
 			org.jsoup.Connection conn = Jsoup.connect(urlStr);
 			if (!Util.isEmpty(userAgent)) {
@@ -707,7 +705,11 @@ public class PDFDocument {
 					(authUser + ":" + authPassword).getBytes(StandardCharsets.UTF_8));
 				conn.header("Authorization", "Basic " + auth);
 			}
-			// TODO: Add proxy support when needed
+			if (hasProxy()) {
+				java.net.Proxy proxy = new java.net.Proxy(java.net.Proxy.Type.HTTP,
+					new java.net.InetSocketAddress(proxyserver, proxyport));
+				conn.proxy(proxy);
+			}
 			return conn.get().html();
 		}
 		catch (IOException e) {
