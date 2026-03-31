@@ -698,6 +698,16 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	@Override
 	public int doEndTag() throws PageException {
+		// If srcfile or src is set but no body was rendered (e.g. <cfdocument srcfile="..."/>
+		// without a body), trigger rendering here
+		if (pdf == null && (_document != null && (_document.getSrcfile() != null || !Util.isEmpty(_document.getSrc())))) {
+			try {
+				return _doAfterBody();
+			}
+			catch (Exception e) {
+				throw engine.getCastUtil().toPageException(e);
+			}
+		}
 		return EVAL_PAGE;
 	}
 

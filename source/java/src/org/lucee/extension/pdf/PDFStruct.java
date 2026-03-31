@@ -341,7 +341,15 @@ public class PDFStruct extends StructSupport implements Struct {
 	public void setPages(String strPages) throws PageException {
 		if (Util.isEmpty(strPages)) return;
 		if (pages == null) pages = new HashSet<Integer>();
-		PDFUtil.parsePageDefinition(pages, strPages, -1);
+		int lastPage;
+		try {
+			lastPage = getNumberOfPages();
+		}
+		catch (IOException e) {
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException(
+				"could not determine page count: " + e.getMessage());
+		}
+		PDFUtil.parsePageDefinition(pages, strPages, lastPage);
 	}
 
 	public Set<Integer> getPages() {

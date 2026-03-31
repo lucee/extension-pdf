@@ -657,11 +657,9 @@ public class PDFDocument {
 	 * Get the HTML content to render.
 	 */
 	private String getHTMLContent(PageContext pc) throws PageException, IOException {
-		// Priority: body > srcfile > src
-		// Note: body can be empty string for blank PDFs - that's valid
-		if (body != null) {
-			// Return body even if empty - creates blank PDF
-			return body.isEmpty() ? "<html><body></body></html>" : body;
+		// Priority: body > srcfile > src (but empty body defers to srcfile/src)
+		if (body != null && !body.isEmpty()) {
+			return body;
 		}
 		if (srcfile != null) {
 			InputStream is = srcfile.getInputStream();
@@ -745,10 +743,8 @@ public class PDFDocument {
 	private String getBaseUrl(PageContext pc) {
 		try {
 			if (srcfile != null) {
-				if (srcfile instanceof File) {
-					return ((File) srcfile).toURI().toString();
-				}
-				return srcfile.getAbsolutePath();
+				Resource parent = srcfile.getParentResource();
+				if (parent != null) return toFileUri( parent );
 			}
 			if (!Util.isEmpty(src)) {
 				try {
@@ -758,23 +754,28 @@ public class PDFDocument {
 				catch (MalformedURLException e) {
 					// Not a valid URL, try as file path
 					Resource res = engine.getResourceUtil().toResourceExisting(pc, src);
-					if (res instanceof File) {
-						return ((File) res).toURI().toString();
-					}
+					Resource parent = res.getParentResource();
+					if (parent != null) return toFileUri( parent );
 				}
 			}
 			// Default to current template directory
 			Resource curr = pc.getCurrentTemplatePageSource().getResource();
 			if (curr != null) {
 				Resource parent = curr.getParentResource();
-				if (parent instanceof File) {
-					return ((File) parent).toURI().toString();
-				}
+				if (parent != null) return toFileUri( parent );
 			}
 		}
 		catch (Exception e) {
 			// Ignore and return null
 		}
 		return null;
+	}
+
+	private static String toFileUri(Resource res) {
+		if (res instanceof File) return ((File) res).toURI().toString();
+		// Lucee Resources don't extend java.io.File, convert path to file:// URI
+		String path = res.getAbsolutePath().replace('\\', '/');
+		if (!path.startsWith("/")) path = "/" + path;
+		return "file://" + path + "/";
 	}
 }

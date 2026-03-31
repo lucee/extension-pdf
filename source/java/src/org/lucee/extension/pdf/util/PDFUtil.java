@@ -70,11 +70,11 @@ import lucee.runtime.type.Struct;
 
 public class PDFUtil {
 
-	// Encryption constants (PDFBox uses key length instead of named constants)
-	public static final int ENCRYPT_RC4_40 = 40;
-	public static final int ENCRYPT_RC4_128 = 128;
-	public static final int ENCRYPT_RC4_128M = 128;
-	public static final int ENCRYPT_AES_128 = 128; // Note: AES-128 requires different handling in PDFBox
+	// Encryption type constants
+	public static final int ENCRYPT_RC4_40 = 1;
+	public static final int ENCRYPT_RC4_128 = 2;
+	public static final int ENCRYPT_RC4_128M = 3;
+	public static final int ENCRYPT_AES_128 = 4;
 	public static final int ENCRYPT_NONE = -1;
 
 	// Permission constants (matching iText/PDF spec values for compatibility)
@@ -125,7 +125,7 @@ public class PDFUtil {
 		else if ("documentassembly".equals(strPermission)) return ALLOW_ASSEMBLY;
 		else if ("allowdegradedprinting".equals(strPermission)) return ALLOW_DEGRADED_PRINTING;
 		else if ("degradedprinting".equals(strPermission)) return ALLOW_DEGRADED_PRINTING;
-		else if ("printing".equals(strPermission)) return ALLOW_DEGRADED_PRINTING;
+		else if ("printing".equals(strPermission)) return ALLOW_PRINTING;
 		else if ("allowfillin".equals(strPermission)) return ALLOW_FILL_IN;
 		else if ("fillin".equals(strPermission)) return ALLOW_FILL_IN;
 		else if ("fillingform".equals(strPermission)) return ALLOW_FILL_IN;
@@ -137,7 +137,6 @@ public class PDFUtil {
 		else if ("copy".equals(strPermission)) return ALLOW_COPY;
 		else if ("copycontent".equals(strPermission)) return ALLOW_COPY;
 		else if ("allowprinting".equals(strPermission)) return ALLOW_PRINTING;
-		else if ("printing".equals(strPermission)) return ALLOW_PRINTING;
 		else if ("allowscreenreaders".equals(strPermission)) return ALLOW_SCREENREADERS;
 		else if ("screenreaders".equals(strPermission)) return ALLOW_SCREENREADERS;
 
@@ -261,7 +260,25 @@ public class PDFUtil {
 					newUserPassword != null ? newUserPassword : "",
 					ap
 				);
-				spp.setEncryptionKeyLength(encryption); // 40 or 128
+				// Map encryption type to key length and algorithm
+				int keyLength;
+				boolean preferAES = false;
+				switch (encryption) {
+					case ENCRYPT_RC4_40:
+						keyLength = 40;
+						break;
+					case ENCRYPT_AES_128:
+						keyLength = 128;
+						preferAES = true;
+						break;
+					case ENCRYPT_RC4_128:
+					case ENCRYPT_RC4_128M:
+					default:
+						keyLength = 128;
+						break;
+				}
+				spp.setEncryptionKeyLength(keyLength);
+				spp.setPreferAES(preferAES);
 				pdDoc.protect(spp);
 			}
 			else {
