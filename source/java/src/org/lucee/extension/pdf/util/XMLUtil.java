@@ -14,6 +14,8 @@ import javax.xml.transform.dom.DOMSource;
 
 import org.jsoup.Jsoup;
 import org.jsoup.helper.W3CDom;
+import org.jsoup.parser.Parser;
+import org.jsoup.parser.Tag;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -100,8 +102,12 @@ public class XMLUtil {
 			}
 
 			// Parse with jsoup and convert to W3C DOM
-			org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
-			jsoupDoc.outputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml);
+			Parser parser = Parser.htmlParser();
+			parser.tagSet().onNewTag( tag -> {
+				if ( !tag.isKnownTag() ) tag.set( Tag.SelfClose );
+			});
+			org.jsoup.nodes.Document jsoupDoc = Jsoup.parse( html, parser );
+			jsoupDoc.outputSettings().syntax( org.jsoup.nodes.Document.OutputSettings.Syntax.xml );
 			W3CDom w3cDom = new W3CDom();
 			return w3cDom.fromJsoup(jsoupDoc);
 		}

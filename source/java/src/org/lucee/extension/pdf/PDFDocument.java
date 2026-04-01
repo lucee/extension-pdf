@@ -39,6 +39,8 @@ import org.apache.pdfbox.util.Matrix;
 
 import org.jsoup.Jsoup;
 import org.jsoup.helper.W3CDom;
+import org.jsoup.parser.Parser;
+import org.jsoup.parser.Tag;
 import org.w3c.dom.Document;
 
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.PageSizeUnits;
@@ -430,8 +432,12 @@ public class PDFDocument {
 			String baseUrl = getBaseUrl(pc);
 
 			// Parse HTML with JSoup and convert to W3C DOM
-			org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
-			jsoupDoc.outputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml);
+			Parser parser = Parser.htmlParser();
+			parser.tagSet().onNewTag( tag -> {
+				if ( !tag.isKnownTag() ) tag.set( Tag.SelfClose );
+			});
+			org.jsoup.nodes.Document jsoupDoc = Jsoup.parse( html, parser );
+			jsoupDoc.outputSettings().syntax( org.jsoup.nodes.Document.OutputSettings.Syntax.xml );
 
 			// Convert local file paths to file:// URIs for OpenHTMLToPDF compatibility
 			convertLocalPathsToURIs(jsoupDoc);

@@ -14,9 +14,9 @@ Major rewrite switching from Flying Saucer/iText to OpenHTMLToPDF + PDFBox 3.x.
 
 | Component | Version | Purpose |
 |-----------|---------|---------|
-| OpenHTMLToPDF | 1.1.24 | HTML/CSS to PDF rendering |
-| PDFBox | 3.0.5 | PDF manipulation (cfpdf actions) |
-| jsoup | 1.18.3 | HTML parsing/cleanup |
+| OpenHTMLToPDF | 1.1.37 | HTML/CSS to PDF rendering |
+| PDFBox | 3.0.7 | PDF manipulation (cfpdf actions) |
+| jsoup | 1.22.1 | HTML parsing/cleanup |
 
 ### New cfpdf Actions
 
@@ -183,6 +183,8 @@ The `scale` attribute (1-100) now works, rendering content at the specified perc
 - **No License Issues**: All open source libraries (Apache 2.0, LGPL)
 - **Better CSS Support**: CSS 2.1 with some CSS3 support via OpenHTMLToPDF
 - **Modern PDFBox**: PDFBox 3.x with improved performance and security
+- **Self-closing HTML tags**: Unknown/custom tags are allowed to self-close for compatibility with real-world HTML
+- **Removed legacy v2 dist jars**: Cleaned out old iText, Flying Saucer, TagSoup, and pre-release PDFBox jars
 
 ### Removed Features
 
