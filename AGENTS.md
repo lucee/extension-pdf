@@ -8,6 +8,10 @@ leave artifacts in place for visual inspection, cleanup before each test run
 
 place all generated artifacts in a `generated/` subdirectory (ignored globally via `**/generated/` in `.gitignore`)
 
+## Libaries uses
+
+v3 switches to exclusively only use https://github.com/openhtmltopdf/openhtmltopdf
+
 ## Build and test
 
 never used cmd.exe!!

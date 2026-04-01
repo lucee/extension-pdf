@@ -154,6 +154,29 @@ Child tag of cfpdfform for specifying form field values.
 <cfpdfformparam name="fieldName" value="fieldValue">
 ```
 
+### IsPDFArchive / PDF/A Detection
+
+`IsPDFArchive()` now checks XMP metadata for PDF/A conformance declarations (pdfaid:part) instead of just validating that the file is a PDF. Works with all PDF/A flavours (1a/1b, 2a/2b/2u, 3a/3b/3u, 4e/4f).
+
+`getInfo()` now includes a `PDFAVersion` key — returns e.g. `"1b"`, `"2a"`, `"3b"`, or `""` if not PDF/A.
+
+### Bookmarks
+
+- **Accurate page destinations**: Bookmarks now use OpenHTMLToPDF's native `<bookmarks>` support, pointing to exact rendered page positions instead of section start pages
+- **Merge preserves bookmarks**: `cfpdf action="merge"` with `keepbookmark=true` now preserves and remaps bookmarks from all source PDFs, with correct page offsets
+- **Page filtering**: Bookmarks pointing to excluded pages are automatically removed during merge
+- **HTML heading bookmarks**: `htmlbookmark=true` creates bookmarks with correct per-page destinations
+
+### cfdocument scale attribute
+
+The `scale` attribute (1-100) now works, rendering content at the specified percentage of the page size.
+
+```cfml
+<cfdocument format="pdf" scale="50">
+    <h1>Half-size content</h1>
+</cfdocument>
+```
+
 ### Improvements
 
 - **Smaller Footprint**: Significantly reduced JAR size vs iText
