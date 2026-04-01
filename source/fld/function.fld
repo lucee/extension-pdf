@@ -30,6 +30,23 @@
 			<type>boolean</type>
 		</return>
 	</function>
+	<!-- IsPDFArchive -->
+	<function>
+		<name>IsPDFArchive</name>
+		<class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.function.IsPDFArchive</class>
+		<keywords>decision,pdf</keywords>
+		<description>Checks whether a PDF file declares PDF/A conformance via XMP metadata.</description>
+		<argument>
+			<name>path</name>
+			<alias>file,value</alias>
+			<type>string</type>
+			<required>Yes</required>
+			<description>Pathname to a PDF file.</description>
+		</argument>
+		<return>
+			<type>boolean</type>
+		</return>
+	</function>
 	<!-- IsPDFObject -->
 	<function>
 		<name>IsPDFObject</name>

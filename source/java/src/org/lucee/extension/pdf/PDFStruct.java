@@ -32,8 +32,12 @@ import org.apache.pdfbox.io.RandomAccessReadBuffer;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDMetadata;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.xmpbox.XMPMetadata;
+import org.apache.xmpbox.schema.PDFAIdentificationSchema;
+import org.apache.xmpbox.xml.DomXmpParser;
 import org.lucee.extension.pdf.util.PDFUtil;
 import org.lucee.extension.pdf.util.StructSupport;
 
@@ -304,6 +308,24 @@ public class PDFStruct extends StructSupport implements Struct {
 				if (!isStandardKey(key)) {
 					info.setEL(key, docInfo.getCustomMetadataValue(key));
 				}
+			}
+
+			// PDF/A identification from XMP metadata
+			info.setEL("PDFAVersion", "");
+			try {
+				PDMetadata meta = pdDoc.getDocumentCatalog().getMetadata();
+				if (meta != null) {
+					DomXmpParser xmpParser = new DomXmpParser();
+					XMPMetadata xmp = xmpParser.parse(meta.createInputStream());
+					PDFAIdentificationSchema pdfaId = xmp.getPDFAIdentificationSchema();
+					if (pdfaId != null && pdfaId.getPart() != null) {
+						String conformance = pdfaId.getConformance();
+						info.setEL("PDFAVersion", pdfaId.getPart() + (conformance != null ? conformance.toLowerCase() : ""));
+					}
+				}
+			}
+			catch (Exception e) {
+				// XMP parsing failed — leave as empty string
 			}
 
 			cachedInfo = info;
