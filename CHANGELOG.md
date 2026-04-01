@@ -177,6 +177,26 @@ The `scale` attribute (1-100) now works, rendering content at the specified perc
 </cfdocument>
 ```
 
+### cfdocument resourceHandler attribute
+
+Custom resource fetching for images, CSS, and other resources. Accepts a Component (with `onResourceFetch(url)` method) or a UDF. Return binary/string content to use, or null to fall through to default fetching. Useful for session-protected resources or custom auth.
+
+```cfml
+<!--- Component handler --->
+<cfdocument format="pdf" resourceHandler="#new my.ResourceHandler()#">
+    <img src="http://internal/session-image.png"/>
+</cfdocument>
+
+<!--- UDF handler --->
+<cfdocument format="pdf" resourceHandler="#function( url ) {
+    if ( arguments.url contains "internal" ) {
+        return myCustomFetch( arguments.url, session.authToken );
+    }
+}#">
+    <img src="http://internal/protected.png"/>
+</cfdocument>
+```
+
 ### Improvements
 
 - **Smaller Footprint**: Significantly reduced JAR size vs iText

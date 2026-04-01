@@ -41,6 +41,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.helper.W3CDom;
 import org.jsoup.parser.Parser;
 import org.jsoup.parser.Tag;
+
+import com.openhtmltopdf.extend.FSStream;
+import com.openhtmltopdf.extend.FSStreamFactory;
 import org.w3c.dom.Document;
 
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.PageSizeUnits;
@@ -55,6 +58,7 @@ import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
+import lucee.runtime.type.UDF;
 
 /**
  * PDFDocument - HTML to PDF renderer using OpenHTMLToPDF.
@@ -117,6 +121,7 @@ public class PDFDocument {
 	private boolean bookmark;
 	private boolean htmlBookmark;
 	private boolean localUrl;
+	private Object onResourceFetch;
 	private int fontembed = FONT_EMBED_YES;
 	private int scale = -1;
 	private File fontDirectory;
@@ -136,6 +141,7 @@ public class PDFDocument {
 	private final List<String> htmlHeadingNames = new ArrayList<>();
 
 	private static final CFMLEngine engine = CFMLEngineFactory.getInstance();
+	private static final String ON_RESOURCE_FETCH = "onResourceFetch";
 
 	public PDFDocument() {
 	}
@@ -200,6 +206,10 @@ public class PDFDocument {
 
 	public void setLocalUrl(boolean localUrl) {
 		this.localUrl = localUrl;
+	}
+
+	public void setOnResourceFetch(Object onResourceFetch) {
+		this.onResourceFetch = onResourceFetch;
 	}
 
 	public void setFontembed(int fontembed) {
@@ -499,6 +509,11 @@ public class PDFDocument {
 			}
 
 			builder.toStream(baos);
+
+			// Wire up resource handler for HTTP stream fetching
+			if (onResourceFetch != null) {
+				builder.useHttpStreamImplementation( new ResourceHandlerStreamFactory( pc, onResourceFetch ) );
+			}
 
 			// Route OpenHTMLToPDF logging through Lucee's pdf log (once only)
 			Log pdfLog = pc.getConfig().getLog("pdf");
@@ -801,6 +816,14 @@ public class PDFDocument {
 	 * Fetch content from a URL.
 	 */
 	private String fetchURL(String urlStr, PageContext pc) throws PageException, IOException {
+		// Try resource handler first
+		if (onResourceFetch != null) {
+			Object result = callResourceHandler( pc, urlStr );
+			if (result != null) {
+				return engine.getCastUtil().toString( result );
+			}
+		}
+
 		// Handle local URLs
 		if (localUrl && !urlStr.toLowerCase().startsWith("http://") && !urlStr.toLowerCase().startsWith("https://")) {
 			Resource res = engine.getResourceUtil().toResourceExisting(pc, urlStr);
@@ -896,5 +919,91 @@ public class PDFDocument {
 		String path = res.getAbsolutePath().replace('\\', '/');
 		if (!path.startsWith("/")) path = "/" + path;
 		return "file://" + path + "/";
+	}
+
+	/**
+	 * Call the resourceHandler (Component or UDF) to fetch a resource.
+	 * Returns the result, or null if the handler returned null / doesn't handle this URL.
+	 */
+	private Object callResourceHandler( PageContext pc, String url ) throws PageException {
+		lucee.runtime.util.Creation creator = engine.getCreationUtil();
+		lucee.runtime.type.Struct args = creator.createStruct();
+		args.set( "url", url );
+
+		if (onResourceFetch instanceof lucee.runtime.Component) {
+			lucee.runtime.Component cfc = (lucee.runtime.Component) onResourceFetch;
+			// Check the method exists before calling
+			if ( cfc.get( engine.getCreationUtil().createKey( ON_RESOURCE_FETCH ), null ) instanceof UDF ) {
+				return cfc.callWithNamedValues( pc, ON_RESOURCE_FETCH, args );
+			}
+			return null;
+		}
+
+		if (onResourceFetch instanceof UDF) {
+			return ((UDF) onResourceFetch).callWithNamedValues( pc, args, true );
+		}
+
+		return null;
+	}
+
+	/**
+	 * FSStreamFactory implementation that delegates to a CFML resourceHandler.
+	 * Used by OpenHTMLToPDF to fetch HTTP resources (images, CSS, etc).
+	 */
+	private static class ResourceHandlerStreamFactory implements FSStreamFactory {
+
+		private final PageContext pc;
+		private final Object handler;
+
+		ResourceHandlerStreamFactory( PageContext pc, Object handler ) {
+			this.pc = pc;
+			this.handler = handler;
+		}
+
+		@Override
+		public FSStream getUrl( String url ) {
+			try {
+				lucee.runtime.util.Creation creator = engine.getCreationUtil();
+				lucee.runtime.type.Struct args = creator.createStruct();
+				args.set( "url", url );
+
+				Object result = null;
+				if (handler instanceof lucee.runtime.Component) {
+					lucee.runtime.Component cfc = (lucee.runtime.Component) handler;
+					if ( cfc.get( creator.createKey( ON_RESOURCE_FETCH ), null ) instanceof UDF ) {
+						result = cfc.callWithNamedValues( pc, ON_RESOURCE_FETCH, args );
+					}
+				}
+				else if (handler instanceof UDF) {
+					result = ((UDF) handler).callWithNamedValues( pc, args, true );
+				}
+
+				if (result == null) return null;
+
+				byte[] bytes;
+				if (result instanceof byte[]) {
+					bytes = (byte[]) result;
+				}
+				else {
+					bytes = engine.getCastUtil().toString( result ).getBytes( StandardCharsets.UTF_8 );
+				}
+
+				final byte[] data = bytes;
+				return new FSStream() {
+					@Override
+					public java.io.InputStream getStream() {
+						return new java.io.ByteArrayInputStream( data );
+					}
+					@Override
+					public java.io.Reader getReader() {
+						return new java.io.InputStreamReader( new java.io.ByteArrayInputStream( data ), StandardCharsets.UTF_8 );
+					}
+				};
+			}
+			catch (Exception e) {
+				// Fall through to default HTTP fetching
+				return null;
+			}
+		}
 	}
 }

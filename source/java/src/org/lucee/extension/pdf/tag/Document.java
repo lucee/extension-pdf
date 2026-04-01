@@ -109,6 +109,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private String attrSrc = null;
 	private Resource attrSrcfile = null;
 	private String attrUserAgent = null;
+	private Object attrResourceHandler = null;
 
 	public Document() {
 		this._document = null;
@@ -159,6 +160,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		attrSrc = null;
 		attrSrcfile = null;
 		attrUserAgent = null;
+		attrResourceHandler = null;
 	}
 
 	@Override
@@ -215,6 +217,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			}
 			if (attrUserAgent != null) {
 				_document.setUserAgent(attrUserAgent);
+			}
+			if (attrResourceHandler != null) {
+				_document.setOnResourceFetch(attrResourceHandler);
 			}
 			_document.setScale(scale);
 		}
@@ -313,6 +318,15 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 */
 	public void setUseragent(String userAgent) {
 		this.attrUserAgent = userAgent;
+	}
+
+	/**
+	 * @param resourceHandler a Component or UDF that handles resource fetching.
+	 *        Component should have an onResourceFetch(url) method.
+	 *        Returns binary/string content to use, or null to fall through to default.
+	 */
+	public void setResourcehandler(Object resourceHandler) {
+		this.attrResourceHandler = resourceHandler;
 	}
 
 	/**

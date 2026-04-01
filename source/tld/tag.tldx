@@ -200,6 +200,13 @@
 			<description>define a scale factor as a percentage. this option is used to reduce the size of the HTML output so that it fits on that paper. define a number less than 100.</description>
 		</attribute>
 		<attribute>
+			<type>object</type>
+			<name>resourceHandler</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>A Component or UDF that handles resource fetching (images, CSS, etc). A Component should have an onResourceFetch(url) method. A UDF receives a struct with a url key. Return binary or string content to use, or null to fall through to default fetching.</description>
+		</attribute>
+		<attribute>
 			<type>string</type>
 			<name>src</name>
 			<required>false</required>
