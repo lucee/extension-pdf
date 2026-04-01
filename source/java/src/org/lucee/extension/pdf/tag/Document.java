@@ -41,14 +41,8 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.io.RandomAccessReadBuffer;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
-import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageDestination;
-import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination;
-import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline;
-import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lucee.Info;
@@ -222,6 +216,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			if (attrUserAgent != null) {
 				_document.setUserAgent(attrUserAgent);
 			}
+			_document.setScale(scale);
 		}
 		return _document;
 	}
@@ -827,7 +822,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			// This allows for mixed-orientation PDFs.
 			dimension = getDimension(pdfDocs[index].getOrientation());
 
-			pdfBytes[index] = pdfDocs[index].render(dimension, unitFactor, pageContext, doHtmlBookmarks);
+			pdfBytes[index] = pdfDocs[index].render(dimension, unitFactor, pageContext, doBookmarks, doHtmlBookmarks);
 
 			// Get page count using PDFBox
 			try (PDDocument pdDoc = Loader.loadPDF(new RandomAccessReadBuffer(pdfBytes[index]))) {
@@ -847,88 +842,11 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			merger.addSource(new RandomAccessReadBuffer(pdfBytes[doc]));
 		}
 
+		// Bookmarks are now handled natively by OpenHTMLToPDF during render(),
+		// and PDFMergerUtility automatically merges outlines from each section.
 		merger.mergeDocuments(null);
 
-		byte[] mergedPdf = baos.toByteArray();
-
-		// Add bookmarks: section names, explicit bookmarks, and HTML heading bookmarks
-		if (pdfDocs.length > 0) {
-			boolean hasBookmarks = false;
-
-			// Check for section bookmarks
-			if (doBookmarks) {
-				for (PDFDocument doc : pdfDocs) {
-					if (!Util.isEmpty( doc.getName() )) { hasBookmarks = true; break; }
-				}
-			}
-
-			// Check for explicit bookmarks (cfdocumentitem type="bookmark")
-			for (PDFDocument doc : pdfDocs) {
-				if (!doc.getBookmarkNames().isEmpty()) { hasBookmarks = true; break; }
-			}
-
-			// Check for HTML heading bookmarks
-			if (doHtmlBookmarks) {
-				for (PDFDocument doc : pdfDocs) {
-					if (!doc.getHtmlHeadingNames().isEmpty()) { hasBookmarks = true; break; }
-				}
-			}
-
-			if (hasBookmarks) {
-				mergedPdf = addBookmarks( mergedPdf, pdfDocs, doBookmarks, doHtmlBookmarks );
-			}
-		}
-
-		return mergedPdf;
-	}
-
-	private byte[] addBookmarks( byte[] pdfBytes, PDFDocument[] pdfDocs, boolean doSectionBookmarks, boolean doHtmlBookmarks ) throws IOException {
-		try (PDDocument pdDoc = Loader.loadPDF( new RandomAccessReadBuffer( pdfBytes ) )) {
-			PDDocumentOutline outline = new PDDocumentOutline();
-			pdDoc.getDocumentCatalog().setDocumentOutline( outline );
-
-			PDPageTree pages = pdDoc.getPages();
-			int totalPages = pages.getCount();
-
-			for (PDFDocument doc : pdfDocs) {
-				int pageIndex = doc.getPageOffset();
-
-				// Section bookmarks (from cfdocumentsection name="...")
-				if (doSectionBookmarks && !Util.isEmpty( doc.getName() )) {
-					addOutlineItem( outline, pages, totalPages, doc.getName(), pageIndex );
-				}
-
-				// Explicit bookmarks (from cfdocumentitem type="bookmark")
-				for (String bmName : doc.getBookmarkNames()) {
-					addOutlineItem( outline, pages, totalPages, bmName, pageIndex );
-				}
-
-				// HTML heading bookmarks (from h1-h6 when htmlbookmark=true)
-				if (doHtmlBookmarks) {
-					for (String heading : doc.getHtmlHeadingNames()) {
-						addOutlineItem( outline, pages, totalPages, heading, pageIndex );
-					}
-				}
-			}
-
-			outline.openNode();
-
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			pdDoc.save( baos );
-			return baos.toByteArray();
-		}
-	}
-
-	private void addOutlineItem( PDDocumentOutline outline, PDPageTree pages, int totalPages, String title, int pageIndex ) {
-		if (pageIndex < 0 || pageIndex >= totalPages) return;
-		PDPage page = pages.get( pageIndex );
-		PDPageFitDestination dest = new PDPageFitDestination();
-		dest.setPage( page );
-
-		PDOutlineItem item = new PDOutlineItem();
-		item.setTitle( title );
-		item.setDestination( dest );
-		outline.addLast( item );
+		return baos.toByteArray();
 	}
 
 	private void renderUpdate(byte[] pdf, OutputStream os) throws Exception {

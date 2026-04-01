@@ -41,8 +41,11 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( isArray( bookmarks ) ).toBeTrue();
 				expect( bookmarks ).toHaveLength( 3 );
 				expect( bookmarks[1].get( "Title" ) ).toBe( "Introduction" );
+				expect( bookmarks[1].get( "PageNumber" ) ).toBe( 1 );
 				expect( bookmarks[2].get( "Title" ) ).toBe( "Methods" );
+				expect( bookmarks[2].get( "PageNumber" ) ).toBe( 2 );
 				expect( bookmarks[3].get( "Title" ) ).toBe( "Conclusion" );
+				expect( bookmarks[3].get( "PageNumber" ) ).toBe( 3 );
 			});
 
 			it( title="bookmark requires name attribute", body=function( currentSpec ) {
@@ -70,6 +73,26 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( bookmarks ).toHaveLength( 2 );
 				expect( bookmarks[1].get( "Title" ) ).toBe( "First Heading" );
 				expect( bookmarks[2].get( "Title" ) ).toBe( "Second Heading" );
+			});
+
+			it( title="html heading bookmarks point to correct pages", body=function( currentSpec ) {
+				document format="pdf" bookmark=true htmlbookmark=true filename="#path#html_bookmarks_pages.pdf" overwrite=true {
+					writeOutput( "<h1>Chapter One</h1><p>Content</p>" );
+					documentItem type="pagebreak";
+					writeOutput( "<h1>Chapter Two</h1><p>More content</p>" );
+					documentItem type="pagebreak";
+					writeOutput( "<h1>Chapter Three</h1><p>Even more content</p>" );
+				}
+
+				pdf action="extractBookmarks" source="#path#html_bookmarks_pages.pdf" name="local.bookmarks";
+
+				expect( bookmarks ).toHaveLength( 3 );
+				expect( bookmarks[1].get( "Title" ) ).toBe( "Chapter One" );
+				expect( bookmarks[1].get( "PageNumber" ) ).toBe( 1 );
+				expect( bookmarks[2].get( "Title" ) ).toBe( "Chapter Two" );
+				expect( bookmarks[2].get( "PageNumber" ) ).toBe( 2 );
+				expect( bookmarks[3].get( "Title" ) ).toBe( "Chapter Three" );
+				expect( bookmarks[3].get( "PageNumber" ) ).toBe( 3 );
 			});
 
 		});

@@ -29,6 +29,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.util.Matrix;
+
 import org.jsoup.Jsoup;
 import org.jsoup.helper.W3CDom;
 import org.w3c.dom.Document;
@@ -108,6 +116,7 @@ public class PDFDocument {
 	private boolean htmlBookmark;
 	private boolean localUrl;
 	private int fontembed = FONT_EMBED_YES;
+	private int scale = -1;
 	private File fontDirectory;
 	private double margintop = -1;
 	private double marginbottom = -1;
@@ -193,6 +202,14 @@ public class PDFDocument {
 
 	public void setFontembed(int fontembed) {
 		this.fontembed = fontembed;
+	}
+
+	public void setScale(int scale) {
+		this.scale = scale;
+	}
+
+	public int getScale() {
+		return scale;
 	}
 
 	public void setFontDirectory(File fontDirectory) {
@@ -407,7 +424,7 @@ public class PDFDocument {
 	 * @param doHtmlBookmarks Whether to include HTML bookmarks
 	 * @return PDF as byte array
 	 */
-	public byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean doHtmlBookmarks) throws PageException {
+	public byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean doBookmarks, boolean doHtmlBookmarks) throws PageException {
 		try {
 			String html = getHTMLContent(pc);
 			String baseUrl = getBaseUrl(pc);
@@ -422,25 +439,25 @@ public class PDFDocument {
 			W3CDom w3cDom = new W3CDom();
 			Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
 
-			// Inject CSS for page size and margins
-			String pageCSS = buildPageCSS(dimension, unitFactor);
-			injectPageCSS(jsoupDoc, pageCSS);
-
-			// Collect HTML heading texts for post-render bookmark generation
-			if (doHtmlBookmarks) {
-				htmlHeadingNames.clear();
-				org.jsoup.nodes.Element jsoupBody = jsoupDoc.body();
-				if (jsoupBody != null) {
-					for (org.jsoup.nodes.Element heading : jsoupBody.select( "h1, h2, h3, h4, h5, h6" )) {
-						String text = heading.text();
-						if (!Util.isEmpty( text )) {
-							htmlHeadingNames.add( text );
-						}
-					}
-				}
+			// When scale is set, render onto a larger page so content is relatively smaller,
+			// then post-process with PDFBox to scale pages back to the target size
+			Dimension renderDimension = dimension;
+			if (scale > 0 && scale < 100) {
+				double factor = 100.0 / scale;
+				renderDimension = new Dimension(
+					(int) Math.round(dimension.width * factor),
+					(int) Math.round(dimension.height * factor)
+				);
 			}
 
-			// Re-convert after CSS injection
+			// Inject CSS for page size and margins
+			String pageCSS = buildPageCSS(renderDimension, unitFactor);
+			injectPageCSS(jsoupDoc, pageCSS);
+
+			// Inject OpenHTMLToPDF native <bookmarks> for accurate page destinations
+			injectBookmarks( jsoupDoc, doBookmarks, doHtmlBookmarks );
+
+			// Re-convert after CSS and bookmark injection
 			w3cDoc = w3cDom.fromJsoup(jsoupDoc);
 
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -489,10 +506,44 @@ public class PDFDocument {
 
 			builder.run();
 
-			return baos.toByteArray();
+			byte[] pdfBytes = baos.toByteArray();
+
+			// Post-process: scale oversized pages back to target dimensions
+			if (scale > 0 && scale < 100) {
+				pdfBytes = scalePages(pdfBytes, scale / 100.0);
+			}
+
+			return pdfBytes;
 		}
 		catch (Exception e) {
 			throw engine.getCastUtil().toPageException(e);
+		}
+	}
+
+	/**
+	 * Scale all pages in a PDF by the given factor.
+	 * Prepends a scale transform to each page's content stream and sets the media box
+	 * to the scaled-down size.
+	 */
+	private byte[] scalePages(byte[] pdfBytes, double scaleFactor) throws IOException {
+		try (PDDocument doc = Loader.loadPDF(new RandomAccessReadBuffer(pdfBytes))) {
+			for (PDPage page : doc.getPages()) {
+				PDRectangle original = page.getMediaBox();
+				float newWidth = (float) (original.getWidth() * scaleFactor);
+				float newHeight = (float) (original.getHeight() * scaleFactor);
+
+				// Prepend a scale transform to shrink the content
+				try (PDPageContentStream cs = new PDPageContentStream( doc, page, PDPageContentStream.AppendMode.PREPEND, false )) {
+					cs.transform(Matrix.getScaleInstance( (float) scaleFactor, (float) scaleFactor ));
+				}
+
+				// Resize the page to the target dimensions
+				page.setMediaBox(new PDRectangle( newWidth, newHeight ));
+				page.setCropBox(new PDRectangle( newWidth, newHeight ));
+			}
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			doc.save(out);
+			return out.toByteArray();
 		}
 	}
 
@@ -574,10 +625,69 @@ public class PDFDocument {
 	}
 
 	/**
-	 * Inject OpenHTMLToPDF bookmark elements into the document.
-	 * Handles both explicit bookmarks (from cfdocumentitem type="bookmark")
-	 * and HTML heading bookmarks (when htmlbookmark=true).
+	 * Inject OpenHTMLToPDF native bookmark elements into the HTML document.
+	 * OpenHTMLToPDF reads &lt;bookmarks&gt; from the body and resolves each
+	 * href to the actual rendered page position, producing accurate PDF outlines.
 	 */
+	private void injectBookmarks( org.jsoup.nodes.Document doc, boolean doBookmarks, boolean doHtmlBookmarks ) {
+		org.jsoup.nodes.Element body = doc.body();
+		if (body == null) return;
+
+		boolean hasExplicit = !bookmarkNames.isEmpty();
+
+		// Add unique IDs to headings so we can reference them from bookmarks
+		int headingIdx = 0;
+		if (doHtmlBookmarks) {
+			for (org.jsoup.nodes.Element heading : body.select( "h1, h2, h3, h4, h5, h6" )) {
+				String text = heading.text();
+				if (!Util.isEmpty( text )) {
+					if (Util.isEmpty( heading.id() )) {
+						heading.attr( "id", "pdf-heading-" + headingIdx );
+					}
+					headingIdx++;
+				}
+			}
+		}
+
+		boolean hasHeadings = headingIdx > 0;
+		boolean hasSectionName = doBookmarks && !Util.isEmpty( name );
+		if (!hasExplicit && !hasHeadings && !hasSectionName) return;
+
+		// Build <bookmarks> element — OpenHTMLToPDF's native bookmark format
+		org.jsoup.nodes.Element bookmarksEl = body.prependElement( "bookmarks" );
+
+		// Section name bookmark (from cfdocumentsection name="...")
+		if (hasSectionName) {
+			bookmarksEl.appendElement( "bookmark" )
+				.attr( "name", name )
+				.attr( "href", "#pdf-section-start" );
+			// Inject anchor at body start if not already present
+			if (body.getElementById( "pdf-section-start" ) == null) {
+				// Insert after the bookmarks element itself
+				bookmarksEl.after( "<a id=\"pdf-section-start\"></a>" );
+			}
+		}
+
+		// Explicit bookmarks (from cfdocumentitem type="bookmark")
+		for (int i = 0; i < bookmarkNames.size(); i++) {
+			bookmarksEl.appendElement( "bookmark" )
+				.attr( "name", bookmarkNames.get( i ) )
+				.attr( "href", "#pdf-bm-" + i );
+		}
+
+		// HTML heading bookmarks
+		if (doHtmlBookmarks) {
+			for (org.jsoup.nodes.Element heading : body.select( "h1, h2, h3, h4, h5, h6" )) {
+				String text = heading.text();
+				if (!Util.isEmpty( text )) {
+					bookmarksEl.appendElement( "bookmark" )
+						.attr( "name", text )
+						.attr( "href", "#" + heading.id() );
+				}
+			}
+		}
+	}
+
 	/**
 	 * Convert local file paths in src attributes to file:// URIs.
 	 * OpenHTMLToPDF requires proper URIs, not Windows paths like d:\path\file.png

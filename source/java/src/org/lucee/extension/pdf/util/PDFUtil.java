@@ -163,8 +163,12 @@ public class PDFUtil {
 
 		PDDocument resultDoc = new PDDocument();
 		List<PDDocument> srcDocs = new ArrayList<>();
+		PDDocumentOutline resultOutline = keepBookmark ? new PDDocumentOutline() : null;
+		boolean hasBookmarks = false;
 
 		try {
+			int pageOffset = 0;
+
 			for (int i = 0; i < docs.length; i++) {
 				Set<Integer> pages = docs[i].getPages();
 				PDDocument srcDoc;
@@ -180,21 +184,44 @@ public class PDFUtil {
 
 				int n = srcDoc.getNumberOfPages();
 
+				// Build a mapping from old 1-based page number to new 0-based page index in resultDoc
+				Map<Integer, Integer> pageMap = new HashMap<>();
+				int pagesAdded = 0;
+
 				for (int y = 0; y < n; y++) {
-					int pageNum = y + 1; // 1-based for comparison with pages set
+					int pageNum = y + 1; // 1-based
 					if (pages != null && removePages == pages.contains(Integer.valueOf(pageNum))) {
 						continue;
 					}
 					PDPage page = srcDoc.getPage(y);
 					resultDoc.importPage(page);
+					pageMap.put(pageNum, pageOffset + pagesAdded);
+					pagesAdded++;
 				}
 
-				// Note: Forms/AcroForms are not automatically merged in PDFBox
-				// This would require additional handling if needed
+				// Copy bookmarks from this source document
+				if (keepBookmark) {
+					PDDocumentOutline srcOutline = srcDoc.getDocumentCatalog().getDocumentOutline();
+					if (srcOutline != null) {
+						PDOutlineItem item = srcOutline.getFirstChild();
+						while (item != null) {
+							PDOutlineItem copy = copyOutlineItem( srcDoc, resultDoc, item, pageMap );
+							if (copy != null) {
+								resultOutline.addLast( copy );
+								hasBookmarks = true;
+							}
+							item = item.getNextSibling();
+						}
+					}
+				}
+
+				pageOffset += pagesAdded;
 			}
 
-			// TODO: Add bookmark support using PDFBox DocumentOutline
-			// For now, bookmarks are not preserved during concat
+			// Set the merged outline on the result document
+			if (keepBookmark && hasBookmarks) {
+				resultDoc.getDocumentCatalog().setDocumentOutline( resultOutline );
+			}
 
 			// Set PDF version if specified
 			if (version != 0) {
@@ -209,6 +236,71 @@ public class PDFUtil {
 			}
 			resultDoc.close();
 		}
+	}
+
+	/**
+	 * Recursively copy an outline item, remapping page destinations using the given page map.
+	 * Returns null if the bookmark's page was filtered out and it has no surviving children.
+	 */
+	private static PDOutlineItem copyOutlineItem( PDDocument srcDoc, PDDocument resultDoc, PDOutlineItem src, Map<Integer, Integer> pageMap ) throws IOException {
+		// Determine the source page number (1-based)
+		int srcPageNum = -1;
+		try {
+			if (src.getDestination() instanceof PDPageDestination) {
+				PDPageDestination dest = (PDPageDestination) src.getDestination();
+				PDPage page = dest.getPage();
+				if (page != null) {
+					srcPageNum = srcDoc.getPages().indexOf( page ) + 1;
+				}
+				else {
+					srcPageNum = dest.getPageNumber() + 1;
+				}
+			}
+		}
+		catch (Exception e) {
+			// ignore
+		}
+
+		// Check if this bookmark's page survived filtering
+		Integer newPageIndex = srcPageNum > 0 ? pageMap.get( srcPageNum ) : null;
+
+		// Recursively copy children
+		List<PDOutlineItem> childCopies = new ArrayList<>();
+		if (src.hasChildren()) {
+			PDOutlineItem child = src.getFirstChild();
+			while (child != null) {
+				PDOutlineItem childCopy = copyOutlineItem( srcDoc, resultDoc, child, pageMap );
+				if (childCopy != null) {
+					childCopies.add( childCopy );
+				}
+				child = child.getNextSibling();
+			}
+		}
+
+		// If this bookmark's page was filtered out and no children survived, skip it
+		if (newPageIndex == null && childCopies.isEmpty()) {
+			return null;
+		}
+
+		PDOutlineItem copy = new PDOutlineItem();
+		copy.setTitle( src.getTitle() );
+
+		// Set destination using actual PDPage reference from the result document
+		if (newPageIndex != null) {
+			PDPageFitDestination dest = new PDPageFitDestination();
+			dest.setPage( resultDoc.getPage( newPageIndex ) );
+			copy.setDestination( dest );
+		}
+		else if (!childCopies.isEmpty()) {
+			// Parent bookmark whose page was filtered — point to first surviving child's page
+			copy.setDestination( childCopies.get( 0 ).getDestination() );
+		}
+
+		for (PDOutlineItem childCopy : childCopies) {
+			copy.addLast( childCopy );
+		}
+
+		return copy;
 	}
 
 	public static Set<Integer> parsePageDefinition(String strPages, int lastPageNumber) throws PageException {
