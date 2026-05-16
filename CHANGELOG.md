@@ -220,3 +220,4 @@ The handler receives two arguments:
 - Flying Saucer renderer (replaced by OpenHTMLToPDF)
 - iText dependency (replaced by PDFBox)
 - `FontsJarExtractor` and `initDefaultFontDirectory()` — PD4ML-era bootstrap that scanned the classpath for a legacy `fonts.jar` and seeded `{lucee-config}/fonts`. The jar isn't shipped on Lucee 7.x so the call was a no-op. The font-directory fallback chain (`cfdocument fontdirectory` → `this.pdf.fontDirectory` → `{lucee-config}/fonts`) is unchanged; admins now populate `{lucee-config}/fonts` themselves if they want a default set.
+- Type/engine selection machinery: `PDFDocument.TYPE_NONE`/`TYPE_PD4ML`/`TYPE_FS` constants, `PDFDocument.newInstance(int)`, `ApplicationSettings.getType()` and the `this.pdf.type` parsing block, and the `selectedType` field in the `cfdocument` tag. The `type` attribute on `cfdocument` and the `this.pdf.type` setting are still accepted (TLD compat) but silently ignored — OpenHTMLToPDF is the only engine.

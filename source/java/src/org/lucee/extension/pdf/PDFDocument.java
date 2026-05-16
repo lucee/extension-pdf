@@ -68,11 +68,6 @@ import lucee.runtime.util.Creation;
  */
 public class PDFDocument {
 
-	// Type constants (kept for backward compatibility, but now ignored)
-	public static final int TYPE_NONE = 0;
-	public static final int TYPE_PD4ML = 1;   // Legacy - treated same as TYPE_NONE
-	public static final int TYPE_FS = 2;      // Legacy - treated same as TYPE_NONE
-
 	// Page types (in points - 72 points per inch)
 	public static final Dimension PAGETYPE_CUSTOM = new Dimension(1, 1);
 	public static final Dimension PAGETYPE_LETTER = new Dimension(612, 792);       // 8.5 x 11 inches
@@ -148,12 +143,7 @@ public class PDFDocument {
 	public PDFDocument() {
 	}
 
-	/**
-	 * Factory method for creating PDFDocument instances.
-	 * The type parameter is now ignored - OpenHTMLToPDF is always used.
-	 */
-	public static PDFDocument newInstance(int type) {
-		// Type is ignored - we always use OpenHTMLToPDF now
+	public static PDFDocument newInstance() {
 		return new PDFDocument();
 	}
 

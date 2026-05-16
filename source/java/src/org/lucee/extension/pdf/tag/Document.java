@@ -86,8 +86,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private byte[] pdf;
 	private int sectionCounter = 0;
 
-	private int selectedType = PDFDocument.TYPE_NONE;
-
 	// Store values of attributes for subsequent usage
 	private String attrAuthPassword = null;
 	private String attrAuthUser = null;
@@ -137,7 +135,6 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		applicationSettings = null;
 		this.pdf = null;
 		sectionCounter = 0;
-		selectedType = PDFDocument.TYPE_NONE;
 		encryption = PDFDocument.ENC_NONE;
 
 		attrAuthPassword = null;
@@ -166,13 +163,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	@Override
 	public PDFDocument getPDFDocument() throws PageException {
 		if (_document == null) {
-			if (selectedType == PDFDocument.TYPE_NONE) {
-				// No type was specified in the tag attributes, so use the application's default type.
-				_document = PDFDocument.newInstance(getApplicationSettings().getType());
-			}
-			else {
-				_document = PDFDocument.newInstance(selectedType);
-			}
+			_document = PDFDocument.newInstance();
 
 			// Apply all of the tag attributes whose values we've been storing
 			// TODO: Make sure no set*() calls can be made after this has happened.
@@ -330,12 +321,11 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param type DEPRECATED - ignored. OpenHTMLToPDF is always used.
-	 *             Previously selected the PDF rendering engine (classic/pd4ml or modern/fs).
-	 * @throws PageException
+	 * @param type DEPRECATED in v3 - accepted but ignored. OpenHTMLToPDF is always used.
+	 *             Previously selected classic/pd4ml or modern/fs.
 	 */
-	public void setType(String type) throws PageException {
-		// Silently ignore - OpenHTMLToPDF is the only engine now
+	public void setType(String type) {
+		// no-op: kept so existing CFML templates with type="modern"/"classic" don't break
 	}
 
 	/**

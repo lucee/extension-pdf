@@ -10,16 +10,10 @@ import lucee.runtime.ext.function.BIF;
 import lucee.runtime.type.Struct;
 
 public class ApplicationSettings {
-	private final int type;
 	private final File fontDirectory;
 
-	public ApplicationSettings(int type, File fontDirectory) {
-		this.type = type;
+	public ApplicationSettings(File fontDirectory) {
 		this.fontDirectory = fontDirectory;
-	}
-
-	public int getType() {
-		return type;
 	}
 
 	public File getFontDirectory() {
@@ -27,7 +21,6 @@ public class ApplicationSettings {
 	}
 
 	public static ApplicationSettings getApplicationSettings(PageContext pc) {
-		int type = PDFDocument.TYPE_FS;
 		File fontDirectory = null;
 		try {
 			BIF bif = CFMLEngineFactory.getInstance().getClassUtil().loadBIF(pc, "lucee.runtime.functions.system.GetApplicationSettings");
@@ -35,22 +28,9 @@ public class ApplicationSettings {
 			Object o = sct.get("pdf", null);
 			if (o instanceof Struct) {
 				Struct pdf = (Struct) o;
-				// type
-				o = pdf.get("type", null);
-				if (o == null) pdf.get("engine", null);
-				if (o == null) pdf.get("renderer", null);
-
-				if (o instanceof String) {
-					String str = (String) o;
-					if (str.equalsIgnoreCase("fs") || str.equalsIgnoreCase("modern")) type = PDFDocument.TYPE_FS;
-					if (str.equalsIgnoreCase("pd4ml") || str.equalsIgnoreCase("classic")) type = PDFDocument.TYPE_PD4ML;
-				}
-
-				// fontDirectory
 				o = pdf.get("fontDirectory", null);
 				if (o instanceof String) {
-					String str = (String) o;
-					Resource res = CFMLEngineFactory.getInstance().getResourceUtil().toResourceExisting(pc, str);
+					Resource res = CFMLEngineFactory.getInstance().getResourceUtil().toResourceExisting(pc, (String) o);
 					if (res.isDirectory() && res instanceof File) fontDirectory = (File) res;
 				}
 			}
@@ -62,7 +42,7 @@ public class ApplicationSettings {
 			fontDirectory = getDefaultFontDirectory(pc.getConfig());
 		}
 
-		return new ApplicationSettings(type, fontDirectory);
+		return new ApplicationSettings(fontDirectory);
 	}
 
 	public static File getDefaultFontDirectory(Config config) {

@@ -224,7 +224,7 @@
 			<name>type</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<description>PDF rendering method to use ("classic" or "modern"). Defaults to this.pdf.type setting in Application.cfc, or to "modern" if that is not defined.</description>
+			<description>DEPRECATED in v3 — accepted for backward compatibility but ignored. OpenHTMLToPDF is the only renderer.</description>
 		</attribute>
 		<attribute>
 			<type>string</type>
