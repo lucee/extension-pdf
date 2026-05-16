@@ -57,7 +57,7 @@ Read signature field information from a PDF.
 <cfpdf action="readSignatureFields" source="signed.pdf" name="fields">
 ```
 
-Returns a query with columns: `name`, `signable`, `isSigned`
+Returns a query with columns: `name`, `signable`, `isSigned`, `certifiable`
 
 #### action="validateSignature"
 Validate digital signatures in a PDF.

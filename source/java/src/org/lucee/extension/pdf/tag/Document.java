@@ -74,7 +74,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private String userpassword = "";
 	private int scale = -1;
 
-	// TODO impl. tag Document backgroundvisible,fontembed,scale
+	// TODO impl. tag Document backgroundvisible
 	private boolean backgroundvisible;
 	private File fontdir = null;
 

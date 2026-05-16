@@ -196,7 +196,6 @@
 			<name>scale</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-		    <status>unimplemented</status>
 			<description>define a scale factor as a percentage. this option is used to reduce the size of the HTML output so that it fits on that paper. define a number less than 100.</description>
 		</attribute>
 		<attribute>
@@ -204,7 +203,7 @@
 			<name>resourceHandler</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<description>A Component or UDF that handles resource fetching (images, CSS, etc). A Component should have an onResourceFetch(url) method. A UDF receives a struct with a url key. Return binary or string content to use, or null to fall through to default fetching.</description>
+			<description>A Component or UDF that handles resource fetching (images, CSS, etc). The handler receives two named arguments: `url` (string, the raw URL) and `parsedUrl` (struct with keys: protocol, host, port, path, query, fragment). A Component should expose an `onResourceFetch( url, parsedUrl )` method. Return binary or string content to use, or null to fall through to default fetching. (since v3)</description>
 		</attribute>
 		<attribute>
 			<type>string</type>
@@ -616,6 +615,66 @@ Manipulates existing PDF documents. The following list describes some of the tas
 				<label>Set document information</label>
 				<description>`action="setInfo"` - Sets information for a PDF document such as title, author, and keywords</description>
 				<attributes>action,source,info,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>open</name>
+				<label>Open / remove password</label>
+				<description>`action="open"` - Opens a password-protected PDF document (alias for removePassword)</description>
+				<attributes>action,source,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>optimize</name>
+				<label>Optimize PDF</label>
+				<description>`action="optimize"` - Reduces PDF file size by removing specified elements (bookmarks, links, JavaScript, attachments, metadata, thumbnails, comments, forms) (since v3)</description>
+				<attributes>action,source,destination,password,overwrite,noBookmarks,noLinks,noJavaScript,noAttachments,noMetadata,noThumbnails,noComments,noForms</attributes>
+			</group>
+			<group>
+				<name>sanitize</name>
+				<label>Sanitize PDF</label>
+				<description>`action="sanitize"` - Removes potentially dangerous elements for security (always removes JavaScript, attachments, metadata and link actions; optionally removes forms and links) (since v3)</description>
+				<attributes>action,source,destination,password,overwrite,noLinks,noForms</attributes>
+			</group>
+			<group>
+				<name>transform</name>
+				<label>Transform pages</label>
+				<description>`action="transform"` - Scales and/or rotates PDF pages using hscale, vscale and rotation (since v3)</description>
+				<attributes>action,source,destination,name,password,pages,overwrite,rotation,hscale,vscale</attributes>
+			</group>
+			<group>
+				<name>addAttachments</name>
+				<label>Add attachments</label>
+				<description>`action="addAttachments"` - Attaches files to a PDF document. Requires one or more cfpdfparam child tags (since v3)</description>
+				<attributes>action,source,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>extractAttachments</name>
+				<label>Extract attachments</label>
+				<description>`action="extractAttachments"` - Extracts attached files from a PDF into a destination directory (Lucee extension, not available in ACF) (since v3)</description>
+				<attributes>action,source,destination,name,password,overwrite,stopOnError</attributes>
+			</group>
+			<group>
+				<name>removeAttachments</name>
+				<label>Remove attachments</label>
+				<description>`action="removeAttachments"` - Removes all embedded file attachments from a PDF (since v3)</description>
+				<attributes>action,source,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>readSignatureFields</name>
+				<label>Read signature fields</label>
+				<description>`action="readSignatureFields"` - Reads signature field information from a PDF, returning a query with columns name, signable, isSigned, certifiable (since v3)</description>
+				<attributes>action,source,name,password</attributes>
+			</group>
+			<group>
+				<name>validateSignature</name>
+				<label>Validate signatures</label>
+				<description>`action="validateSignature"` - Validates digital signatures in a PDF, returning a struct with hasSignatures, signatureCount, allValid and signatures (since v3)</description>
+				<attributes>action,source,name,password</attributes>
+			</group>
+			<group>
+				<name>addStamp</name>
+				<label>Add stamp</label>
+				<description>`action="addStamp"` - Adds a stamp image to PDF pages (positioned image; uses same options as addWatermark) (since v3)</description>
+				<attributes>action,source,image,pages,destination,name,password,overwrite,foreground,opacity,position,rotation,showOnPrint</attributes>
 			</group>
 		</attribute-groups>
 		<attribute>
@@ -1116,6 +1175,20 @@ Manipulates existing PDF documents. The following list describes some of the tas
 		</script>
 		<description>Reads and populates PDF form fields. Use action="read" to extract form field values, or action="populate" to fill in form fields.</description>
 		<attribute-type>fixed</attribute-type>
+		<attribute-groups>
+			<group>
+				<name>read</name>
+				<label>Read form fields</label>
+				<description>`action="read"` - Reads form field values from a PDF into a struct (`result`) and/or XML string (`xmldata`) (since v3)</description>
+				<attributes>action,source,result,xmldata,password</attributes>
+			</group>
+			<group>
+				<name>populate</name>
+				<label>Populate form fields</label>
+				<description>`action="populate"` - Fills PDF form fields with values from cfpdfformparam children and/or `xmldata` input (since v3)</description>
+				<attributes>action,source,xmldata,password,destination,name,overwrite,overwritedata</attributes>
+			</group>
+		</attribute-groups>
 		<attribute>
 			<type>string</type>
 			<name>action</name>
