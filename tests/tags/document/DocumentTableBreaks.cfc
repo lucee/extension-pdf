@@ -1,7 +1,7 @@
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function beforeAll() {
-		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "DocumentTableBreaks/";
+		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "DocumentTableBreaks/generated/";
 		if ( directoryExists( variables.path ) ) directoryDelete( variables.path, true );
 		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path );
 	}
@@ -31,6 +31,21 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			html &= "<tr><td style='height:150px;'>Tall Row #i#</td></tr>";
 		}
 		html &= "</table>";
+		return html;
+	}
+
+	private function generateRowspanTheadTable( numeric totalRows=60 ) {
+		// rowspan cell crosses a page boundary while thead repeats on continuation pages.
+		// Exercises openhtmltopdf 1.1.35 fix for thead/rowspan overlap (PR ##141).
+		var html = "<table border='1' cellpadding='5' cellspacing='0' width='100%'>";
+		html &= "<thead><tr><th>Group</th><th>Item</th><th>Detail</th></tr></thead>";
+		html &= "<tbody>";
+		html &= "<tr><td rowspan='#totalRows#' style='background:##ffeecc;'>GROUP_HEADER</td>";
+		html &= "<td>Item 1</td><td>Detail 1</td></tr>";
+		for ( var i = 2; i <= totalRows; i++ ) {
+			html &= "<tr><td>Item #i#</td><td>Detail #i#</td></tr>";
+		}
+		html &= "</tbody></table>";
 		return html;
 	}
 
@@ -105,6 +120,31 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				pdf action="extractText" source="#file#" name="local.text";
 				expect( text ).toInclude( "Tall Row 1" );
 				expect( text ).toInclude( "Tall Row 10" );
+			});
+
+		});
+
+		describe( "cfdocument table rendering - thead and rowspan", function() {
+
+			it( title="rowspan cell with thead spans multiple pages", body=function( currentSpec ) {
+				var file = "#path#rowspan_thead.pdf";
+				var rowCount = 60;
+
+				document format="pdf" pagetype="A4" filename="#file#" overwrite=true {
+					writeOutput( generateRowspanTheadTable( rowCount ) );
+				}
+
+				expect( isPDFFile( file ) ).toBeTrue();
+
+				pdf action="getInfo" source="#file#" name="local.info";
+				expect( info.totalPages ).toBeGT( 1, "#rowCount# rows should span multiple pages" );
+
+				pdf action="extractText" source="#file#" name="local.text";
+				expect( text ).toInclude( "GROUP_HEADER", "rowspan cell content should survive page break" );
+				expect( text ).toInclude( "Group", "thead should be present" );
+				for ( var i = 1; i <= rowCount; i++ ) {
+					expect( text ).toInclude( "Item #i#", "row #i# should not be lost at a page boundary" );
+				}
 			});
 
 		});
