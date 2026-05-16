@@ -71,6 +71,10 @@ import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSBase;
+import org.apache.pdfbox.contentstream.operator.Operator;
+import org.apache.pdfbox.pdfparser.PDFStreamParser;
+import org.apache.pdfbox.pdfwriter.ContentStreamWriter;
+import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.util.PDFUtil;
 
@@ -139,6 +143,10 @@ public class PDF extends BodyTagImpl {
 	private static final int NUMBERFORMAT_UPPERCASEROMAN = 3;
 
 	private static final int UNDEFINED = Integer.MIN_VALUE;
+
+	// Marked-content tag used to delimit watermarks added by addWatermark
+	// so removeWatermark can strip them. See doActionAddWatermark / doActionRemoveWatermark.
+	private static final COSName WATERMARK_TAG = COSName.getPDFName("Watermark");
 
 	// Alignment constants (matching iText Element values for backward compatibility)
 	private static final int ALIGN_LEFT = 0;
@@ -677,10 +685,14 @@ public class PDF extends BodyTagImpl {
 		Util.closeEL( os );
 		if ( os instanceof ByteArrayOutputStream ) {
 			byte[] bytes = ( (ByteArrayOutputStream) os ).toByteArray();
-			if ( destination != null )
+			if ( destination != null ) {
 				engine.getIOUtil().copy( new ByteArrayInputStream( bytes ), destination, true );
-			else if ( doc.getResource() != null )
+			}
+			else if ( Util.isEmpty( varName ) && doc.getResource() != null ) {
+				// In-place modification only when caller specified neither destination nor name —
+				// otherwise [name] would silently mutate the source file.
 				engine.getIOUtil().copy( new ByteArrayInputStream( bytes ), doc.getResource(), true );
+			}
 			if ( !Util.isEmpty( varName ) )
 				pageContext.setVariable( varName, new PDFStruct( bytes, password ) );
 			return bytes;
@@ -941,6 +953,9 @@ public class PDF extends BodyTagImpl {
 				try (PDPageContentStream cs = new PDPageContentStream(pdDoc, page,
 						foreground ? PDPageContentStream.AppendMode.APPEND : PDPageContentStream.AppendMode.PREPEND, true, true)) {
 
+					// Wrap the watermark drawing in marked content so removeWatermark can find and strip it
+					cs.beginMarkedContent(WATERMARK_TAG);
+
 					// Set opacity
 					PDExtendedGraphicsState gs = new PDExtendedGraphicsState();
 					gs.setNonStrokingAlphaConstant(opacity);
@@ -958,6 +973,8 @@ public class PDF extends BodyTagImpl {
 					else {
 						cs.drawImage(pdImage, imgX, imgY);
 					}
+
+					cs.endMarkedContent();
 				}
 			}
 
@@ -974,10 +991,6 @@ public class PDF extends BodyTagImpl {
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
-		// Note: True watermark removal is complex - this is a simplified implementation
-		// that essentially creates a copy. Full watermark removal would require
-		// analyzing and modifying the PDF content streams.
-
 		PDFStruct doc = toPDFDocument(source, password, null);
 		doc.setPages(pages);
 
@@ -988,11 +1001,119 @@ public class PDF extends BodyTagImpl {
 		}
 
 		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
-		try {
-			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, (char) 0);
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			Set<Integer> _pages = doc.getPages();
+			int len = pdDoc.getNumberOfPages();
+
+			for (int i = 0; i < len; i++) {
+				if (_pages != null && !_pages.contains(Integer.valueOf(i + 1))) continue;
+				stripWatermarkFromPage(pdDoc, pdDoc.getPage(i));
+			}
+
+			pdDoc.save(os);
 		}
 		finally {
 			finalizeOutput( os, doc, name );
+		}
+	}
+
+	/**
+	 * Strip /Watermark marked-content blocks (added by addWatermark) from a page's content stream.
+	 * Walks the stream's tokens, skips everything between BMC/BDC /Watermark and its matched EMC,
+	 * tracks XObjects referenced inside and outside watermark blocks, then writes filtered tokens
+	 * back as the page's sole content stream and removes XObjects from page resources that are
+	 * referenced exclusively inside watermark blocks.
+	 */
+	private void stripWatermarkFromPage(PDDocument pdDoc, PDPage page) throws IOException {
+		PDFStreamParser parser = new PDFStreamParser(page);
+
+		List<Object> output = new ArrayList<>();
+		List<Object> pendingOperands = new ArrayList<>();
+		int suppressDepth = 0;
+		boolean modified = false;
+		java.util.Set<COSName> xobjectsInWatermark = new java.util.HashSet<>();
+		java.util.Set<COSName> xobjectsOutsideWatermark = new java.util.HashSet<>();
+
+		Object token;
+		while ((token = parser.parseNextToken()) != null) {
+			if (token instanceof Operator) {
+				Operator op = (Operator) token;
+				String opName = op.getName();
+
+				if ("BMC".equals(opName) || "BDC".equals(opName)) {
+					boolean isWatermark = !pendingOperands.isEmpty()
+							&& pendingOperands.get(0) instanceof COSName
+							&& WATERMARK_TAG.equals(pendingOperands.get(0));
+					if (suppressDepth > 0) {
+						suppressDepth++;
+					}
+					else if (isWatermark) {
+						suppressDepth = 1;
+						modified = true;
+					}
+					else {
+						output.addAll(pendingOperands);
+						output.add(op);
+					}
+					pendingOperands.clear();
+					continue;
+				}
+
+				if ("EMC".equals(opName)) {
+					if (suppressDepth > 0) {
+						suppressDepth--;
+					}
+					else {
+						output.addAll(pendingOperands);
+						output.add(op);
+					}
+					pendingOperands.clear();
+					continue;
+				}
+
+				// Track XObject references — Do takes one name operand
+				if ("Do".equals(opName) && !pendingOperands.isEmpty()
+						&& pendingOperands.get(pendingOperands.size() - 1) instanceof COSName) {
+					COSName xobj = (COSName) pendingOperands.get(pendingOperands.size() - 1);
+					(suppressDepth > 0 ? xobjectsInWatermark : xobjectsOutsideWatermark).add(xobj);
+				}
+
+				if (suppressDepth == 0) {
+					output.addAll(pendingOperands);
+					output.add(op);
+				}
+				pendingOperands.clear();
+			}
+			else {
+				// always collect operands so Do-tracking works inside watermark blocks too;
+				// suppression filters at emit time, not at collect time
+				pendingOperands.add(token);
+			}
+		}
+
+		// Nothing changed — leave the page untouched to avoid recompressing for no reason
+		if (!modified) return;
+
+		PDStream newStream = new PDStream(pdDoc);
+		try (OutputStream out = newStream.createOutputStream(COSName.FLATE_DECODE)) {
+			ContentStreamWriter writer = new ContentStreamWriter(out);
+			writer.writeTokens(output);
+		}
+		page.setContents(newStream);
+
+		// Remove orphaned XObjects: those used only inside watermark blocks. This stops
+		// extractImage from returning the watermark image as a stray page resource.
+		xobjectsInWatermark.removeAll(xobjectsOutsideWatermark);
+		if (!xobjectsInWatermark.isEmpty() && page.getResources() != null
+				&& page.getResources().getCOSObject() != null) {
+			COSDictionary resources = page.getResources().getCOSObject();
+			COSBase xobjBase = resources.getDictionaryObject(COSName.XOBJECT);
+			if (xobjBase instanceof COSDictionary) {
+				COSDictionary xobjDict = (COSDictionary) xobjBase;
+				for (COSName orphan : xobjectsInWatermark) {
+					xobjDict.removeItem(orphan);
+				}
+			}
 		}
 	}
 

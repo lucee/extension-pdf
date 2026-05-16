@@ -112,9 +112,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( text ).toInclude( "Page 2" );
 			});
 
-			// removeWatermark is currently a copy-only stub (see PDF.java doActionRemoveWatermark)
-			// — true content-stream watermark removal is not implemented. Skipped until then.
-			it( title="remove watermark actually strips embedded image", skip=true, body=function( currentSpec ) {
+			it( title="remove watermark actually strips embedded image", body=function( currentSpec ) {
 				pdf action="addWatermark" source="#path#source.pdf" image="#path#watermark.png"
 					destination="#path#to_clean2.pdf" overwrite=true;
 
