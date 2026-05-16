@@ -91,8 +91,26 @@ public class PDFUtil {
 			+ ALLOW_MODIFY_ANNOTATIONS + ALLOW_MODIFY_CONTENTS + ALLOW_PRINTING + ALLOW_SCREENREADERS;
 
 	/**
+	 * Sanitize a filename from an untrusted source (e.g. PDF attachment names).
+	 * Strips directory components and rejects traversal attempts.
+	 *
+	 * @param filename the raw filename
+	 * @return the safe basename, or null if the name is empty/malicious
+	 */
+	public static String sanitizeFilename( String filename ) {
+		if ( filename == null ) return null;
+		// normalise separators and strip any directory components
+		String safe = filename.replace( '\\', '/' );
+		int lastSlash = safe.lastIndexOf( '/' );
+		if ( lastSlash >= 0 ) safe = safe.substring( lastSlash + 1 );
+		// reject empty, bare-dot names, and null bytes (slashes already stripped above)
+		if ( safe.isEmpty() || safe.equals( "." ) || safe.equals( ".." ) || safe.indexOf( '\0' ) >= 0 ) return null;
+		return safe;
+	}
+
+	/**
 	 * convert a string list of permission
-	 * 
+	 *
 	 * @param strPermissions
 	 * @return
 	 * @throws PageException

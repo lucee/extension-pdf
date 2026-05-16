@@ -425,16 +425,13 @@ public class PDFForm extends BodyTagImpl {
 	}
 
 	private PDDocument loadFromResource( Resource res, String password ) throws IOException {
-		InputStream is = res.getInputStream();
-		try {
+		// RandomAccessReadBuffer copies the stream into memory — it does not own the InputStream,
+		// so we close it unconditionally
+		try ( InputStream is = res.getInputStream() ) {
 			if ( !Util.isEmpty( password ) ) {
 				return Loader.loadPDF( new RandomAccessReadBuffer( is ), password );
 			}
 			return Loader.loadPDF( new RandomAccessReadBuffer( is ) );
-		}
-		catch (Throwable t) {
-			Util.closeEL( is );
-			throw t;
 		}
 	}
 
