@@ -50,6 +50,7 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 
 import org.lucee.extension.pdf.util.LuceeXRLogger;
 
+import lucee.commons.io.log.Log;
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
@@ -488,22 +489,20 @@ public class PDFDocument {
 				File[] fonts = fontDirectory.listFiles((dir, name) ->
 					name.toLowerCase().endsWith(".ttf") || name.toLowerCase().endsWith(".otf"));
 				if (fonts != null) {
+					Log log = pc.getConfig().getLog("pdf");
 					for (File font : fonts) {
 						try {
-							// Get the actual font family name from the font file
+							// Read the TTF internal family name; this is what CSS font-family must match (case-sensitive)
 							java.awt.Font awtFont = java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, font);
 							String fontFamily = awtFont.getFamily();
 							builder.useFont(font, fontFamily);
+							if (log != null) log.log(Log.LEVEL_DEBUG, "font", "registered font [" + font.getName() + "] as family [" + fontFamily + "]");
 						}
 						catch (Exception e) {
-							// Fallback to filename if font can't be read
-							try {
-								String fontName = font.getName().replaceFirst("[.][^.]+$", "");
-								builder.useFont(font, fontName);
-							}
-							catch (Exception e2) {
-								// Skip fonts that can't be loaded
-							}
+							// Could not read TTF metadata - fall back to filename as family name and warn so the user can diagnose
+							String fontName = font.getName().replaceFirst("[.][^.]+$", "");
+							if (log != null) log.log(Log.LEVEL_WARN, "font", "could not read font metadata from [" + font.getAbsolutePath() + "]; registering as family [" + fontName + "] instead", e);
+							builder.useFont(font, fontName);
 						}
 					}
 				}

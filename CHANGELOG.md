@@ -212,6 +212,7 @@ The handler receives two arguments:
 - **Self-closing HTML tags**: Unknown/custom tags are allowed to self-close for compatibility with real-world HTML
 - **Removed legacy v2 dist jars**: Cleaned out old iText, Flying Saucer, TagSoup, and pre-release PDFBox jars
 - **OpenHTMLToPDF logging bridge**: Replaced the JUL handler with a native `XRLogger` impl (`LuceeXRLogger`). Engine output now reaches Lucee's pdf log with SLF4J `{}` placeholders correctly substituted, throwables forwarded with stack traces, and per-call PageContext lookup so admin reconfig takes effect without restart.
+- **Font load diagnostics**: When a font in a `fontdirectory` can't have its TTF family name read (corrupt file, etc.), `cfdocument` now logs a WARN to the `pdf` log with the file path and the family name it fell back to (the filename). Previously this silently degraded — users would set `fontdirectory`, the font lookup would later miss because the registered family name didn't match what they expected, and there was no signal at all. Successful registrations are logged at DEBUG.
 
 ### Removed Features
 
