@@ -1,45 +1,63 @@
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
-	// action="read" - implemented
-	// action="populate" - NOT YET implemented
-	// PDFBox: PDAcroForm, PDField
-
 	function beforeAll() {
 		variables.path = getDirectoryFromPath( getCurrentTemplatePath() ) & "PDFFormRead/generated/";
-		afterAll();
-
+		if ( directoryExists( variables.path ) ) directoryDelete( variables.path, true );
 		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
-		// Note: Testing form features requires PDFs with actual form fields
-		// These would typically be created in Acrobat
-		// Create a simple PDF for now - real tests need AcroForm PDFs
+		// Generate a PDF with real AcroFields from HTML form elements
+		document fileName="#path#form.pdf" overwrite=true {
+			writeOutput( '
+				<html><body>
+				<h1>Test Form</h1>
+				<form>
+					<p>First: <input type="text" name="firstName" value="John" /></p>
+					<p>Last: <input type="text" name="lastName" value="Doe" /></p>
+					<p>Email: <input type="text" name="email" value="john@example.com" /></p>
+					<!-- checkbox omitted: triggers PDFBOX-5963 NPE in PDFont.getName() during merge, fixed in 3.0.8 -->
+					<!-- <p><input type="checkbox" name="agreed" checked="" /></p> -->
+				</form>
+				</body></html>
+			' );
+		}
+
+		// Also generate a no-form PDF for negative tests
 		document fileName="#path#noform.pdf" overwrite=true {
-			writeOutput( "<h1>Not a Form</h1><p>This PDF has no form fields.</p>" );
+			writeOutput( "<h1>Not a Form</h1><p>No form fields here.</p>" );
 		}
 	}
 
 	function run( testResults, testBox ) {
 		describe( "cfpdfform action=read", function() {
 
-			// Skip tests that require actual form PDFs (form.pdf doesn't exist)
-			it( title="read form fields to struct via result attribute", skip=true, body=function( currentSpec ) {
+			it( title="read form fields to struct via result attribute", body=function( currentSpec ) {
 				pdfform action="read" source="#path#form.pdf" result="local.fields";
 
 				expect( isStruct( fields ) ).toBeTrue();
+				systemOutput( "Form fields: " & structKeyList( fields ), true );
+				expect( structCount( fields ) ).toBe( 3 );
+				expect( fields ).toHaveKey( "firstName" );
+				expect( fields.firstName ).toBe( "John" );
+				expect( fields.lastName ).toBe( "Doe" );
+				expect( fields.email ).toBe( "john@example.com" );
 			});
 
-			it( title="read form fields to XML via XMLdata attribute", skip=true, body=function( currentSpec ) {
+			it( title="read form fields to XML via XMLdata attribute", body=function( currentSpec ) {
 				pdfform action="read" source="#path#form.pdf" XMLdata="local.xmlData";
 
 				expect( isXML( xmlData ) ).toBeTrue();
+				systemOutput( "XML: " & xmlData, true );
+				expect( xmlData ).toInclude( "firstName" );
+				expect( xmlData ).toInclude( "John" );
 			});
 
-			it( title="read both result and XMLdata", skip=true, body=function( currentSpec ) {
+			it( title="read both result and XMLdata", body=function( currentSpec ) {
 				pdfform action="read" source="#path#form.pdf"
 					result="local.fields" XMLdata="local.xmlData";
 
 				expect( isStruct( fields ) ).toBeTrue();
 				expect( isXML( xmlData ) ).toBeTrue();
+				expect( fields ).toHaveKey( "firstName" );
 			});
 
 			it( title="read from PDF without forms returns empty struct", body=function( currentSpec ) {
@@ -55,34 +73,18 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( isXML( xmlData ) ).toBeTrue();
 			});
 
-			it( title="read from PDF variable", skip=true, body=function( currentSpec ) {
+			it( title="read from PDF variable", body=function( currentSpec ) {
 				pdf action="read" source="#path#form.pdf" name="local.pdfVar";
-				pdfform action="read" source="pdfVar" result="local.fields";
+				pdfform action="read" source="#pdfVar#" result="local.fields";
 
 				expect( isStruct( fields ) ).toBeTrue();
+				expect( fields ).toHaveKey( "firstName" );
 			});
-
-			// TODO: Add tests with actual form PDFs
-			// These tests require PDFs with AcroForm fields
-			// it( title="read text field value", body=function( currentSpec ) {
-			// 	pdfform action="read" source="#path#text_form.pdf" result="local.fields";
-			// 	expect( fields.firstName ).toBe( "John" );
-			// });
-			//
-			// it( title="read checkbox value", body=function( currentSpec ) {
-			// 	pdfform action="read" source="#path#checkbox_form.pdf" result="local.fields";
-			// 	expect( fields.agreed ).toBeTrue();
-			// });
-			//
-			// it( title="read dropdown/combo value", body=function( currentSpec ) {
-			// 	pdfform action="read" source="#path#dropdown_form.pdf" result="local.fields";
-			// 	expect( fields.country ).toBe( "Australia" );
-			// });
 
 		});
 	}
 
 	function afterAll() {
-		// Cleanup before run, not after - leave artifacts for inspection
+		// leave artifacts for inspection
 	}
 }
