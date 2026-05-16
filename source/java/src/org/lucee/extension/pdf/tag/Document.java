@@ -560,7 +560,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @throws PageException
 	 */
 	public void setScale(double scale) throws PageException {
-		if (scale < 0) throw engine.getExceptionUtil().createApplicationException("scale must be a positive number");
+		if (scale <= 0) throw engine.getExceptionUtil().createApplicationException("scale must be a positive number");
 		if (scale > 100) throw engine.getExceptionUtil().createApplicationException("scale must be a number less or equal than 100");
 		this.scale = (int) scale;
 	}
@@ -858,6 +858,13 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 		// Bookmarks are now handled natively by OpenHTMLToPDF during render(),
 		// and PDFMergerUtility automatically merges outlines from each section.
+		//
+		// TODO PDFBOX-5963: PDFBox 3.0.7 bug — mergeDocuments triggers AcroFormDefaultFixup
+		// which calls refreshAppearances() on all form fields. If a checkbox/radio field
+		// has a font with a null name (common with OpenHTMLToPDF-generated forms),
+		// PDFont.getName().contains("+") throws NPE in AppearanceGeneratorHelper:520.
+		// Fixed on PDFBox trunk (2025-02-25), expected in 3.0.8. Re-enable checkbox
+		// tests in PDFFormRead.cfc and DocumentRendering.cfc when upgrading.
 		merger.mergeDocuments(null);
 
 		return baos.toByteArray();
