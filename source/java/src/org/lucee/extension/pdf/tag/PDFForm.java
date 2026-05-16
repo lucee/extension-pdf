@@ -66,6 +66,7 @@ public class PDFForm extends BodyTagImpl {
 	private String name = null;
 	private boolean overwrite = false;
 	private boolean overwriteData = false;
+	private boolean flatten = false;
 	private List<PDFFormParamBean> params = null;
 
 	@Override
@@ -80,6 +81,7 @@ public class PDFForm extends BodyTagImpl {
 		name = null;
 		overwrite = false;
 		overwriteData = false;
+		flatten = false;
 		params = null;
 	}
 
@@ -126,6 +128,10 @@ public class PDFForm extends BodyTagImpl {
 		this.overwriteData = overwriteData;
 	}
 
+	public void setFlatten( boolean flatten ) {
+		this.flatten = flatten;
+	}
+
 	public void addParam( PDFFormParamBean param ) {
 		if ( params == null )
 			params = new ArrayList<>();
@@ -167,7 +173,7 @@ public class PDFForm extends BodyTagImpl {
 			doc = loadPDDocument( source, password );
 
 			// Get the AcroForm
-			PDAcroForm acroForm = doc.getDocumentCatalog().getAcroForm();
+			PDAcroForm acroForm = doc.getDocumentCatalog().getAcroForm(null);
 			Struct fields = engine.getCreationUtil().createStruct();
 
 			if ( acroForm != null ) {
@@ -247,7 +253,7 @@ public class PDFForm extends BodyTagImpl {
 		PDDocument doc = null;
 		try {
 			doc = loadPDDocument( source, password );
-			PDAcroForm acroForm = doc.getDocumentCatalog().getAcroForm();
+			PDAcroForm acroForm = doc.getDocumentCatalog().getAcroForm(null);
 
 			if ( acroForm != null ) {
 				// Populate from params (cfpdfformparam tags)
@@ -270,6 +276,11 @@ public class PDFForm extends BodyTagImpl {
 				// Populate from xmldata if provided (for populate action, xmldata is input)
 				if ( xmldataObj != null && action == ACTION_POPULATE ) {
 					populateFromXmlData( acroForm );
+				}
+
+				// Flatten makes the form non-editable, burning field values into page content
+				if ( flatten ) {
+					acroForm.flatten();
 				}
 			}
 

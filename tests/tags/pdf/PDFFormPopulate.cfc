@@ -177,6 +177,26 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( fields.firstName ).toBe( "John" );
 			});
 
+			it( title="populate with flatten=true removes form fields, value remains visible", body=function( currentSpec ) {
+				pdfform action="populate" source="#path#form.pdf"
+					destination="#path#flattened.pdf" overwrite=true flatten=true {
+					pdfformparam name="firstName" value="Flat";
+					pdfformparam name="lastName" value="Tened";
+				}
+
+				expect( isPDFFile( "#path#flattened.pdf" ) ).toBeTrue();
+
+				// Form fields should be gone after flatten
+				pdfform action="read" source="#path#flattened.pdf" result="local.fields";
+				expect( structCount( fields ) ).toBe( 0 );
+
+				// But the values should still be visible in the page text
+				cfpdf( action="extractText", source="#path#flattened.pdf", destination="#path#flattened.txt", overwrite=true );
+				var txt = fileRead( "#path#flattened.txt" );
+				expect( txt ).toInclude( "Flat" );
+				expect( txt ).toInclude( "Tened" );
+			});
+
 		});
 
 	}

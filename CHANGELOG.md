@@ -145,6 +145,7 @@ Fill form fields with values.
 - `password` - PDF password if protected
 - `overwrite` - overwrite destination file (default: false)
 - `overwritedata` - overwrite existing field values (default: false)
+- `flatten` - burn field values into page content, removes interactivity (default: false)
 
 ### New cfpdfformparam Tag
 

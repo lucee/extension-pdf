@@ -719,7 +719,26 @@ public class PDF extends BodyTagImpl {
 		}
 
 		try {
-			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, version != 0 ? (char) ('0' + (int) ((version - 1) * 10)) : (char) 0);
+			if (flatten) {
+				// Bypass concat — concat re-imports widget annotations and resurrects fields.
+				// PDFBox 3.0.4+ has a regression (PDFBOX-5962) where flatten() empties getFields() in
+				// memory but the underlying COS field array survives the save, so the form is
+				// resurrected on reload. Explicitly clear the fields array after flattening.
+				try (PDDocument pdDoc = doc.toPDDocument()) {
+					PDAcroForm acroForm = pdDoc.getDocumentCatalog().getAcroForm(null);
+					if (acroForm != null) {
+						acroForm.flatten();
+						acroForm.setFields(new ArrayList<>());
+					}
+					if (version != 0) {
+						pdDoc.setVersion(Float.parseFloat("1." + (char) ('0' + (int) ((version - 1) * 10))));
+					}
+					pdDoc.save(os);
+				}
+			}
+			else {
+				PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, version != 0 ? (char) ('0' + (int) ((version - 1) * 10)) : (char) 0);
+			}
 		}
 		finally {
 			Util.closeEL(os);

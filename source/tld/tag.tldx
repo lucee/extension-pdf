@@ -740,8 +740,7 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<name>flatten</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<status>unimplemented</status>
-			<description>Applies to forms created in Acrobat only (not forms created in LiveCycle); specifies whether interactivity is turned off</description>
+			<description>(action="write") Flatten AcroForm fields, burning values into page content and removing interactivity. Default is false.</description>
 		</attribute>
 		<attribute>
 			<type>boolean</type>
@@ -1186,7 +1185,7 @@ Manipulates existing PDF documents. The following list describes some of the tas
 				<name>populate</name>
 				<label>Populate form fields</label>
 				<description>`action="populate"` - Fills PDF form fields with values from cfpdfformparam children and/or `xmldata` input (since v3)</description>
-				<attributes>action,source,xmldata,password,destination,name,overwrite,overwritedata</attributes>
+				<attributes>action,source,xmldata,password,destination,name,overwrite,overwritedata,flatten</attributes>
 			</group>
 		</attribute-groups>
 		<attribute>
@@ -1253,7 +1252,14 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<name>overwritedata</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<description>(action="populate") Whether to overwrite existing field values. Default is true.</description>
+			<description>(action="populate") Whether to overwrite existing field values. Default is false.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>flatten</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Flatten the form after populating, burning field values into page content and removing interactivity. Default is false.</description>
 		</attribute>
 	</tag>
 
