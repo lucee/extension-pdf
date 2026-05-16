@@ -606,6 +606,9 @@ public class PDFDocument {
 			css.append(" #pdf-footer { position: running(footer); }");
 		}
 
+		// Enable table pagination by default so tables break across pages
+		css.append(" table { -fs-table-paginate: paginate; }");
+
 		// CSS counters for page numbers - OpenHTMLToPDF supports these
 		css.append(" .pdf-page-number::before { content: counter(page); }");
 		css.append(" .pdf-page-count::before { content: counter(pages); }");
