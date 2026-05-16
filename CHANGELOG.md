@@ -211,6 +211,7 @@ The handler receives two arguments:
 - **Modern PDFBox**: PDFBox 3.x with improved performance and security
 - **Self-closing HTML tags**: Unknown/custom tags are allowed to self-close for compatibility with real-world HTML
 - **Removed legacy v2 dist jars**: Cleaned out old iText, Flying Saucer, TagSoup, and pre-release PDFBox jars
+- **OpenHTMLToPDF logging bridge**: Replaced the JUL handler with a native `XRLogger` impl (`LuceeXRLogger`). Engine output now reaches Lucee's pdf log with SLF4J `{}` placeholders correctly substituted, throwables forwarded with stack traces, and per-call PageContext lookup so admin reconfig takes effect without restart.
 
 ### Removed Features
 

@@ -27,7 +27,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.io.RandomAccessReadBuffer;
@@ -49,9 +48,8 @@ import org.w3c.dom.Document;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.PageSizeUnits;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 
-import org.lucee.extension.pdf.util.LuceeLogHandler;
+import org.lucee.extension.pdf.util.LuceeXRLogger;
 
-import lucee.commons.io.log.Log;
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
@@ -519,14 +517,7 @@ public class PDFDocument {
 			}
 
 			// Route OpenHTMLToPDF logging through Lucee's pdf log (once only)
-			Log pdfLog = pc.getConfig().getLog("pdf");
-			if (pdfLog != null) {
-				Logger ohtLogger = Logger.getLogger("com.openhtmltopdf");
-				if (ohtLogger.getHandlers().length == 0) {
-					ohtLogger.setUseParentHandlers(false);
-					ohtLogger.addHandler(new LuceeLogHandler(pdfLog));
-				}
-			}
+			LuceeXRLogger.install();
 
 			builder.run();
 
