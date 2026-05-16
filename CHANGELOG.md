@@ -144,7 +144,7 @@ Fill form fields with values.
 - `xmldata` - XML file path, XML string, or XML object (both read and populate)
 - `password` - PDF password if protected
 - `overwrite` - overwrite destination file (default: false)
-- `overwritedata` - overwrite existing field values (default: true)
+- `overwritedata` - overwrite existing field values (default: false)
 
 ### New cfpdfformparam Tag
 

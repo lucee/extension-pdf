@@ -146,6 +146,37 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( fields.firstName ).toBe( "Jane" );
 			});
 
+			it( title="default behaviour preserves existing values (overwriteData defaults to false)", body=function( currentSpec ) {
+				pdfform action="populate" source="#path#form.pdf"
+					destination="#path#default_initial.pdf" overwrite=true {
+					pdfformparam name="firstName" value="Jane";
+				}
+
+				// No overwriteData attribute — should default to false (Adobe CF parity)
+				pdfform action="populate" source="#path#default_initial.pdf"
+					destination="#path#default_preserve.pdf" overwrite=true {
+					pdfformparam name="firstName" value="John";
+				}
+
+				pdfform action="read" source="#path#default_preserve.pdf" result="local.fields";
+				expect( fields.firstName ).toBe( "Jane" );
+			});
+
+			it( title="populate with overwriteData=true clobbers existing values", body=function( currentSpec ) {
+				pdfform action="populate" source="#path#form.pdf"
+					destination="#path#clobber_initial.pdf" overwrite=true {
+					pdfformparam name="firstName" value="Jane";
+				}
+
+				pdfform action="populate" source="#path#clobber_initial.pdf"
+					destination="#path#clobbered.pdf" overwrite=true overwriteData=true {
+					pdfformparam name="firstName" value="John";
+				}
+
+				pdfform action="read" source="#path#clobbered.pdf" result="local.fields";
+				expect( fields.firstName ).toBe( "John" );
+			});
+
 		});
 
 	}

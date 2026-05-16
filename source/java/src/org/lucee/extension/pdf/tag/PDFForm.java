@@ -65,7 +65,7 @@ public class PDFForm extends BodyTagImpl {
 	private Resource destination = null;
 	private String name = null;
 	private boolean overwrite = false;
-	private boolean overwriteData = true;
+	private boolean overwriteData = false;
 	private List<PDFFormParamBean> params = null;
 
 	@Override
@@ -79,7 +79,7 @@ public class PDFForm extends BodyTagImpl {
 		destination = null;
 		name = null;
 		overwrite = false;
-		overwriteData = true;
+		overwriteData = false;
 		params = null;
 	}
 
