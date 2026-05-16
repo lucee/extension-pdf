@@ -34,6 +34,30 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( fetchedUrls ).toInclude( "http://example.com/custom-image.png" );
 			});
 
+			it( title="UDF resourceHandler receives parsedUrl struct", body=function( currentSpec ) {
+				var captured = {};
+				var handler = function( url, parsedUrl ) {
+					if ( arguments.url contains "test-resource.css" ) {
+						captured = arguments.parsedUrl;
+						return "body { color: red; }";
+					}
+					return javacast( "null", "" );
+				};
+
+				document format="pdf" resourceHandler="#handler#" filename="#dir#parsed_url.pdf" overwrite=true {
+					writeOutput( '<html><head><link rel="stylesheet" href="https://cdn.example.com:8443/assets/test-resource.css?v=2&amp;min=true##anchor"/></head><body><p>Parsed</p></body></html>' );
+				}
+
+				expect( fileExists( "#dir#parsed_url.pdf" ) ).toBeTrue();
+				expect( captured ).toHaveKey( "protocol" );
+				expect( captured.protocol ).toBe( "https" );
+				expect( captured.host ).toBe( "cdn.example.com" );
+				expect( captured.port ).toBe( 8443 );
+				expect( captured.path ).toBe( "/assets/test-resource.css" );
+				expect( captured.query ).toInclude( "v=2" );
+				expect( captured.fragment ).toBe( "anchor" );
+			});
+
 			it( title="UDF resourceHandler returning null falls through to default", body=function( currentSpec ) {
 				var handler = function( url ) {
 					return javacast( "null", "" );
@@ -47,7 +71,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			});
 
 			it( title="Component resourceHandler with onResourceFetch method", body=function( currentSpec ) {
-				var handlerCfc = new testAdditional.ResourceHandlerCFC();
+				var handlerCfc = new testAdditional.tags.document.ResourceHandlerCFC();
 
 				document format="pdf" resourceHandler="#handlerCfc#" filename="#dir#cfc_handler.pdf" overwrite=true {
 					writeOutput( '<html><body><p>CFC test</p><img src="http://example.com/cfc-image.png" width="10" height="10"/></body></html>' );
@@ -56,6 +80,12 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( fileExists( "#dir#cfc_handler.pdf" ) ).toBeTrue();
 				expect( isPDFFile( "#dir#cfc_handler.pdf" ) ).toBeTrue();
 				expect( handlerCfc.getFetchedUrls() ).toInclude( "http://example.com/cfc-image.png" );
+				// Verify parsedUrl was passed to CFC handler
+				var parsed = handlerCfc.getParsedUrls();
+				expect( arrayLen( parsed ) ).toBeGT( 0 );
+				var imgParsed = parsed[ 1 ];
+				expect( imgParsed.protocol ).toBe( "http" );
+				expect( imgParsed.host ).toBe( "example.com" );
 			});
 
 			it( title="resourceHandler works for src attribute fetching", body=function( currentSpec ) {

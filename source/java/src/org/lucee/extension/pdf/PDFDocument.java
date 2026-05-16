@@ -56,9 +56,12 @@ import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
+import lucee.runtime.Component;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Struct;
 import lucee.runtime.type.UDF;
+import lucee.runtime.util.Creation;
 
 /**
  * PDFDocument - HTML to PDF renderer using OpenHTMLToPDF.
@@ -925,16 +928,52 @@ public class PDFDocument {
 	}
 
 	/**
+	 * Build a parsed URL struct with protocol, host, port, path, query, fragment.
+	 */
+	private static Struct buildParsedUrl( String urlStr ) {
+		Creation creator = engine.getCreationUtil();
+		Struct parsed = creator.createStruct();
+		try {
+			URL u = new URL( urlStr );
+			parsed.setEL( "protocol", u.getProtocol() );
+			parsed.setEL( "host", u.getHost() );
+			parsed.setEL( "port", u.getPort() == -1 ? u.getDefaultPort() : u.getPort() );
+			parsed.setEL( "path", u.getPath() );
+			parsed.setEL( "query", u.getQuery() != null ? u.getQuery() : "" );
+			parsed.setEL( "fragment", u.getRef() != null ? u.getRef() : "" );
+		}
+		catch ( MalformedURLException e ) {
+			// Not a valid URL - provide what we can
+			parsed.setEL( "protocol", "" );
+			parsed.setEL( "host", "" );
+			parsed.setEL( "port", -1 );
+			parsed.setEL( "path", urlStr );
+			parsed.setEL( "query", "" );
+			parsed.setEL( "fragment", "" );
+		}
+		return parsed;
+	}
+
+	/**
+	 * Build the named arguments struct for resourceHandler calls.
+	 */
+	private static Struct buildResourceHandlerArgs( String url ) {
+		Creation creator = engine.getCreationUtil();
+		Struct args = creator.createStruct();
+		args.setEL( "url", url );
+		args.setEL( "parsedUrl", buildParsedUrl( url ) );
+		return args;
+	}
+
+	/**
 	 * Call the resourceHandler (Component or UDF) to fetch a resource.
 	 * Returns the result, or null if the handler returned null / doesn't handle this URL.
 	 */
 	private Object callResourceHandler( PageContext pc, String url ) throws PageException {
-		lucee.runtime.util.Creation creator = engine.getCreationUtil();
-		lucee.runtime.type.Struct args = creator.createStruct();
-		args.set( "url", url );
+		Struct args = buildResourceHandlerArgs( url );
 
-		if (onResourceFetch instanceof lucee.runtime.Component) {
-			lucee.runtime.Component cfc = (lucee.runtime.Component) onResourceFetch;
+		if (onResourceFetch instanceof Component) {
+			Component cfc = (Component) onResourceFetch;
 			// Check the method exists before calling
 			if ( cfc.get( engine.getCreationUtil().createKey( ON_RESOURCE_FETCH ), null ) instanceof UDF ) {
 				return cfc.callWithNamedValues( pc, ON_RESOURCE_FETCH, args );
@@ -966,14 +1005,12 @@ public class PDFDocument {
 		@Override
 		public FSStream getUrl( String url ) {
 			try {
-				lucee.runtime.util.Creation creator = engine.getCreationUtil();
-				lucee.runtime.type.Struct args = creator.createStruct();
-				args.set( "url", url );
+				Struct args = buildResourceHandlerArgs( url );
 
 				Object result = null;
-				if (handler instanceof lucee.runtime.Component) {
-					lucee.runtime.Component cfc = (lucee.runtime.Component) handler;
-					if ( cfc.get( creator.createKey( ON_RESOURCE_FETCH ), null ) instanceof UDF ) {
+				if (handler instanceof Component) {
+					Component cfc = (Component) handler;
+					if ( cfc.get( engine.getCreationUtil().createKey( ON_RESOURCE_FETCH ), null ) instanceof UDF ) {
 						result = cfc.callWithNamedValues( pc, ON_RESOURCE_FETCH, args );
 					}
 				}

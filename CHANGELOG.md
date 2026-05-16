@@ -179,7 +179,12 @@ The `scale` attribute (1-100) now works, rendering content at the specified perc
 
 ### cfdocument resourceHandler attribute
 
-Custom resource fetching for images, CSS, and other resources. Accepts a Component (with `onResourceFetch(url)` method) or a UDF. Return binary/string content to use, or null to fall through to default fetching. Useful for session-protected resources or custom auth.
+Custom resource fetching for images, CSS, and other resources. Accepts a Component (with `onResourceFetch(url, parsedUrl)` method) or a UDF. Return binary/string content to use, or null to fall through to default fetching. Useful for session-protected resources or custom auth.
+
+The handler receives two arguments:
+
+- `url` (string) — the raw URL
+- `parsedUrl` (struct) — with keys: `protocol`, `host`, `port`, `path`, `query`, `fragment`
 
 ```cfml
 <!--- Component handler --->
@@ -187,9 +192,9 @@ Custom resource fetching for images, CSS, and other resources. Accepts a Compone
     <img src="http://internal/session-image.png"/>
 </cfdocument>
 
-<!--- UDF handler --->
-<cfdocument format="pdf" resourceHandler="#function( url ) {
-    if ( arguments.url contains "internal" ) {
+<!--- UDF handler with parsed URL --->
+<cfdocument format="pdf" resourceHandler="#function( url, parsedUrl ) {
+    if ( arguments.parsedUrl.host == "internal" ) {
         return myCustomFetch( arguments.url, session.authToken );
     }
 }#">
