@@ -214,6 +214,10 @@ The handler receives two arguments:
 - **OpenHTMLToPDF logging bridge**: Replaced the JUL handler with a native `XRLogger` impl (`LuceeXRLogger`). Engine output now reaches Lucee's pdf log with SLF4J `{}` placeholders correctly substituted, throwables forwarded with stack traces, and per-call PageContext lookup so admin reconfig takes effect without restart.
 - **Font load diagnostics**: When a font in a `fontdirectory` can't have its TTF family name read (corrupt file, etc.), `cfdocument` now logs a WARN to the `pdf` log with the file path and the family name it fell back to (the filename). Previously this silently degraded — users would set `fontdirectory`, the font lookup would later miss because the registered family name didn't match what they expected, and there was no signal at all. Successful registrations are logged at DEBUG.
 
+### Bug Fixes
+
+- **`cfdocumentitem type="footer"` only rendered on the last page**: The footer `<div>` was appended at the end of `<body>`, so OpenHTMLToPDF's `position: running(footer)` only picked it up *after* its source position — leaving every earlier page with no footer. Now prepended like the header, so the running element is declared before pagination begins and flows into every page's `@bottom-center` margin box. CSS page counters (`<span class="pdf-page-number">` / `pdf-page-count`, and the `{currentpagenumber}` / `{totalpagecount}` placeholders) now produce correct "Page X of Y" output on every page.
+
 ### Removed Features
 
 - PD4ML engine and related classes

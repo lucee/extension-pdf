@@ -623,7 +623,10 @@ public class PDFDocument {
 			if (footer != null) {
 				String footerHtml = footer.getHtml(hfIndex);
 				if (!Util.isEmpty(footerHtml)) {
-					body.appendElement("div")
+					// Must prepend (not append) so the `position: running(footer)` element is
+					// declared before pagination begins; otherwise it only flows into pages
+					// after its source position, leaving early pages without a footer.
+					body.prependElement("div")
 						.attr("id", "pdf-footer")
 						.html(processPageVariables(footerHtml));
 				}
