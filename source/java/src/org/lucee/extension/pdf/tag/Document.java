@@ -108,6 +108,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private Resource attrSrcfile = null;
 	private String attrUserAgent = null;
 	private Object attrResourceHandler = null;
+	private Object attrDebugHtml = null;
 
 	public Document() {
 		this._document = null;
@@ -158,6 +159,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		attrSrcfile = null;
 		attrUserAgent = null;
 		attrResourceHandler = null;
+		attrDebugHtml = null;
 	}
 
 	@Override
@@ -212,9 +214,36 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			if (attrResourceHandler != null) {
 				_document.setOnResourceFetch(attrResourceHandler);
 			}
+			if (attrDebugHtml != null) {
+				_document.setDebugHtml(resolveDebugHtml(attrDebugHtml));
+			}
 			_document.setScale(scale);
 		}
 		return _document;
+	}
+
+	/**
+	 * Resolve the debughtml attribute to a Resource.
+	 * Boolean true → sidecar: filename's path with .html extension (requires filename).
+	 * Anything else → coerce to string path, resolve via ResourceUtil.
+	 */
+	private Resource resolveDebugHtml(Object value) throws PageException {
+		if (value instanceof Boolean) {
+			if (!((Boolean) value).booleanValue()) return null;
+			if (filename == null) {
+				throw engine.getExceptionUtil().createApplicationException(
+					"debughtml=true requires the filename attribute to be set; pass a path string instead when using name= mode");
+			}
+			String pdfPath = filename.getAbsolutePath();
+			String htmlPath = pdfPath.toLowerCase().endsWith(".pdf")
+				? pdfPath.substring(0, pdfPath.length() - 4) + ".html"
+				: pdfPath + ".html";
+			return engine.getResourceUtil().toResourceNotExisting(pageContext, htmlPath);
+		}
+		String path = engine.getCastUtil().toString(value);
+		Resource r = engine.getResourceUtil().toResourceNotExisting(pageContext, path);
+		pageContext.getConfig().getSecurityManager().checkFileLocation(r);
+		return r;
 	}
 
 	public List<PDFDocument> getPDFDocuments() {
@@ -482,6 +511,15 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	public void setHtmlbookmark(boolean bookmark) {
 		this.attrHtmlbookmark = bookmark;
+	}
+
+	/**
+	 * Dump the pre-OHTPDF HTML (after CSS + bookmark injection) for debugging.
+	 * Boolean true: writes alongside filename with .html extension.
+	 * String: writes to that path (resolved against PageContext, security-checked).
+	 */
+	public void setDebughtml(Object debugHtml) {
+		this.attrDebugHtml = debugHtml;
 	}
 
 	/**

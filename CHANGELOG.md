@@ -218,6 +218,10 @@ The handler receives two arguments:
 
 - **`cfdocumentitem type="footer"` only rendered on the last page**: The footer `<div>` was appended at the end of `<body>`, so OpenHTMLToPDF's `position: running(footer)` only picked it up *after* its source position — leaving every earlier page with no footer. Now prepended like the header, so the running element is declared before pagination begins and flows into every page's `@bottom-center` margin box. CSS page counters (`<span class="pdf-page-number">` / `pdf-page-count`, and the `{currentpagenumber}` / `{totalpagecount}` placeholders) now produce correct "Page X of Y" output on every page.
 
+### New cfdocument Attributes
+
+- **`debughtml`**: dump the fully-assembled HTML (after engine CSS injection, header/footer flow, and bookmark injection) that gets passed to OpenHTMLToPDF. Useful when a PDF renders unexpectedly and you want to see what the engine actually fed the renderer. `debughtml=true` writes a `.html` sidecar next to `filename`; `debughtml="path/to/dump.html"` writes to an explicit path. Requires `filename` to be set when used in boolean form.
+
 ### Removed Features
 
 - PD4ML engine and related classes

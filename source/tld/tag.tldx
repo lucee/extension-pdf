@@ -292,6 +292,18 @@
 		</attribute>
 
 		<attribute>
+			<type>object</type>
+			<name>debughtml</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>
+				Dump the fully-assembled HTML (after engine CSS/header/footer/bookmark injection) that gets passed to OpenHTMLToPDF.
+				Boolean true: writes alongside filename with a .html extension (requires filename).
+				String: writes to that path (security-checked, parent must exist).
+				Useful for debugging why a PDF renders unexpectedly.</description>
+		</attribute>
+
+		<attribute>
 			<type>boolean</type>
 			<name>localUrl</name>
 			<required>false</required>

@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -136,6 +137,7 @@ public class PDFDocument {
 	private int hfIndex = 0;
 	private final List<String> bookmarkNames = new ArrayList<>();
 	private final List<String> htmlHeadingNames = new ArrayList<>();
+	private Resource debugHtml;
 
 	private static final CFMLEngine engine = CFMLEngineFactory.getInstance();
 	private static final String ON_RESOURCE_FETCH = "onResourceFetch";
@@ -198,6 +200,10 @@ public class PDFDocument {
 
 	public void setLocalUrl(boolean localUrl) {
 		this.localUrl = localUrl;
+	}
+
+	public void setDebugHtml(Resource debugHtml) {
+		this.debugHtml = debugHtml;
 	}
 
 	public void setOnResourceFetch(Object onResourceFetch) {
@@ -464,6 +470,14 @@ public class PDFDocument {
 
 			// Inject OpenHTMLToPDF native <bookmarks> for accurate page destinations
 			injectBookmarks( jsoupDoc, doBookmarks, doHtmlBookmarks );
+
+			// Dump the fully-assembled HTML for debugging if requested.
+			// This is what OpenHTMLToPDF sees (modulo the structural jsoup→W3C round-trip).
+			if (debugHtml != null) {
+				try (OutputStream os = debugHtml.getOutputStream()) {
+					os.write(jsoupDoc.outerHtml().getBytes(StandardCharsets.UTF_8));
+				}
+			}
 
 			// Re-convert after CSS and bookmark injection
 			w3cDoc = w3cDom.fromJsoup(jsoupDoc);
