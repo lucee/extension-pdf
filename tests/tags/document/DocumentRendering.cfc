@@ -166,6 +166,20 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( text ).toInclude( "Should Be Visible" );
 			});
 
+			it( title="unreachable external stylesheet degrades gracefully", body=function( currentSpec ) {
+				document format="pdf" filename="#path#missing_css.pdf" overwrite=true {
+					writeOutput( '<html><head><link rel="stylesheet" href="http://nonexistent.invalid/missing.css"/></head><body>' );
+					writeOutput( '<p>Before stylesheet failure</p><p>After stylesheet failure</p>' );
+					writeOutput( '</body></html>' );
+				}
+
+				expect( isPDFFile( "#path#missing_css.pdf" ) ).toBeTrue();
+
+				pdf action="extractText" source="#path#missing_css.pdf" name="local.text";
+				expect( text ).toInclude( "Before stylesheet failure" );
+				expect( text ).toInclude( "After stylesheet failure" );
+			});
+
 		});
 
 		describe( "cfdocument page breaks", function() {
@@ -208,6 +222,89 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( text ).toInclude( "Page 1" );
 				expect( text ).toInclude( "Page 2" );
 				expect( text ).toInclude( "Page 3" );
+			});
+
+			it( title="page-break-inside: avoid keeps a block together", body=function( currentSpec ) {
+				// Fill ~75% of page 1, then a 400px block tagged with page-break-inside: avoid.
+				// Without `avoid` the block would split — its START would land on page 1 and END on page 2.
+				// With `avoid`, OHTPDF should push the whole block to page 2.
+				document format="pdf" filename="#path#avoid_inside.pdf" overwrite=true {
+					writeOutput( '<div style="height: 700px; background: ##eee;">PRECEDING FILLER</div>' );
+					writeOutput( '<div style="page-break-inside: avoid; height: 400px; background: ##ccc;">' );
+					writeOutput( '<p>BLOCK START MARKER</p>' );
+					writeOutput( '<div style="height: 350px;"></div>' );
+					writeOutput( '<p>BLOCK END MARKER</p>' );
+					writeOutput( '</div>' );
+				}
+
+				pdf action="getInfo" source="#path#avoid_inside.pdf" name="local.info";
+				expect( info.totalPages ).toBe( 2 );
+
+				pdf action="extractText" source="#path#avoid_inside.pdf" pages="1" name="local.page1";
+				pdf action="extractText" source="#path#avoid_inside.pdf" pages="2" name="local.page2";
+
+				expect( page1 ).toInclude( "PRECEDING FILLER" );
+				expect( page1 ).notToInclude( "BLOCK START MARKER", "page-break-inside: avoid should keep block off page 1" );
+				expect( page2 ).toInclude( "BLOCK START MARKER" );
+				expect( page2 ).toInclude( "BLOCK END MARKER", "block start and end should land on the same page" );
+			});
+
+			it( title="page-break-inside: avoid keeps a table row together", body=function( currentSpec ) {
+				// Same shape as the block test, but the indivisible unit is a <tr> with avoid.
+				document format="pdf" filename="#path#avoid_row.pdf" overwrite=true {
+					writeOutput( '<div style="height: 700px;">PRECEDING FILLER</div>' );
+					writeOutput( '<table border="1" style="width: 100%;"><tbody>' );
+					writeOutput( '<tr style="page-break-inside: avoid;">' );
+					writeOutput( '<td style="height: 400px; vertical-align: top;">' );
+					writeOutput( '<p>ROW START MARKER</p>' );
+					writeOutput( '<div style="height: 350px;"></div>' );
+					writeOutput( '<p>ROW END MARKER</p>' );
+					writeOutput( '</td></tr>' );
+					writeOutput( '</tbody></table>' );
+				}
+
+				pdf action="getInfo" source="#path#avoid_row.pdf" name="local.info";
+				expect( info.totalPages ).toBe( 2 );
+
+				pdf action="extractText" source="#path#avoid_row.pdf" pages="1" name="local.page1";
+				pdf action="extractText" source="#path#avoid_row.pdf" pages="2" name="local.page2";
+
+				expect( page1 ).notToInclude( "ROW START MARKER" );
+				expect( page2 ).toInclude( "ROW START MARKER" );
+				expect( page2 ).toInclude( "ROW END MARKER", "row start and end should land on the same page" );
+			});
+
+			it( title="@page CSS rule sets custom page size", body=function( currentSpec ) {
+				// @page in user CSS should override tag-default page sizing.
+				// 200mm x 100mm → 567 x 283 points (approx, 1mm = 2.8346 pt).
+				document format="pdf" filename="#path#at_page.pdf" overwrite=true {
+					writeOutput( '<html><head><style>@page { size: 200mm 100mm; margin: 10mm; }</style></head><body>' );
+					writeOutput( '<p>Custom @page sized content</p>' );
+					writeOutput( '</body></html>' );
+				}
+
+				pdf action="getInfo" source="#path#at_page.pdf" name="local.info";
+				expect( round( info.pagesize[ 1 ].width ) ).toBe( 567, "@page size width 200mm should map to ~567pt" );
+				expect( round( info.pagesize[ 1 ].height ) ).toBe( 283, "@page size height 100mm should map to ~283pt" );
+			});
+
+			it( title="long content flows naturally across pages without explicit breaks", body=function( currentSpec ) {
+				// 50 paragraphs of plain prose — should auto-paginate, no content loss.
+				document format="pdf" filename="#path#natural_flow.pdf" overwrite=true {
+					writeOutput( '<html><body>' );
+					for ( var i = 1; i <= 50; i++ ) {
+						writeOutput( '<p>Paragraph number #i# contains enough words to take a few lines so we can fill multiple pages without relying on explicit page breaks.</p>' );
+					}
+					writeOutput( '</body></html>' );
+				}
+
+				pdf action="getInfo" source="#path#natural_flow.pdf" name="local.info";
+				expect( info.totalPages ).toBeGT( 1, "50 paragraphs should overflow a single page" );
+
+				pdf action="extractText" source="#path#natural_flow.pdf" name="local.text";
+				expect( text ).toInclude( "Paragraph number 1 " );
+				expect( text ).toInclude( "Paragraph number 50 " );
+				expect( text ).toInclude( "Paragraph number 25 ", "middle paragraphs should not be lost" );
 			});
 
 		});

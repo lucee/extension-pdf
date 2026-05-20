@@ -112,20 +112,55 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( isPDFObject( result ) ).toBeTrue();
 			});
 
-			it( title="resourceHandler can inject CSS content", body=function( currentSpec ) {
+			it( title="external stylesheet supplied by handler actually applies", body=function( currentSpec ) {
+				// display:none is observable via extractText — proves the CSS was both fetched AND applied,
+				// not merely that the handler was called.
 				var handler = function( url ) {
 					if ( arguments.url contains "custom.css" ) {
-						return "body { color: red; } p { font-size: 24px; }";
+						return ".hidden { display: none; } .visible { display: block; }";
 					}
 					return javacast( "null", "" );
 				};
 
-				document format="pdf" resourceHandler="#handler#" filename="#dir#css_handler.pdf" overwrite=true {
-					writeOutput( '<html><head><link rel="stylesheet" href="http://example.com/custom.css"/></head><body><p>Styled via handler</p></body></html>' );
+				document format="pdf" resourceHandler="#handler#" filename="#dir#css_applies.pdf" overwrite=true {
+					writeOutput( '<html><head><link rel="stylesheet" href="http://example.com/custom.css"/></head><body>' );
+					writeOutput( '<p class="visible">Visible Paragraph</p>' );
+					writeOutput( '<p class="hidden">Hidden Paragraph</p>' );
+					writeOutput( '</body></html>' );
 				}
 
-				expect( fileExists( "#dir#css_handler.pdf" ) ).toBeTrue();
-				expect( isPDFFile( "#dir#css_handler.pdf" ) ).toBeTrue();
+				pdf action="extractText" source="#dir#css_applies.pdf" name="local.text";
+				expect( text ).toInclude( "Visible Paragraph" );
+				expect( text ).notToInclude( "Hidden Paragraph", "external stylesheet display:none should hide content" );
+			});
+
+			it( title="@media print rules from external stylesheet apply", body=function( currentSpec ) {
+				// OHTPDF should treat itself as a print medium. Base rules hide print-only and show screen-only;
+				// @media print flips them. If print media is honoured we see the print-only text and NOT the screen-only text.
+				var handler = function( url ) {
+					if ( arguments.url contains "print.css" ) {
+						return "
+							.screen-only { display: block; }
+							.print-only  { display: none; }
+							@media print {
+								.screen-only { display: none; }
+								.print-only  { display: block; }
+							}
+						";
+					}
+					return javacast( "null", "" );
+				};
+
+				document format="pdf" resourceHandler="#handler#" filename="#dir#media_print.pdf" overwrite=true {
+					writeOutput( '<html><head><link rel="stylesheet" href="http://example.com/print.css"/></head><body>' );
+					writeOutput( '<p class="screen-only">Screen Only Text</p>' );
+					writeOutput( '<p class="print-only">Print Only Text</p>' );
+					writeOutput( '</body></html>' );
+				}
+
+				pdf action="extractText" source="#dir#media_print.pdf" name="local.text";
+				expect( text ).toInclude( "Print Only Text", "@media print rules should apply when rendering to PDF" );
+				expect( text ).notToInclude( "Screen Only Text", "@media print should override base screen rules" );
 			});
 
 		});
