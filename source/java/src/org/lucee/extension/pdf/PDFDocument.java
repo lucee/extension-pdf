@@ -161,8 +161,8 @@ public abstract class PDFDocument {
 	private List<Resource> tempFiles = new ArrayList<>();
 	private final List<String[]> htmlBookmarks = new ArrayList<>();
 
-	public static int TYPE_NONE = 0;
-	public static int TYPE_FS = 1; // AKA "modern"
+	public static final int TYPE_NONE = 0;
+	public static final int TYPE_FS = 1; // AKA "modern"
 	private static long id = 0;
 
 	public PDFDocument() {
