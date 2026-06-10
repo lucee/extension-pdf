@@ -147,6 +147,13 @@
     </plugins>
   </build>
 
+  <repositories>
+    <repository>
+      <id>pd4ml</id>
+      <url>https://pd4ml.tech/maven2/</url>
+    </repository>
+  </repositories>
+
   <dependencies>
     <dependency>
       <groupId>org.lucee</groupId>
@@ -179,7 +186,7 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.zefer</groupId>
+      <groupId>com.pd4ml</groupId>
       <artifactId>pd4ml</artifactId>
       <version>4.0.22</version>
       <scope>compile</scope>

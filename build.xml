@@ -43,16 +43,6 @@
         <echo>bundleversion:${bundleversion}</echo>
 
         <exec dir="source/java" executable="mvn" failonerror="true">
-            <arg value="install:install-file"/>
-            <arg value="-Dfile=libs/pd4ml-4.0.22.jar"/>
-            <arg value="-DgroupId=org.zefer"/>
-            <arg value="-DartifactId=pd4ml"/>
-            <arg value="-Dversion=4.0.22"/>
-            <arg value="-Dpackaging=jar"/>
-            <arg value="-DgeneratePom=true"/>
-        </exec>
-
-        <exec dir="source/java" executable="mvn" failonerror="true">
             <arg value="clean"/>
             <arg value="${effective.goal}"/>
             <arg value="-Drevision=${bundleversion}"/>
