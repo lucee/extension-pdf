@@ -1,1 +1,3 @@
 /bin
+/libs/*
+!/libs/pd4ml-4.0.22.jar

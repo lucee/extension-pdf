@@ -1,26 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
 		<attributes>
-			<attribute name="module" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="libs/jsp-api-2.2.jar"/>
-	<classpathentry kind="lib" path="libs/org.apache.felix.framework-4.2.1.jar"/>
-	<classpathentry kind="lib" path="libs/core-3.1.0.3.jar"/>
-	<classpathentry kind="lib" path="libs/org.lucee.itext-2.1.7.jar"/>
-	<classpathentry kind="lib" path="libs/bouncycastle.mail-1.38.0.jar"/>
-	<classpathentry kind="lib" path="libs/bouncycastle.prov-1.38.0.jar"/>
-	<classpathentry kind="lib" path="libs/bouncycastle.tsp-1.38.0.jar"/>
-	<classpathentry kind="lib" path="libs/tagsoup-1.2.1.0002L.jar"/>
-	<classpathentry kind="lib" path="libs/org.lucee.flyingSaucerPDF-9.1.20.jar"/>
-	<classpathentry kind="lib" path="libs/org.xhtmlrenderer.flying.saucer.core-9.1.20.jar"/>
-	<classpathentry kind="lib" path="libs/org.lucee.pdfbox-3.0.0.RC101.jar"/>
-	<classpathentry kind="lib" path="libs/org.lucee.pdfbox-fontbox-3.0.0.RC1.jar"/>
-	<classpathentry kind="lib" path="libs/jakarta.jakartaee-api-10.0.0.jar"/>
-	<classpathentry kind="lib" path="libs/lucee-7.0.0.115-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="libs/pd4ml-4.0.22.jar"/>
-	<classpathentry kind="lib" path="libs/javax.servlet.jar"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry including="**/*.java" kind="src" output="target/classes" path="src">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+			<attribute name="optional" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="target/classes"/>
 </classpath>
