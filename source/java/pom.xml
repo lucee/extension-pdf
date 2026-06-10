@@ -169,6 +169,12 @@
     </dependency>
     <dependency>
       <groupId>org.lucee</groupId>
+      <artifactId>pdfbox-fontbox</artifactId>
+      <version>3.0.0.RC1</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.lucee</groupId>
       <artifactId>flyingSaucerPDF</artifactId>
       <version>9.1.19</version>
       <scope>compile</scope>
