@@ -934,35 +934,34 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 		// permission/encryption
 		if (PDFDocument.ENC_NONE != encryption) {
-			PdfReader reader = new PdfReader(pdf);
-			com.lowagie.text.Document document = new com.lowagie.text.Document(reader.getPageSize(1));
+			boolean userEmpty = Util.isEmpty(userpassword);
+			boolean ownerEmpty = Util.isEmpty(ownerpassword);
+			if (!userEmpty || !ownerEmpty) {
+				PdfReader reader = new PdfReader(pdf);
+				com.lowagie.text.Document document = new com.lowagie.text.Document(reader.getPageSize(1));
 
-			Info info = CFMLEngineFactory.getInstance().getInfo();
-			document.addCreator("Lucee PDF Extension");
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			PdfCopy copy = new PdfCopy(document, baos);
-			// PdfWriter writer = PdfWriter.getInstance(document, pdfOut);
-			{
-				boolean userEmpty = Util.isEmpty(userpassword);
-				boolean ownerEmpty = Util.isEmpty(ownerpassword);
+				Info info = CFMLEngineFactory.getInstance().getInfo();
+				document.addCreator("Lucee PDF Extension");
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				PdfCopy copy = new PdfCopy(document, baos);
 				// one is empty the other not
 				if (userEmpty != ownerEmpty) {
 					if (userEmpty) userpassword = ownerpassword;
 					else ownerpassword = userpassword;
 				}
-			}
 
-			int encType = (PDFDocument.ENC_128BIT == encryption) ? PdfWriter.STANDARD_ENCRYPTION_128 : PdfWriter.STANDARD_ENCRYPTION_40;
-			byte[] user = Util.isEmpty(userpassword) ? null : userpassword.getBytes();
-			byte[] owner = Util.isEmpty(ownerpassword) ? null : ownerpassword.getBytes();
-			copy.setEncryption(user, owner, permissions, encType);
-			document.open();
-			int size = reader.getNumberOfPages();
-			for (int page = 1; page <= size; page++) {
-				copy.addPage(copy.getImportedPage(reader, page));
+				int encType = (PDFDocument.ENC_128BIT == encryption) ? PdfWriter.STANDARD_ENCRYPTION_128 : PdfWriter.STANDARD_ENCRYPTION_40;
+				byte[] user = Util.isEmpty(userpassword) ? null : userpassword.getBytes();
+				byte[] owner = Util.isEmpty(ownerpassword) ? null : ownerpassword.getBytes();
+				copy.setEncryption(user, owner, permissions, encType);
+				document.open();
+				int size = reader.getNumberOfPages();
+				for (int page = 1; page <= size; page++) {
+					copy.addPage(copy.getImportedPage(reader, page));
+				}
+				document.close();
+				pdf = baos.toByteArray();
 			}
-			document.close();
-			pdf = baos.toByteArray();
 		}
 
 		// write out

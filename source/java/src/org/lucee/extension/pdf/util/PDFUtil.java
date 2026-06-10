@@ -260,8 +260,6 @@ public class PDFUtil {
 	public static void encrypt(PDFStruct doc, OutputStream os, String newUserPassword, String newOwnerPassword, int permissions, int encryption)
 			throws PageException, DocumentException, IOException {
 		if (Util.isEmpty(newOwnerPassword)) newOwnerPassword = newUserPassword;
-		byte[] user = newUserPassword == null ? null : newUserPassword.getBytes();
-		byte[] owner = newOwnerPassword == null ? null : newOwnerPassword.getBytes();
 
 		PdfReader pr = doc.getPdfReader();
 		List bookmarks = SimpleBookmark.getBookmarkList(pr);
@@ -269,7 +267,11 @@ public class PDFUtil {
 
 		Document document = new Document(pr.getPageSizeWithRotation(1));
 		PdfCopy writer = new PdfCopy(document, os);
-		if (encryption != ENCRYPT_NONE) writer.setEncryption(user, owner, permissions, encryption);
+		if (encryption != ENCRYPT_NONE && !Util.isEmpty(newUserPassword)) {
+			byte[] user = newUserPassword.getBytes();
+			byte[] owner = Util.isEmpty(newOwnerPassword) ? null : newOwnerPassword.getBytes();
+			writer.setEncryption(user, owner, permissions, encryption);
+		}
 		document.open();
 
 		PdfImportedPage page;
