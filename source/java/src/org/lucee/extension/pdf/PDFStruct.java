@@ -18,7 +18,6 @@
  **/
 package org.lucee.extension.pdf;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -381,8 +380,8 @@ public class PDFStruct extends StructSupport implements Struct {
 	public PDDocument toPDDocument() throws IOException {
 		PDDocument doc;
 		if (barr != null) {
-			if (password != null) doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length), password);
-			else doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length));
+			if (password != null) doc = Loader.loadPDF(barr, password);
+			else doc = Loader.loadPDF(barr);
 		}
 		else if (resource instanceof File) {
 			if (password != null) doc = Loader.loadPDF((File) resource, password);
@@ -390,8 +389,8 @@ public class PDFStruct extends StructSupport implements Struct {
 		}
 		else {
 			barr = PDFUtil.toBytes(resource);
-			if (password != null) doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length), password);
-			else doc = Loader.loadPDF(new ByteArrayInputStream(barr, 0, barr.length));
+			if (password != null) doc = Loader.loadPDF(barr, password);
+			else doc = Loader.loadPDF(barr);
 		}
 		return doc;
 

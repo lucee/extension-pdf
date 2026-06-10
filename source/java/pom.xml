@@ -147,42 +147,29 @@
     </plugins>
   </build>
 
-  <repositories>
-    <repository>
-      <id>pd4ml</id>
-      <url>https://pd4ml.tech/maven2/</url>
-    </repository>
-  </repositories>
-
   <dependencies>
     <dependency>
-      <groupId>org.lucee</groupId>
+      <groupId>com.lowagie</groupId>
       <artifactId>itext</artifactId>
       <version>2.1.7</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.lucee</groupId>
+      <groupId>org.apache.pdfbox</groupId>
       <artifactId>pdfbox</artifactId>
-      <version>3.0.0.RC102</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.lucee</groupId>
-      <artifactId>pdfbox-fontbox</artifactId>
-      <version>3.0.0.RC1</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.lucee</groupId>
-      <artifactId>flyingSaucerPDF</artifactId>
-      <version>9.1.19</version>
+      <version>3.0.7</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.xhtmlrenderer</groupId>
       <artifactId>flying-saucer-core</artifactId>
-      <version>9.1.20</version>
+      <version>9.1.22</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.xhtmlrenderer</groupId>
+      <artifactId>flying-saucer-pdf</artifactId>
+      <version>9.1.22</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
@@ -192,7 +179,7 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>com.pd4ml</groupId>
+      <groupId>org.zefer</groupId>
       <artifactId>pd4ml</artifactId>
       <version>4.0.22</version>
       <scope>compile</scope>
