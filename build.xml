@@ -68,6 +68,10 @@
             <arg value="${basedir}/copy-parent-poms.sh"/>
             <arg value="${temp}/dependency"/>
         </exec>
+
+        <mkdir dir="${temp}/dependency/org/zefer/pd4ml/4.0.22"/>
+        <copy file="source/java/libs/pd4ml-4.0.22.jar"
+              tofile="${temp}/dependency/org/zefer/pd4ml/4.0.22/pd4ml-4.0.22.jar"/>
     </target>
 
     <target name="copy-dependencies" depends="maven-build">
