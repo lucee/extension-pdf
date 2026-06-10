@@ -15,7 +15,7 @@
 	<!-- IsPDFFile -->
 	<function>
 		<name>IsPDFFile</name>
-		<class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.function.IsPDFFile</class>
+		<class maven="{maven}">org.lucee.extension.pdf.function.IsPDFFile</class>
 		<status>unimplemeted</status>
 		<keywords>decision,pdf</keywords>
 		<description>Verifies whether a PDF file is valid.</description>
@@ -33,7 +33,7 @@
 	<!-- IsPDFObject -->
 	<function>
 		<name >IsPDFObject</name>
-		<class bundle-name="{bundle-name}" bundle-version="{bundle-version}">org.lucee.extension.pdf.function.IsPDFObject</class>
+		<class maven="{maven}">org.lucee.extension.pdf.function.IsPDFObject</class>
 		<keywords>decision,pdf</keywords>
 		<description>Determines whether a value is a PDF object.</description>
 		<argument>

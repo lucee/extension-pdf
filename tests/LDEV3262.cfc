@@ -11,7 +11,6 @@ component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" skip=true{
 		});
 	}
 	private string function createURI(string calledName){
-		var baseURI = "/test/#listLast(getDirectoryFromPath(getCurrenttemplatepath()),"\/")#/";
-		return baseURI&""&calledName;
+		return getDirectoryFromPath(contractPath(getCurrentTemplatePath())) & calledName;
 	}
 }

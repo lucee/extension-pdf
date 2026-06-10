@@ -1,10 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://www.w3.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>pdf-extension</artifactId>
-    <version>2.0.2.0-SNAPSHOT</version>
+    <version>2.1.0.0-ALPHA</version>
     <packaging>pom</packaging>
     <name>PDF Extension</name>
 
@@ -14,15 +14,16 @@
         <maven.compiler.target>11</maven.compiler.target>
         <id>66E312DD-D083-27C0-64189D16753FD6F0</id>
         <bundlename>org.lucee.pdf.extension</bundlename>
-        <luceeCoreVersion>6.2.5.38</luceeCoreVersion>
+        <mvnGroupId>org.lucee</mvnGroupId>
+        <mvnGroupPath>org/lucee</mvnGroupPath>
+        <mvnArtifactId>pdf</mvnArtifactId>
+        <filename>pdf-extension</filename>
+        <luceeCoreVersion>7.1.0.2-ALPHA</luceeCoreVersion>
         <releaseType>server</releaseType>
-        <class>org.lucee.extension.amf.AMFEngineImpl</class>
         <label>PDF Extension for Jakarta EE (Lucee 7+)</label>
         <release.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.url>
         <snapshot.url>https://oss.sonatype.org/content/repositories/snapshots/</snapshot.url>
     </properties>
-
-
 
     <scm>
         <url>https://github.com/lucee/extension-pdf</url>
@@ -54,7 +55,7 @@
         </developer>
     </developers>
 
-    <description>Lucee PDF Extension provides essential PDF manipulation tags (cfdocument, cfpdf, cfpdfparam, etc.) specifically designed for Jakarta EE environments like Tomcat 10+. This version is fully compatible with Jakarta Servlet specifications and requires Lucee 7. For Lucee 6 installations, please use PDF Extension 1.0 instead. The extension delivers the same familiar functionality while ensuring seamless operation in modern servlet containers that have migrated to the jakarta namespace.</description>
+    <description>Lucee PDF Extension provides essential PDF manipulation tags (cfdocument, cfpdf, cfpdfparam, etc.) specifically designed for Jakarta EE environments like Tomcat 10+. This version is fully compatible with Jakarta Servlet specifications and requires Lucee 7. For Lucee 6 installations, please use PDF Extension 1.0 or 2.0 instead. The extension delivers the same familiar functionality while ensuring seamless operation in modern servlet containers that have migrated to the jakarta namespace.</description>
     <url>https://github.com/lucee/extension-pdf</url>
 
     <profiles>
@@ -68,7 +69,6 @@
             </activation>
             <build>
                 <plugins>
-                    <!-- GPG sign -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
@@ -83,6 +83,7 @@
                                 <configuration>
                                     <files>
                                         <file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
+                                        <file>${project.build.directory}/${project.artifactId}-${project.version}.lite.lex</file>
                                     </files>
                                 </configuration>
                             </execution>
@@ -106,7 +107,6 @@
 
     <build>
         <plugins>
-            <!-- Antrun plugin to execute the Ant build -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
@@ -126,13 +126,18 @@
                                     <property name="groupId" value="${project.groupId}"/>
                                     <property name="artifactId" value="${project.artifactId}"/>
                                     <property name="id" value="${id}"/>
-                                    <property name="srcversion" value="${maven.compiler.source}"/>
-                                    <property name="trgversion" value="${maven.compiler.target}"/>
                                     <property name="luceeCoreVersion" value="${luceeCoreVersion}"/>
                                     <property name="releaseType" value="${releaseType}"/>
                                     <property name="label" value="${label}"/>
                                     <property name="description" value="${project.description}"/>
-                                    <property name="class" value="${class}"/>
+                                    <property name="maven.goal" value="${goal}"/>
+                                    <property name="mvnGroupId" value="${mvnGroupId}"/>
+                                    <property name="mvnGroupPath" value="${mvnGroupPath}"/>
+                                    <property name="mvnArtifactId" value="${mvnArtifactId}"/>
+                                    <property name="mvnVersion" value="${project.version}"/>
+                                    <property name="maven.username" value="${env.MAVEN_USERNAME}"/>
+                                    <property name="maven.password" value="${env.MAVEN_PASSWORD}"/>
+                                    <property name="gpg.passphrase" value="${env.GPG_PASSPHRASE}"/>
                                 </ant>
                                 <condition property="isSnapshot" value="true" else="false">
                                     <matches string="${project.version}" pattern=".*-SNAPSHOT"/>
@@ -146,12 +151,16 @@
                                 <echo message="Deploying to URL: ${deploy.url}" />
                             </target>
                             <exportAntProperties>true</exportAntProperties>
+                            <propertySets>
+                                <propertySet>
+                                    <propertyRef prefix="env."/>
+                                </propertySet>
+                            </propertySets>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
 
-            <!-- Build Helper Plugin to attach additional artifacts -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -169,13 +178,17 @@
                                     <file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
                                     <type>lex</type>
                                 </artifact>
+                                <artifact>
+                                    <file>${project.build.directory}/${project.artifactId}-${project.version}.lite.lex</file>
+                                    <type>lex</type>
+                                    <classifier>lite</classifier>
+                                </artifact>
                             </artifacts>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
 
-            <!-- Clean plugin to remove extra folders -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
@@ -207,7 +220,6 @@
                 </executions>
             </plugin>
 
-            <!-- Maven Deploy Plugin to deploy the .lex file -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
@@ -229,10 +241,26 @@
                             <packaging>lex</packaging>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>deploy-lite</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy-file</goal>
+                        </goals>
+                        <configuration>
+                            <file>${project.build.directory}/${project.artifactId}-${project.version}.lite.lex</file>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${project.version}</version>
+                            <classifier>lite</classifier>
+                            <repositoryId>ossrh</repositoryId>
+                            <url>${deploy.url}</url>
+                            <packaging>lex</packaging>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
-            <!-- Nexus Staging Maven Plugin to automate the release process -->
             <plugin>
               <groupId>org.sonatype.central</groupId>
               <artifactId>central-publishing-maven-plugin</artifactId>
