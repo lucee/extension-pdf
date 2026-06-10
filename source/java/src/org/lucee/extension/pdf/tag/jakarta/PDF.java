@@ -39,20 +39,20 @@ import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.tag.Constants;
 import org.lucee.extension.pdf.util.PDFUtil;
 
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.Image;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.pdf.ColumnText;
-import com.lowagie.text.pdf.PdfContentByte;
-import com.lowagie.text.pdf.PdfGState;
-import com.lowagie.text.pdf.PdfImportedPage;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.PdfStamper;
-import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.SimpleBookmark;
+import org.openpdf.text.DocumentException;
+import org.openpdf.text.Element;
+import org.openpdf.text.Font;
+import org.openpdf.text.FontFactory;
+import org.openpdf.text.Image;
+import org.openpdf.text.Phrase;
+import org.openpdf.text.pdf.ColumnText;
+import org.openpdf.text.pdf.PdfContentByte;
+import org.openpdf.text.pdf.PdfGState;
+import org.openpdf.text.pdf.PdfImportedPage;
+import org.openpdf.text.pdf.PdfReader;
+import org.openpdf.text.pdf.PdfStamper;
+import org.openpdf.text.pdf.PdfWriter;
+import org.openpdf.text.pdf.SimpleBookmark;
 
 import lucee.commons.io.res.Resource;
 import lucee.commons.io.res.filter.ResourceFilter;
@@ -102,7 +102,7 @@ public class PDF extends BodyTagImpl implements Constants {
 	private Object source = null;
 	private boolean stopOnError = false;
 	private boolean transparent = false;
-	private char version = 0;
+	private String version = null;
 	private java.util.List<PDFParamBean> params;
 	private ResourceFilter filter = null;
 	private String imagePrefix = null;
@@ -153,7 +153,7 @@ public class PDF extends BodyTagImpl implements Constants {
 		source = null;
 		stopOnError = false;
 		transparent = false;
-		version = 0;
+		version = null;
 		params = null;
 		filter = null;
 		imagePrefix = null;
@@ -611,7 +611,7 @@ public class PDF extends BodyTagImpl implements Constants {
 	 * @throws PageException
 	 */
 	public void setVersion(double version) throws PageException {
-		if (1.1 == version) this.version = '1';
+		if (1.1 == version) this.version = "1.1";
 		else if (1.2 == version) this.version = PdfWriter.VERSION_1_2;
 		else if (1.3 == version) this.version = PdfWriter.VERSION_1_3;
 		else if (1.4 == version) this.version = PdfWriter.VERSION_1_4;
@@ -1235,7 +1235,7 @@ public class PDF extends BodyTagImpl implements Constants {
 		}
 
 		/*
-		 * com.lowagie.text.Document document=null; PdfCopy copy=null; PdfReader pr; Set pages; int size;
+		 * org.openpdf.text.Document document=null; PdfCopy copy=null; PdfReader pr; Set pages; int size;
 		 */
 
 		try {
@@ -1249,7 +1249,7 @@ public class PDF extends BodyTagImpl implements Constants {
 			 * } catch(Throwable t) { if(t instanceof ThreadDeath) throw (ThreadDeath)t; if(isListing &&
 			 * !stopOnError)continue; throw engine.getCastUtil().toPageException(t); } print.out("d+"+d);
 			 * if(!init) { init=true; print.out("set"); document = new
-			 * com.lowagie.text.Document(pr.getPageSizeWithRotation(1)); copy = new PdfCopy(document,os);
+			 * org.openpdf.text.Document(pr.getPageSizeWithRotation(1)); copy = new PdfCopy(document,os);
 			 * document.open(); } size=pr.getNumberOfPages(); print.out("pages:"+size); for(int
 			 * page=1;page<=size;page++) { if(pages==null || pages.contains(Constants.Integer(page))) {
 			 * copy.addPage(copy.getImportedPage(pr, page)); } } }

@@ -46,8 +46,8 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.pdf.BaseFont;
+import org.openpdf.text.DocumentException;
+import org.openpdf.text.pdf.BaseFont;
 
 import lucee.commons.io.res.ContentType;
 import lucee.commons.net.http.HTTPResponse;

@@ -37,13 +37,13 @@ import org.lucee.extension.pdf.PDFPageMark;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
 
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.pdf.PdfCopy;
-import com.lowagie.text.pdf.PdfImportedPage;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.PdfSmartCopy;
-import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.SimpleBookmark;
+import org.openpdf.text.DocumentException;
+import org.openpdf.text.pdf.PdfCopy;
+import org.openpdf.text.pdf.PdfImportedPage;
+import org.openpdf.text.pdf.PdfReader;
+import org.openpdf.text.pdf.PdfSmartCopy;
+import org.openpdf.text.pdf.PdfWriter;
+import org.openpdf.text.pdf.SimpleBookmark;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lucee.Info;
@@ -852,7 +852,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 		// collect together
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		com.lowagie.text.Document document = new com.lowagie.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
+		org.openpdf.text.Document document = new org.openpdf.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
 		PdfSmartCopy copy = new PdfSmartCopy(document, baos);
 		document.open();
 		String name;
@@ -900,7 +900,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	private PdfReader merge(PdfReader[] pdfReaders) throws DocumentException, IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		com.lowagie.text.Document document = new com.lowagie.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
+		org.openpdf.text.Document document = new org.openpdf.text.Document(pdfReaders[0].getPageSizeWithRotation(1));
 		PdfSmartCopy copy = new PdfSmartCopy(document, baos);
 		document.open();
 		try {
@@ -931,7 +931,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			boolean ownerEmpty = Util.isEmpty(ownerpassword);
 			if (!userEmpty || !ownerEmpty) {
 				PdfReader reader = new PdfReader(pdf);
-				com.lowagie.text.Document document = new com.lowagie.text.Document(reader.getPageSize(1));
+				org.openpdf.text.Document document = new org.openpdf.text.Document(reader.getPageSize(1));
 
 				Info info = CFMLEngineFactory.getInstance().getInfo();
 				document.addCreator("Lucee PDF Extension");

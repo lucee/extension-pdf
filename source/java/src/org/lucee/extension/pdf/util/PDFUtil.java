@@ -47,14 +47,14 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.tag.Constants;
 
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.pdf.PRAcroForm;
-import com.lowagie.text.pdf.PdfCopy;
-import com.lowagie.text.pdf.PdfImportedPage;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.SimpleBookmark;
+import org.openpdf.text.Document;
+import org.openpdf.text.DocumentException;
+import org.openpdf.text.pdf.PRAcroForm;
+import org.openpdf.text.pdf.PdfCopy;
+import org.openpdf.text.pdf.PdfImportedPage;
+import org.openpdf.text.pdf.PdfReader;
+import org.openpdf.text.pdf.PdfWriter;
+import org.openpdf.text.pdf.SimpleBookmark;
 
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
@@ -149,7 +149,7 @@ public class PDFUtil {
 	 * @throws IOException
 	 * @throws DocumentException
 	 */
-	public static void concat(PDFStruct[] docs, OutputStream os, boolean keepBookmark, boolean removePages, boolean stopOnError, char version)
+	public static void concat(PDFStruct[] docs, OutputStream os, boolean keepBookmark, boolean removePages, boolean stopOnError, String version)
 			throws PageException, IOException, DocumentException {
 		Document document = null;
 		PdfCopy writer = null;
@@ -188,7 +188,7 @@ public class PDFUtil {
 					document = new Document(reader.getPageSizeWithRotation(1));
 					writer = new PdfCopy(document, os);
 
-					if (version != 0) writer.setPdfVersion(version);
+					if (version != null && !version.isEmpty()) writer.setPdfVersion(version);
 
 					document.open();
 				}
