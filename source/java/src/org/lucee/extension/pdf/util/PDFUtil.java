@@ -176,10 +176,10 @@ public class PDFUtil {
 
 				// we retrieve the total number of pages
 				int n = reader.getNumberOfPages();
-				List bookmarks = keepBookmark ? SimpleBookmark.getBookmark(reader) : null;
+				List bookmarks = keepBookmark ? SimpleBookmark.getBookmarkList(reader) : null;
 				if (bookmarks != null) {
 					removeBookmarks(bookmarks, pages, removePages);
-					if (pageOffset != 0) SimpleBookmark.shiftPageNumbers(bookmarks, pageOffset, null);
+					if (pageOffset != 0) SimpleBookmark.shiftPageNumbersInRange(bookmarks, pageOffset, null);
 					master.addAll(bookmarks);
 				}
 
@@ -264,7 +264,7 @@ public class PDFUtil {
 		byte[] owner = newOwnerPassword == null ? null : newOwnerPassword.getBytes();
 
 		PdfReader pr = doc.getPdfReader();
-		List bookmarks = SimpleBookmark.getBookmark(pr);
+		List bookmarks = SimpleBookmark.getBookmarkList(pr);
 		int n = pr.getNumberOfPages();
 
 		Document document = new Document(pr.getPageSizeWithRotation(1));
@@ -462,7 +462,7 @@ public class PDFUtil {
 	}
 
 	public static Object extractBookmarks(PageContext pc, PdfReader reader) throws IOException, InvalidPasswordException, PageException {
-		List<HashMap<String, Object>> pdfBookmarks = SimpleBookmark.getBookmark(reader);
+		List<Map<String, Object>> pdfBookmarks = SimpleBookmark.getBookmarkList(reader);
 		Array bookmarks = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
 		if (pdfBookmarks != null) {
 			_extractBookmarks(pdfBookmarks, bookmarks);
@@ -470,8 +470,8 @@ public class PDFUtil {
 		return bookmarks;
 	}
 
-	private static void _extractBookmarks(List<HashMap<String, Object>> pdfBookmarks, Array bookmarks) throws PageException {
-		for (HashMap<String, Object> bm: pdfBookmarks) {
+	private static void _extractBookmarks(List<Map<String, Object>> pdfBookmarks, Array bookmarks) throws PageException {
+		for (Map<String, Object> bm: pdfBookmarks) {
 			Struct sct = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
 			sct.set("Title", (bm.get("Title")));
 			String page = (String) bm.get("Page"); // space delimited list: pagenumber destination x-coord y-coord zoomlevel
@@ -481,7 +481,8 @@ public class PDFUtil {
 			sct.setEL("Action", (bm.get("Action")));
 			// sct.setEL("bm", CFMLEngineFactory.getInstance().getCastUtil().toStruct(bm));
 			bookmarks.appendEL(sct);
-			List<HashMap<String, Object>> kids = (List<HashMap<String, Object>>) bm.get("Kids");
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> kids = (List<Map<String, Object>>) bm.get("Kids");
 			if (kids != null) {
 				_extractBookmarks(kids, bookmarks);
 			}

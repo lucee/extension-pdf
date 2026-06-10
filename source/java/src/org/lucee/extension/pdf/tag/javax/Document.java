@@ -43,6 +43,7 @@ import com.lowagie.text.pdf.PdfCopy;
 import com.lowagie.text.pdf.PdfImportedPage;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.PdfSmartCopy;
+import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.SimpleBookmark;
 
 import lucee.Info;
@@ -895,9 +896,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 					else parent = null;
 
 					if (doHtmlBookmarks) {
-						java.util.List pageBM = SimpleBookmark.getBookmark(pdfReaders[doc]);
+						java.util.List pageBM = SimpleBookmark.getBookmarkList(pdfReaders[doc]);
 						if (pageBM != null) {
-							if (totalPage > 0) SimpleBookmark.shiftPageNumbers(pageBM, totalPage, null);
+							if (totalPage > 0) SimpleBookmark.shiftPageNumbersInRange(pageBM, totalPage, null);
 							if (parent != null) PDFUtil.setChildBookmarks(parent, pageBM);
 							else bookmarks.addAll(pageBM);
 						}
@@ -968,7 +969,10 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				}
 			}
 
-			copy.setEncryption(PDFDocument.ENC_128BIT == encryption, userpassword, ownerpassword, permissions);
+			int encType = (PDFDocument.ENC_128BIT == encryption) ? PdfWriter.STANDARD_ENCRYPTION_128 : PdfWriter.STANDARD_ENCRYPTION_40;
+			byte[] user = Util.isEmpty(userpassword) ? null : userpassword.getBytes();
+			byte[] owner = Util.isEmpty(ownerpassword) ? null : ownerpassword.getBytes();
+			copy.setEncryption(user, owner, permissions, encType);
 			document.open();
 			int size = reader.getNumberOfPages();
 			for (int page = 1; page <= size; page++) {

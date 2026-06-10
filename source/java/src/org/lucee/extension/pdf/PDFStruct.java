@@ -326,7 +326,7 @@ public class PDFStruct extends StructSupport implements Struct {
 			info.setEL("Pagesize", pagesize1);
 
 			// info
-			HashMap imap = pr.getInfo();
+			Map<String, String> imap = pr.getInfo();
 			Iterator it = imap.entrySet().iterator();
 			Map.Entry entry;
 			while (it.hasNext()) {

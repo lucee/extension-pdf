@@ -966,7 +966,7 @@ public class PDF extends BodyTagImpl implements Constants {
 		doc.setPages(pages);
 		PdfReader reader = doc.getPdfReader();
 		reader.consolidateNamedDestinations();
-		java.util.List bookmarks = SimpleBookmark.getBookmark(reader);
+		java.util.List bookmarks = SimpleBookmark.getBookmarkList(reader);
 		ArrayList master = new ArrayList();
 		if (bookmarks != null) master.addAll(bookmarks);
 
@@ -1057,7 +1057,7 @@ public class PDF extends BodyTagImpl implements Constants {
 		}
 		else destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 
-		java.util.List bookmarks = SimpleBookmark.getBookmark(reader);
+		java.util.List bookmarks = SimpleBookmark.getBookmarkList(reader);
 		ArrayList master = new ArrayList();
 		if (bookmarks != null) master.addAll(bookmarks);
 
@@ -1374,7 +1374,7 @@ public class PDF extends BodyTagImpl implements Constants {
 			value = info.get("Language", null);
 			if (value != null) moreInfo.put("Language", engine.getCastUtil().toString(value));
 
-			stamp.setMoreInfo(moreInfo);
+			stamp.setInfoDictionary(moreInfo);
 			stamp.close();
 
 		}
