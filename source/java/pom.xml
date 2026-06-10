@@ -32,15 +32,6 @@
 
   <build>
     <sourceDirectory>src</sourceDirectory>
-    <resources>
-      <resource>
-        <directory>src/org/lucee/extension/pdf/res</directory>
-        <targetPath>org/lucee/extension/pdf/res</targetPath>
-        <includes>
-          <include>**/*.jar</include>
-        </includes>
-      </resource>
-    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

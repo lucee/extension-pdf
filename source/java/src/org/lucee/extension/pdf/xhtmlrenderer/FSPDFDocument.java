@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
@@ -100,9 +101,6 @@ public final class FSPDFDocument extends PDFDocument {
 				"1 in = " + Math.round(1 * UNIT_FACTOR_IN) + " point and 1 cm = " + Math.round(1 * UNIT_FACTOR_CM) + " point");
 
 		// Size
-		// TODO pd4ml.setPageInsets(new Insets(mTop,mLeft,mBottom,mRight));
-		// TODO pd4ml.setPageSize(dimension);
-
 		// content
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
@@ -314,7 +312,22 @@ public final class FSPDFDocument extends PDFDocument {
 		head.appendChild(style);
 
 		moveStyleScript(head, body);
+		injectHtmlBookmarks(head);
 		return doc;
+	}
+
+	private void injectHtmlBookmarks(Element head) {
+		List<String[]> bookmarks = getHtmlBookmarks();
+		if (bookmarks.isEmpty()) return;
+
+		Element bookmarksEl = head.getOwnerDocument().createElement("bookmarks");
+		for (String[] bookmark: bookmarks) {
+			Element el = head.getOwnerDocument().createElement("bookmark");
+			el.setAttribute("name", bookmark[0]);
+			el.setAttribute("href", "#" + bookmark[1]);
+			bookmarksEl.appendChild(el);
+		}
+		head.appendChild(bookmarksEl);
 	}
 
 	private String asString(double d) throws PageException {

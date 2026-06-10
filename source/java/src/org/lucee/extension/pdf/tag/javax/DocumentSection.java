@@ -21,6 +21,7 @@ package org.lucee.extension.pdf.tag.javax;
 
 import javax.servlet.jsp.tagext.Tag;
 
+import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
 
@@ -47,7 +48,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	}
 
 	@Override
-	public PDFDocument getPDFDocument() {
+	public PDFDocument getPDFDocument() throws PageException {
 		if (_document == null) { // in the second round we already have this
 
 			Document doc = getDocumentEL();
@@ -56,11 +57,22 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 			second = true;
 			if (_document == null) {
 				second = false;
-				_document = PDFDocument.newInstance(doc.getApplicationSettings().getType());
+				ApplicationSettings settings = doc.getApplicationSettings();
+				settings.validateEngine();
+				_document = PDFDocument.newInstance(settings.getType());
 			}
 
 		}
 		return _document;
+	}
+
+	private PDFDocument pdfDocumentEL() {
+		try {
+			return getPDFDocument();
+		}
+		catch (PageException pe) {
+			throw engine.getExceptionUtil().createPageRuntimeException(pe);
+		}
 	}
 
 	/**
@@ -69,7 +81,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	 * @param proxyserver value to set
 	 **/
 	public void setProxyserver(String proxyserver) {
-		getPDFDocument().setProxyserver(proxyserver);
+		pdfDocumentEL().setProxyserver(proxyserver);
 	}
 
 	/**
@@ -80,7 +92,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	 * @param proxyport value to set
 	 **/
 	public void setProxyport(double proxyport) {
-		getPDFDocument().setProxyport((int) proxyport);
+		pdfDocumentEL().setProxyport((int) proxyport);
 	}
 
 	/**
@@ -89,7 +101,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	 * @param proxyuser value to set
 	 **/
 	public void setProxyuser(String proxyuser) {
-		getPDFDocument().setProxyuser(proxyuser);
+		pdfDocumentEL().setProxyuser(proxyuser);
 	}
 
 	/**
@@ -98,49 +110,49 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	 * @param proxypassword value to set
 	 **/
 	public void setProxypassword(String proxypassword) {
-		getPDFDocument().setProxypassword(proxypassword);
+		pdfDocumentEL().setProxypassword(proxypassword);
 	}
 
 	/**
 	 * @param marginbottom the marginbottom to set
 	 */
 	public void setMarginbottom(double marginbottom) {
-		getPDFDocument().setMarginbottom(marginbottom);
+		pdfDocumentEL().setMarginbottom(marginbottom);
 	}
 
 	/**
 	 * @param marginleft the marginleft to set
 	 */
 	public void setMarginleft(double marginleft) {
-		getPDFDocument().setMarginleft(marginleft);
+		pdfDocumentEL().setMarginleft(marginleft);
 	}
 
 	/**
 	 * @param marginright the marginright to set
 	 */
 	public void setMarginright(double marginright) {
-		getPDFDocument().setMarginright(marginright);
+		pdfDocumentEL().setMarginright(marginright);
 	}
 
 	/**
 	 * @param margintop the margintop to set
 	 */
 	public void setMargintop(double margintop) {
-		getPDFDocument().setMargintop(margintop);
+		pdfDocumentEL().setMargintop(margintop);
 	}
 
 	/**
 	 * @param orientation the orientation to set @throws PageException
 	 */
 	public void setOrientation(String strOrientation) throws PageException {
-		getPDFDocument().setOrientation(strOrientation);
+		pdfDocumentEL().setOrientation(strOrientation);
 	}
 
 	/**
 	 * @param src the src to set
 	 */
 	public void setSrc(String src) throws PageException {
-		getPDFDocument().setSrc(src);
+		pdfDocumentEL().setSrc(src);
 	}
 
 	/**
@@ -149,51 +161,51 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 	public void setSrcfile(String strSrcfile) throws PageException {
 		Resource srcfile = engine.getResourceUtil().toResourceExisting(pageContext, strSrcfile);
 		pageContext.getConfig().getSecurityManager().checkFileLocation(srcfile);
-		getPDFDocument().setSrcfile(srcfile);
+		pdfDocumentEL().setSrcfile(srcfile);
 	}
 
 	/**
 	 * @param mimetype the mimetype to set
 	 */
 	public void setMimetype(String strMimetype) throws PageException {
-		getPDFDocument().setMimetype(strMimetype);
+		pdfDocumentEL().setMimetype(strMimetype);
 		strMimetype = strMimetype.toLowerCase().trim();
 	}
 
 	public void setHeader(PDFPageMark header) {
-		getPDFDocument().setHeader(header);
+		pdfDocumentEL().setHeader(header);
 	}
 
 	public void setFooter(PDFPageMark footer) {
-		getPDFDocument().setFooter(footer);
+		pdfDocumentEL().setFooter(footer);
 	}
 
 	/**
 	 * @param name the name to set
 	 */
 	public void setName(String name) {
-		getPDFDocument().setName(name);
+		pdfDocumentEL().setName(name);
 	}
 
 	/**
 	 * @param authUser the authUser to set
 	 */
 	public void setAuthuser(String authUser) {
-		getPDFDocument().setAuthUser(authUser);
+		pdfDocumentEL().setAuthUser(authUser);
 	}
 
 	/**
 	 * @param authPassword the authPassword to set
 	 */
 	public void setAuthpassword(String authPassword) {
-		getPDFDocument().setAuthPassword(authPassword);
+		pdfDocumentEL().setAuthPassword(authPassword);
 	}
 
 	/**
 	 * @param userAgent the userAgent to set
 	 */
 	public void setUseragent(String userAgent) {
-		getPDFDocument().setUserAgent(userAgent);
+		pdfDocumentEL().setUserAgent(userAgent);
 	}
 
 	@Override
@@ -208,7 +220,7 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 
 	@Override
 	public int doAfterBody() {
-		getPDFDocument().setBody(bodyContent.getString());
+		pdfDocumentEL().setBody(bodyContent.getString());
 		return SKIP_BODY;
 	}
 

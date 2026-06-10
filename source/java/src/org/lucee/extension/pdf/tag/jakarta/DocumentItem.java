@@ -155,7 +155,7 @@ public final class DocumentItem extends BodyTagImpl {
 			}
 			else if (TYPE_BOOKMARK == type) {
 				if (Util.isEmpty(name)) throw engine.getExceptionUtil().createApplicationException("attribute [name] is required when type is [bookmark]");
-				pageContext.forceWrite("<pd4ml:bookmark>" + name + "</pd4ml:bookmark>");
+				getPDFDocument().htmlBookmark(pageContext, name);
 			}
 			// header/footer
 			else {

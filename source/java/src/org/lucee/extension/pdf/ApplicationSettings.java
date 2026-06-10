@@ -8,18 +8,21 @@ import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.PageContext;
 import lucee.runtime.config.Config;
+import lucee.runtime.exp.PageException;
 import lucee.runtime.ext.function.BIF;
 import lucee.runtime.type.Struct;
 
 public class ApplicationSettings {
 	private final int type;
 	private final File fontDirectory;
+	private final String unsupportedEngine;
 
 	private static boolean init = false;
 
-	public ApplicationSettings(int type, File fontDirectory) {
+	public ApplicationSettings(int type, File fontDirectory, String unsupportedEngine) {
 		this.type = type;
 		this.fontDirectory = fontDirectory;
+		this.unsupportedEngine = unsupportedEngine;
 	}
 
 	public int getType() {
@@ -28,6 +31,12 @@ public class ApplicationSettings {
 
 	public File getFontDirectory() {
 		return fontDirectory;
+	}
+
+	public void validateEngine() throws PageException {
+		if (unsupportedEngine != null) {
+			PDFDocument.validateEngine(unsupportedEngine);
+		}
 	}
 
 	public static ApplicationSettings getApplicationSettings(PageContext pc) {
@@ -39,6 +48,7 @@ public class ApplicationSettings {
 
 		int type = PDFDocument.TYPE_FS;
 		File fontDirectory = null;
+		String unsupportedEngine = null;
 		try {
 			BIF bif = CFMLEngineFactory.getInstance().getClassUtil().loadBIF(pc, "lucee.runtime.functions.system.GetApplicationSettings");
 			Struct sct = (Struct) bif.invoke(pc, new Object[] { Boolean.TRUE });
@@ -47,13 +57,15 @@ public class ApplicationSettings {
 				Struct pdf = (Struct) o;
 				// type
 				o = pdf.get("type", null);
-				if (o == null) pdf.get("engine", null);
-				if (o == null) pdf.get("renderer", null);
+				if (o == null) o = pdf.get("engine", null);
+				if (o == null) o = pdf.get("renderer", null);
 
 				if (o instanceof String) {
 					String str = (String) o;
-					if (str.equalsIgnoreCase("fs") || str.equalsIgnoreCase("modern")) type = PDFDocument.TYPE_FS;
-					if (str.equalsIgnoreCase("pd4ml") || str.equalsIgnoreCase("classic")) type = PDFDocument.TYPE_PD4ML;
+					if (str.equalsIgnoreCase("pd4ml") || str.equalsIgnoreCase("classic")) {
+						unsupportedEngine = str;
+					}
+					else if (str.equalsIgnoreCase("fs") || str.equalsIgnoreCase("modern")) type = PDFDocument.TYPE_FS;
 				}
 
 				// fontDirectory
@@ -72,7 +84,7 @@ public class ApplicationSettings {
 			fontDirectory = getDefaultFontDirectory(pc.getConfig());
 		}
 
-		return new ApplicationSettings(type, fontDirectory);
+		return new ApplicationSettings(type, fontDirectory, unsupportedEngine);
 	}
 
 	public static File getDefaultFontDirectory(Config config) {

@@ -34,7 +34,6 @@ import java.util.Map;
 import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
-import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
 
@@ -49,7 +48,6 @@ import com.lowagie.text.pdf.SimpleBookmark;
 import jakarta.servlet.http.HttpServletResponse;
 import lucee.Info;
 import lucee.commons.io.res.Resource;
-import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.exp.PageException;
@@ -167,8 +165,9 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	public PDFDocument getPDFDocument() throws PageException {
 		if (_document == null) {
 			if (selectedType == PDFDocument.TYPE_NONE) {
-				// No type was specified in the tag attributes, so use the application's default type.
-				_document = PDFDocument.newInstance(getApplicationSettings().getType());
+				ApplicationSettings settings = getApplicationSettings();
+				settings.validateEngine();
+				_document = PDFDocument.newInstance(settings.getType());
 			}
 			else {
 				_document = PDFDocument.newInstance(selectedType);
@@ -317,22 +316,20 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	/**
-	 * @param type the PDF rendering method to use for this document (classic or modern)
+	 * @param type the PDF rendering method to use for this document (modern)
 	 * @throws PageException
 	 */
 	public void setType(String type) throws PageException {
 		if (Util.isEmpty(type, true)) return;
 
 		type = type.trim().toLowerCase();
+		PDFDocument.validateEngine(type);
 
-		if ("classic".equals(type) || "pd4ml".equals(type)) {
-			this.selectedType = PDFDocument.TYPE_PD4ML;
-		}
-		else if ("modern".equals(type) || "fs".equals(type)) {
+		if ("modern".equals(type) || "fs".equals(type)) {
 			this.selectedType = PDFDocument.TYPE_FS;
 		}
 		else {
-			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + selectedType + "], only the following engines are supported [classic, modern]");
+			throw engine.getExceptionUtil().createApplicationException("invalid engine [" + type + "], only the following engines are supported [modern]");
 		}
 	}
 
@@ -815,7 +812,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		int index = 0, pageOffset = 0, count = 0, pages;
 		Dimension dimension = null;
 
-		// generate pdf with pd4ml
+		// generate pdf documents
 
 		while (it.hasNext()) {
 			count++;
@@ -838,12 +835,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 					pdfReaders[index] = merge(tmp);
 				}
 				catch (Exception e) {
-					CFMLEngine eng = CFMLEngineFactory.getInstance();
-					if (pdfDocs[index] instanceof PD4MLPDFDocument) {
-						throw eng.getExceptionUtil()
-								.createApplicationException("attribute evalAtPrint is not fully supported with the classic PDF Engine, please use the regular PDF Engine.");
-					}
-					throw eng.getExceptionUtil().createPageRuntimeException(eng.getCastUtil().toPageException(e));
+					throw CFMLEngineFactory.getInstance().getExceptionUtil()
+							.createPageRuntimeException(CFMLEngineFactory.getInstance().getCastUtil().toPageException(e));
 				}
 			}
 			else {

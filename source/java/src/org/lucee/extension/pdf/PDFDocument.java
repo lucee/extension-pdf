@@ -31,7 +31,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.lucee.extension.pdf.pd4ml.PD4MLPDFDocument;
 import org.lucee.extension.pdf.util.Margin;
 import org.lucee.extension.pdf.util.XMLUtil;
 import org.lucee.extension.pdf.xhtmlrenderer.FSPDFDocument;
@@ -160,10 +159,10 @@ public abstract class PDFDocument {
 	private int pageOffset;
 	private int pages;
 	private List<Resource> tempFiles = new ArrayList<>();
+	private final List<String[]> htmlBookmarks = new ArrayList<>();
 
 	public static int TYPE_NONE = 0;
-	public static int TYPE_PD4ML = 1; // AKA "classic"
-	public static int TYPE_FS = 2; // AKA "modern"
+	public static int TYPE_FS = 1; // AKA "modern"
 	private static long id = 0;
 
 	public PDFDocument() {
@@ -172,9 +171,23 @@ public abstract class PDFDocument {
 
 	}
 
-	public static PDFDocument newInstance(int type) {
-		if (TYPE_PD4ML == type) return new PD4MLPDFDocument();
-		return new FSPDFDocument();
+	public static PDFDocument newInstance(int type) throws PageException {
+		switch (type) {
+			case TYPE_FS:
+			case TYPE_NONE:
+				return new FSPDFDocument();
+			default:
+				throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("unsupported PDF engine type [" + type + "]");
+		}
+	}
+
+	public static void validateEngine(String engine) throws PageException {
+		if (engine == null) return;
+		String str = engine.trim().toLowerCase();
+		if ("classic".equals(str) || "pd4ml".equals(str)) {
+			throw CFMLEngineFactory.getInstance().getExceptionUtil()
+					.createApplicationException("PDF engine [" + engine + "] is no longer supported, please use [modern] instead.");
+		}
 	}
 
 	public final void setHeader(PDFPageMark header) {
@@ -761,6 +774,16 @@ public abstract class PDFDocument {
 	}
 
 	public abstract void pageBreak(PageContext pc) throws IOException;
+
+	public void htmlBookmark(PageContext pc, String name) throws IOException {
+		String id = "luceebm" + htmlBookmarks.size();
+		htmlBookmarks.add(new String[] { name, id });
+		pc.forceWrite("<a id=\"" + id + "\" name=\"" + id + "\"></a>");
+	}
+
+	protected final List<String[]> getHtmlBookmarks() {
+		return htmlBookmarks;
+	}
 
 	public abstract String handlePageNumbers(String html);
 
