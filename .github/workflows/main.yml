@@ -91,6 +91,12 @@ jobs:
           path: lucee
           ref: ${{ matrix.lucee.branch }}
 
+      - name: Patch LDEV2506 for removed classic PDF engine
+        run: |
+          sed -i 's/classic,modern/modern/' lucee/test/tickets/LDEV2506/test.cfm
+          sed -i "s/Created a pdf with type = \"classic\",Created a pdf with type = \"modern\"/Created a pdf with type = \"modern\"/" lucee/test/tickets/LDEV2506.cfc
+          sed -i "s/type = 'modern' and 'classic'/type = 'modern'/" lucee/test/tickets/LDEV2506.cfc
+
       - name: Run Lucee Test Suite
         uses: lucee/script-runner@main
         with:
