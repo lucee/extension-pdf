@@ -5,7 +5,7 @@ public interface Constants {
 	public static final int ACTION_DELETE_PAGES = 1;
 	public static final int ACTION_GET_INFO = 2;
 	public static final int ACTION_MERGE = 3;
-	public static final int ACTION_PROCESSDDX = 5;
+	public static final int ACTION_PROCESSDDX = 4;
 	public static final int ACTION_PROTECT = 5;
 	public static final int ACTION_READ = 6;
 	public static final int ACTION_REMOVE_WATERMARK = 7;
@@ -19,6 +19,15 @@ public interface Constants {
 	public static final int ACTION_OPEN = 14;
 	public static final int ACTION_EXTRACT_IMAGES = 15;
 	public static final int ACTION_EXTRACT_BOOKMARKS = 16;
+	public static final int ACTION_TRANSFORM = 17;
+	public static final int ACTION_ADD_ATTACHMENTS = 18;
+	public static final int ACTION_EXTRACT_ATTACHMENTS = 19;
+	public static final int ACTION_READ_SIGNATURE_FIELDS = 20;
+	public static final int ACTION_REMOVE_ATTACHMENTS = 21;
+	public static final int ACTION_VALIDATE_SIGNATURE = 22;
+	public static final int ACTION_OPTIMIZE = 23;
+	public static final int ACTION_SANITIZE = 24;
+	public static final int ACTION_ADD_STAMP = 25;
 
 	public static final String FORMAT_JPG = "jpg";
 	public static final String FORMAT_TIFF = "tiff";

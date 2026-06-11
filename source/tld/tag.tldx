@@ -62,7 +62,7 @@
 			<name>fontdirectory</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<description>directory that contains addional font files (.ttf) and a pd4fonts.properties to describe them.</description>
+			<description>directory that contains additional font files (.ttf, .otf) for PDF rendering.</description>
 		</attribute>
 
 		<attribute>
@@ -197,8 +197,14 @@
 			<name>scale</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-		    <status>unimplemented</status>
 			<description>define a scale factor as a percentage. this option is used to reduce the size of the HTML output so that it fits on that paper. define a number less than 100.</description>
+		</attribute>
+		<attribute>
+			<type>object</type>
+			<name>resourceHandler</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>A Component or UDF that handles resource fetching (images, CSS, etc). The handler receives two named arguments: `url` (string, the raw URL) and `parsedUrl` (struct with keys: protocol, host, port, path, query, fragment). A Component should expose an `onResourceFetch( url, parsedUrl )` method. Return binary or string content to use, or null to fall through to default fetching. (since v3)</description>
 		</attribute>
 		<attribute>
 			<type>string</type>
@@ -219,7 +225,7 @@
 			<name>type</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<description>PDF rendering method to use ("modern"). Defaults to this.pdf.type setting in Application.cfc, or to "modern" if that is not defined.</description>
+			<description>PDF rendering method to use ("modern" uses Flying Saucer). Defaults to this.pdf.type setting in Application.cfc, or to "modern" if that is not defined.</description>
 		</attribute>
 		<attribute>
 			<type>string</type>
@@ -284,6 +290,18 @@
 				or a headings structure (&lt;h1&gt;...&lt;h6&gt;).
 				Transforming of HTML hyperlinks to PDF hyperlinks (if not explicitly disabled).
 				Hyperlink jumps within the same document are supported as well</description>
+		</attribute>
+
+		<attribute>
+			<type>object</type>
+			<name>debughtml</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>
+				Dump the fully-assembled HTML (after engine CSS/header/footer/bookmark injection) that gets passed to the PDF renderer.
+				Boolean true: writes alongside filename with a .html extension (requires filename).
+				String: writes to that path (security-checked, parent must exist).
+				Useful for debugging why a PDF renders unexpectedly.</description>
 		</attribute>
 
 		<attribute>
@@ -614,11 +632,71 @@ Manipulates existing PDF documents. The following list describes some of the tas
 				<description>`action="setInfo"` - Sets information for a PDF document such as title, author, and keywords</description>
 				<attributes>action,source,info,destination,name,password,overwrite</attributes>
 			</group>
+			<group>
+				<name>open</name>
+				<label>Open / remove password</label>
+				<description>`action="open"` - Opens a password-protected PDF document (alias for removePassword)</description>
+				<attributes>action,source,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>optimize</name>
+				<label>Optimize PDF</label>
+				<description>`action="optimize"` - Reduces PDF file size by removing specified elements (bookmarks, links, JavaScript, attachments, metadata, thumbnails, comments, forms) (since v3)</description>
+				<attributes>action,source,destination,password,overwrite,noBookmarks,noLinks,noJavaScript,noAttachments,noMetadata,noThumbnails,noComments,noForms</attributes>
+			</group>
+			<group>
+				<name>sanitize</name>
+				<label>Sanitize PDF</label>
+				<description>`action="sanitize"` - Removes potentially dangerous elements for security (always removes JavaScript, attachments, metadata and link actions; optionally removes forms and links) (since v3)</description>
+				<attributes>action,source,destination,password,overwrite,noLinks,noForms</attributes>
+			</group>
+			<group>
+				<name>transform</name>
+				<label>Transform pages</label>
+				<description>`action="transform"` - Scales and/or rotates PDF pages using hscale, vscale and rotation (since v3)</description>
+				<attributes>action,source,destination,name,password,pages,overwrite,rotation,hscale,vscale</attributes>
+			</group>
+			<group>
+				<name>addAttachments</name>
+				<label>Add attachments</label>
+				<description>`action="addAttachments"` - Attaches files to a PDF document. Requires one or more cfpdfparam child tags (since v3)</description>
+				<attributes>action,source,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>extractAttachments</name>
+				<label>Extract attachments</label>
+				<description>`action="extractAttachments"` - Extracts attached files from a PDF into a destination directory (Lucee extension, not available in ACF) (since v3)</description>
+				<attributes>action,source,destination,name,password,overwrite,stopOnError</attributes>
+			</group>
+			<group>
+				<name>removeAttachments</name>
+				<label>Remove attachments</label>
+				<description>`action="removeAttachments"` - Removes all embedded file attachments from a PDF (since v3)</description>
+				<attributes>action,source,destination,name,password,overwrite</attributes>
+			</group>
+			<group>
+				<name>readSignatureFields</name>
+				<label>Read signature fields</label>
+				<description>`action="readSignatureFields"` - Reads signature field information from a PDF, returning a query with columns name, signable, isSigned, certifiable (since v3)</description>
+				<attributes>action,source,name,password</attributes>
+			</group>
+			<group>
+				<name>validateSignature</name>
+				<label>Validate signatures</label>
+				<description>`action="validateSignature"` - Validates digital signatures in a PDF, returning a struct with hasSignatures, signatureCount, allValid and signatures (since v3)</description>
+				<attributes>action,source,name,password</attributes>
+			</group>
+			<group>
+				<name>addStamp</name>
+				<label>Add stamp</label>
+				<description>`action="addStamp"` - Adds a stamp image to PDF pages (positioned image; uses same options as addWatermark) (since v3)</description>
+				<attributes>action,source,image,pages,destination,name,password,overwrite,foreground,opacity,position,rotation,showOnPrint</attributes>
+			</group>
 		</attribute-groups>
 		<attribute>
 			<type>string</type>
 			<name>action</name>
-			<values>addHeader, addFooter, addWatermark, deletePages, extractBookmarks, extractImage, extractText, getInfo, merge, open, removePassword, protect, read, removeWatermark, setInfo, thumbnail, write</values>
+			<values>addAttachments, addHeader, addFooter, addStamp, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, optimize, readSignatureFields, removeAttachments, removePassword, protect, read, removeWatermark, sanitize, setInfo, thumbnail, transform, validateSignature, write</values>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 			<description>action to take</description>
@@ -678,8 +756,7 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<name>flatten</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<status>unimplemented</status>
-			<description>Applies to forms created in Acrobat only (not forms created in LiveCycle); specifies whether interactivity is turned off</description>
+			<description>(action="write") Flatten AcroForm fields, burning values into page content and removing interactivity. Default is false.</description>
 		</attribute>
 		<attribute>
 			<type>boolean</type>
@@ -856,6 +933,76 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<description>Size of the thumbnail relative to the source page. The value represents a percentage from 1 through 100.</description>
 		</attribute>
 		<attribute>
+			<type>number</type>
+			<name>hscale</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Horizontal scale factor for transform action. 1.0 = 100%, 0.5 = 50%.</description>
+		</attribute>
+		<attribute>
+			<type>number</type>
+			<name>vscale</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Vertical scale factor for transform action. 1.0 = 100%, 0.5 = 50%.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noBookmarks</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove bookmarks/outline from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noLinks</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize"|"sanitize") Remove hyperlinks from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noJavaScript</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove JavaScript from the PDF. Always removed for sanitize action.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noAttachments</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove embedded files/attachments from the PDF. Always removed for sanitize action.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noMetadata</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove document metadata (author, title, etc.) from the PDF. Always removed for sanitize action.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noThumbnails</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove page thumbnails from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noComments</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize") Remove annotations/comments from the PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>noForms</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="optimize"|"sanitize") Remove form fields from the PDF.</description>
+		</attribute>
+		<attribute>
 			<type>boolean</type>
 			<name>showOnPrint</name>
 			<required>false</required>
@@ -1008,8 +1155,161 @@ Manipulates existing PDF documents. The following list describes some of the tas
 			<rtexprvalue>true</rtexprvalue>
 			<description>Source PDF file to merge. You can specify a PDF variable, a cfdocument variable, or the pathname to a file.</description>
 		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>filename</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Custom filename for attachments (action="addAttachments"). If not specified, uses the source file name.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>mimetype</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>MIME type for attachments (action="addAttachments").</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>description</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Description for attachments (action="addAttachments").</description>
+		</attribute>
 	</tag>
 
+
+	<!-- PDFForm -->
+	<tag>
+		<name>PDFForm</name>
+		<tag-class maven="{maven}">org.lucee.extension.pdf.tag.jakarta.PDFForm</tag-class>
+		<javax-tag-class maven="{maven}">org.lucee.extension.pdf.tag.javax.PDFForm</javax-tag-class>
+		<body-content>free</body-content>
+		<body-rtexprvalue>false</body-rtexprvalue>
+		<script>
+			<type>multiple</type>
+			<rtexprvalue>true</rtexprvalue>
+		</script>
+		<description>Reads and populates PDF form fields. Use action="read" to extract form field values, or action="populate" to fill in form fields.</description>
+		<attribute-type>fixed</attribute-type>
+		<attribute-groups>
+			<group>
+				<name>read</name>
+				<label>Read form fields</label>
+				<description>`action="read"` - Reads form field values from a PDF into a struct (`result`) and/or XML string (`xmldata`) (since v3)</description>
+				<attributes>action,source,result,xmldata,password</attributes>
+			</group>
+			<group>
+				<name>populate</name>
+				<label>Populate form fields</label>
+				<description>`action="populate"` - Fills PDF form fields with values from cfpdfformparam children and/or `xmldata` input (since v3)</description>
+				<attributes>action,source,xmldata,password,destination,name,overwrite,overwritedata,flatten</attributes>
+			</group>
+		</attribute-groups>
+		<attribute>
+			<type>string</type>
+			<name>action</name>
+			<values>read,populate</values>
+			<required>true</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Action to perform on the PDF form:
+- read: Reads form field values into a struct or XML
+- populate: Fills form fields with provided values</description>
+		</attribute>
+		<attribute>
+			<type>any</type>
+			<name>source</name>
+			<required>true</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Source PDF file containing form fields. Can be a file path, PDF variable, or cfdocument variable.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>result</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="read") Variable name to store the form fields as a struct.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>xmldata</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="read") Variable name to store the form fields as XML. (action="populate") XML data to populate the form with.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>password</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Password to open the PDF if it is password-protected.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>destination</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Path for the output PDF file.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>name</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Variable name to store the populated PDF.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>overwrite</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Whether to overwrite the destination file if it exists. Default is false.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>overwritedata</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Whether to overwrite existing field values. Default is false.</description>
+		</attribute>
+		<attribute>
+			<type>boolean</type>
+			<name>flatten</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>(action="populate") Flatten the form after populating, burning field values into page content and removing interactivity. Default is false.</description>
+		</attribute>
+	</tag>
+
+
+	<!-- PDFFormParam -->
+	<tag>
+		<name>PDFFormParam</name>
+		<tag-class maven="{maven}">org.lucee.extension.pdf.tag.jakarta.PDFFormParam</tag-class>
+		<javax-tag-class maven="{maven}">org.lucee.extension.pdf.tag.javax.PDFFormParam</javax-tag-class>
+		<body-content>empty</body-content>
+		<body-rtexprvalue>false</body-rtexprvalue>
+		<script>
+			<type>multiple</type>
+			<rtexprvalue>true</rtexprvalue>
+		</script>
+		<description>Specifies a form field name/value pair for cfpdfform action="populate". Must be a child tag of cfpdfform.</description>
+		<attribute-type>fixed</attribute-type>
+		<attribute>
+			<type>string</type>
+			<name>name</name>
+			<required>true</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>The name of the form field to populate.</description>
+		</attribute>
+		<attribute>
+			<type>string</type>
+			<name>value</name>
+			<required>true</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>The value to set for the form field.</description>
+		</attribute>
+	</tag>
 
 
 </taglib>

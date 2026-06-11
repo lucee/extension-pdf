@@ -31,6 +31,14 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.util.Matrix;
+
 import org.lucee.extension.pdf.util.Margin;
 import org.lucee.extension.pdf.util.XMLUtil;
 import org.lucee.extension.pdf.xhtmlrenderer.FSPDFDocument;
@@ -155,6 +163,9 @@ public abstract class PDFDocument {
 	protected boolean bookmark;
 	protected boolean htmlBookmark;
 	protected final CFMLEngine engine;
+	protected Object onResourceFetch;
+	protected int scale = -1;
+	protected Resource debugHtml;
 	protected File fontDirectory;
 	private int pageOffset;
 	private int pages;
@@ -163,6 +174,7 @@ public abstract class PDFDocument {
 
 	public static final int TYPE_NONE = 0;
 	public static final int TYPE_FS = 1; // AKA "modern"
+	protected static final String ON_RESOURCE_FETCH = "onResourceFetch";
 	private static long id = 0;
 
 	public PDFDocument() {
@@ -367,10 +379,34 @@ public abstract class PDFDocument {
 
 	public final byte[] render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws Exception {
 		try {
-			return _render(dimension, unitFactor, pc, generategenerateOutlines);
+			byte[] pdf = _render(dimension, unitFactor, pc, generategenerateOutlines);
+			if (scale > 0 && scale < 100) {
+				pdf = scalePages(pdf, scale / 100.0);
+			}
+			return pdf;
 		}
 		finally {
 			clean();
+		}
+	}
+
+	protected byte[] scalePages(byte[] pdfBytes, double scaleFactor) throws IOException {
+		try (PDDocument doc = Loader.loadPDF(new RandomAccessReadBuffer(pdfBytes))) {
+			for (PDPage page : doc.getPages()) {
+				PDRectangle original = page.getMediaBox();
+				float newWidth = (float) (original.getWidth() * scaleFactor);
+				float newHeight = (float) (original.getHeight() * scaleFactor);
+
+				try (PDPageContentStream cs = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.PREPEND, false)) {
+					cs.transform(Matrix.getScaleInstance((float) scaleFactor, (float) scaleFactor));
+				}
+
+				page.setMediaBox(new PDRectangle(newWidth, newHeight));
+				page.setCropBox(new PDRectangle(newWidth, newHeight));
+			}
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			doc.save(out);
+			return out.toByteArray();
 		}
 	}
 
@@ -528,6 +564,26 @@ public abstract class PDFDocument {
 	 */
 	public final void setHtmlBookmark(boolean htmlBookmark) {
 		this.htmlBookmark = htmlBookmark;
+	}
+
+	public final void setDebugHtml(Resource debugHtml) {
+		this.debugHtml = debugHtml;
+	}
+
+	public final Resource getDebugHtml() {
+		return debugHtml;
+	}
+
+	public final void setOnResourceFetch(Object onResourceFetch) {
+		this.onResourceFetch = onResourceFetch;
+	}
+
+	public final void setScale(int scale) {
+		this.scale = scale;
+	}
+
+	public final int getScale() {
+		return scale;
 	}
 
 	public double getMargintop() {

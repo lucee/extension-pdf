@@ -313,6 +313,13 @@ public final class FSPDFDocument extends PDFDocument {
 
 		moveStyleScript(head, body);
 		injectHtmlBookmarks(head);
+
+		if (getDebugHtml() != null) {
+			try (OutputStream os = getDebugHtml().getOutputStream()) {
+				os.write(XMLUtil.toString(doc, false, true, null, null, null).getBytes("UTF-8"));
+			}
+		}
+
 		return doc;
 	}
 

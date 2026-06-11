@@ -109,6 +109,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private String attrSrc = null;
 	private Resource attrSrcfile = null;
 	private String attrUserAgent = null;
+	private Object attrResourceHandler = null;
+	private Object attrDebugHtml = null;
 
 	public Document() {
 		this._document = null;
@@ -159,6 +161,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		attrSrc = null;
 		attrSrcfile = null;
 		attrUserAgent = null;
+		attrResourceHandler = null;
+		attrDebugHtml = null;
 	}
 
 	@Override
@@ -217,8 +221,41 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			if (attrUserAgent != null) {
 				_document.setUserAgent(attrUserAgent);
 			}
+			if (attrResourceHandler != null) {
+				_document.setOnResourceFetch(attrResourceHandler);
+			}
+			if (attrDebugHtml != null) {
+				_document.setDebugHtml(resolveDebugHtml(attrDebugHtml));
+			}
+			if (scale > 0) {
+				_document.setScale(scale);
+			}
 		}
 		return _document;
+	}
+
+	/**
+	 * Resolve the debughtml attribute to a Resource.
+	 * Boolean true → sidecar: filename's path with .html extension (requires filename).
+	 * Anything else → coerce to string path, resolve via ResourceUtil.
+	 */
+	private Resource resolveDebugHtml(Object value) throws PageException {
+		if (value instanceof Boolean) {
+			if (!((Boolean) value).booleanValue()) return null;
+			if (filename == null) {
+				throw engine.getExceptionUtil().createApplicationException(
+					"debughtml=true requires the filename attribute to be set; pass a path string instead when using name= mode");
+			}
+			String pdfPath = filename.getAbsolutePath();
+			String htmlPath = pdfPath.toLowerCase().endsWith(".pdf")
+				? pdfPath.substring(0, pdfPath.length() - 4) + ".html"
+				: pdfPath + ".html";
+			return engine.getResourceUtil().toResourceNotExisting(pageContext, htmlPath);
+		}
+		String path = engine.getCastUtil().toString(value);
+		Resource r = engine.getResourceUtil().toResourceNotExisting(pageContext, path);
+		pageContext.getConfig().getSecurityManager().checkFileLocation(r);
+		return r;
 	}
 
 	public List<PDFDocument> getPDFDocuments() {
@@ -555,9 +592,17 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @throws PageException
 	 */
 	public void setScale(double scale) throws PageException {
-		if (scale < 0) throw engine.getExceptionUtil().createApplicationException("scale must be a positive number");
+		if (scale <= 0) throw engine.getExceptionUtil().createApplicationException("scale must be a positive number");
 		if (scale > 100) throw engine.getExceptionUtil().createApplicationException("scale must be a number less or equal than 100");
 		this.scale = (int) scale;
+	}
+
+	public void setResourcehandler(Object resourceHandler) {
+		this.attrResourceHandler = resourceHandler;
+	}
+
+	public void setDebughtml(Object debugHtml) {
+		this.attrDebugHtml = debugHtml;
 	}
 
 	/**
