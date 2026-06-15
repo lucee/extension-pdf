@@ -747,6 +747,15 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	@Override
 	public int doEndTag() throws PageException {
+		// Self-closing <cfdocument srcfile="..." /> without body never calls doAfterBody
+		if (pdf == null && _document != null && (_document.getSrcfile() != null || !Util.isEmpty(_document.getSrc()))) {
+			try {
+				return _doAfterBody();
+			}
+			catch (Exception e) {
+				throw engine.getCastUtil().toPageException(e);
+			}
+		}
 		return EVAL_PAGE;
 	}
 
@@ -924,7 +933,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 					}
 					else parent = null;
 
-					java.util.List pageBM = SimpleBookmark.getBookmarkList(pdfReaders[doc]);
+					java.util.List pageBM = PDFUtil.collectDocumentBookmarks(pdfReaders[doc], pdfDocs[doc], doHtmlBookmarks);
 					if (pageBM != null) {
 						if (totalPage > 0) SimpleBookmark.shiftPageNumbersInRange(pageBM, totalPage, null);
 						if (parent != null) PDFUtil.setChildBookmarks(parent, pageBM);

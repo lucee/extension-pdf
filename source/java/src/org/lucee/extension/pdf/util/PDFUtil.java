@@ -44,6 +44,7 @@ import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.tag.Constants;
 
@@ -52,9 +53,13 @@ import org.openpdf.text.DocumentException;
 import org.openpdf.text.pdf.PRAcroForm;
 import org.openpdf.text.pdf.PdfCopy;
 import org.openpdf.text.pdf.PdfImportedPage;
+import org.openpdf.text.pdf.PdfArray;
+import org.openpdf.text.pdf.PdfObject;
 import org.openpdf.text.pdf.PdfReader;
 import org.openpdf.text.pdf.PdfWriter;
 import org.openpdf.text.pdf.SimpleBookmark;
+import org.openpdf.text.pdf.SimpleNamedDestination;
+import org.openpdf.text.pdf.PRIndirectReference;
 
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
@@ -315,6 +320,54 @@ public class PDFUtil {
 			((List) kids).addAll(children);
 		}
 		else parent.put("Kids", children);
+	}
+
+	/**
+	 * Collect bookmarks from a Flying Saucer-rendered PDF section.
+	 * Heading bookmarks come from the PDF outline when htmlbookmark=true; explicit
+	 * cfdocumentitem bookmarks are resolved via named destinations.
+	 */
+	public static List collectDocumentBookmarks(PdfReader reader, PDFDocument doc, boolean doHtmlBookmarks) throws IOException {
+		if (!doHtmlBookmarks && !doc.hasExplicitBookmarks()) return null;
+
+		List bookmarks = new ArrayList();
+		if (doHtmlBookmarks || doc.hasExplicitBookmarks()) {
+			List fromReader = SimpleBookmark.getBookmarkList(reader);
+			if (fromReader != null) bookmarks.addAll(fromReader);
+		}
+
+		if (doc.hasExplicitBookmarks() && bookmarks.isEmpty()) {
+			for (String[] entry: doc.getExplicitBookmarks()) {
+				int page = resolveNamedDestinationPage(reader, entry[1]);
+				if (page > 0) bookmarks.add(generateGoToBookMark(entry[0], page));
+			}
+		}
+
+		return bookmarks.isEmpty() ? null : bookmarks;
+	}
+
+	private static int resolveNamedDestinationPage(PdfReader reader, String name) throws IOException {
+		java.util.HashMap<Object, Object> dests = SimpleNamedDestination.getNamedDestination(reader, false);
+		if (dests == null) return -1;
+		Object dest = dests.get(name);
+		if (dest == null) return -1;
+		if (dest instanceof String) {
+			String ref = (String) dest;
+			for (int p = 1; p <= reader.getNumberOfPages(); p++) {
+				if (ref.equals(reader.getPageOrigRef(p).toString())) return p;
+			}
+		}
+		if (dest instanceof PdfArray) {
+			PdfArray arr = (PdfArray) dest;
+			if (arr.size() == 0) return -1;
+			PdfObject pageObj = arr.getPdfObject(0);
+			if (pageObj instanceof PRIndirectReference) {
+				for (int p = 1; p <= reader.getNumberOfPages(); p++) {
+					if (pageObj.equals(reader.getPageOrigRef(p))) return p;
+				}
+			}
+		}
+		return -1;
 	}
 
 	public static PdfReader toPdfReader(PageContext pc, Object value, String password) throws IOException, PageException {

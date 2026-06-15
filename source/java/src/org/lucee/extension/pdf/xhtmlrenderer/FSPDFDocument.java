@@ -72,13 +72,17 @@ public final class FSPDFDocument extends PDFDocument {
 
 		// fonts
 		ITextFontResolver resolver = renderer.getFontResolver();
-		File[] children = fontDirectory.listFiles();
-		for (File child: children) {
-			try {
-				resolver.addFont(child.getAbsolutePath(), BaseFont.IDENTITY_H, fontembed);
-			}
-			catch (Exception e) {
-				// e.printStackTrace();
+		if (fontDirectory != null) {
+			File[] children = fontDirectory.listFiles();
+			if (children != null) {
+				for (File child: children) {
+					try {
+						resolver.addFont(child.getAbsolutePath(), BaseFont.IDENTITY_H, fontembed);
+					}
+					catch (Exception e) {
+						// e.printStackTrace();
+					}
+				}
 			}
 		}
 
@@ -360,7 +364,9 @@ public final class FSPDFDocument extends PDFDocument {
 			bookmarksEl.appendChild(el);
 		}
 
-		head.appendChild(bookmarksEl);
+		Node first = body.getFirstChild();
+		if (first != null) body.insertBefore(bookmarksEl, first);
+		else body.appendChild(bookmarksEl);
 	}
 
 	private static void collectHeadingsInOrder(Node node, List<Element> out) {
