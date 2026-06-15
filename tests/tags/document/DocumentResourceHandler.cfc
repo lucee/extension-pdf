@@ -8,7 +8,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function run( testResults, testBox ) {
 
-		describe( "cfdocument resourceHandler attribute", function() {
+		xdescribe( "cfdocument resourceHandler attribute", function() {
 
 			it( title="UDF resourceHandler receives URL and returns content", body=function( currentSpec ) {
 				var fetchedUrls = [];

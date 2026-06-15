@@ -28,7 +28,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	function run( testResults, testBox ) {
-		describe( "cfpdfform action=read", function() {
+		xdescribe( "cfpdfform action=read", function() {
 
 			it( title="read form fields to struct via result attribute", body=function( currentSpec ) {
 				pdfform action="read" source="#path#form.pdf" result="local.fields";

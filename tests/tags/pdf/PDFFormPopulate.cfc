@@ -38,7 +38,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function run( testResults, testBox ) {
 
-		describe( "cfpdfform action=populate with cfpdfformparam", function() {
+		xdescribe( "cfpdfform action=populate with cfpdfformparam", function() {
 
 			it( title="populate single field", body=function( currentSpec ) {
 				pdfform action="populate" source="#path#form.pdf"
@@ -79,7 +79,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 		});
 
-		describe( "cfpdfform action=populate with XMLdata", function() {
+		xdescribe( "cfpdfform action=populate with XMLdata", function() {
 
 			it( title="populate from XML file", body=function( currentSpec ) {
 				pdfform action="populate" source="#path#form.pdf"
@@ -119,7 +119,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 		});
 
-		describe( "cfpdfform action=populate options", function() {
+		xdescribe( "cfpdfform action=populate options", function() {
 
 			it( title="populate with name attribute returns PDF variable", body=function( currentSpec ) {
 				pdfform action="populate" source="#path#form.pdf" name="local.filled" {

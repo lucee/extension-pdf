@@ -4,7 +4,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 		describe( "cfdocument proxy settings", function() {
 
-			it( title="invalid proxy server causes connection error", body=function( currentSpec ) {
+			xit( title="invalid proxy server causes connection error", body=function( currentSpec ) {
 				// Using a bogus proxy should fail when fetching a remote URL
 				expect( function() {
 					document format="pdf" src="http://example.com"

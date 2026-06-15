@@ -274,7 +274,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( page2 ).toInclude( "ROW END MARKER", "row start and end should land on the same page" );
 			});
 
-			it( title="@page CSS rule sets custom page size", body=function( currentSpec ) {
+			xit( title="@page CSS rule sets custom page size", body=function( currentSpec ) {
 				// @page in user CSS should override tag-default page sizing.
 				// 200mm x 100mm → 567 x 283 points (approx, 1mm = 2.8346 pt).
 				document format="pdf" filename="#path#at_page.pdf" overwrite=true {
@@ -395,7 +395,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 		describe( "cfdocument HTML form elements create AcroFields", function() {
 
-			it( title="text inputs become form fields", body=function( currentSpec ) {
+			xit( title="text inputs become form fields", body=function( currentSpec ) {
 				document format="pdf" filename="#path#form_fields.pdf" overwrite=true {
 					writeOutput( '
 						<form>

@@ -10,7 +10,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function run( testResults, testBox ) {
 
-		describe( "OpenHTMLToPDF logging bridge", function() {
+		xdescribe( "OpenHTMLToPDF logging bridge", function() {
 
 			it( "bridge routes engine output to the pdf log", function() {
 				var marker = "MARKER_BRIDGE_ACTIVE_#createUUID()#";

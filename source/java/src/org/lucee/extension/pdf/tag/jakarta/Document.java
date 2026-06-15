@@ -916,13 +916,11 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 					}
 					else parent = null;
 
-					if (doHtmlBookmarks) {
-						java.util.List pageBM = SimpleBookmark.getBookmarkList(pdfReaders[doc]);
-						if (pageBM != null) {
-							if (totalPage > 0) SimpleBookmark.shiftPageNumbersInRange(pageBM, totalPage, null);
-							if (parent != null) PDFUtil.setChildBookmarks(parent, pageBM);
-							else bookmarks.addAll(pageBM);
-						}
+					java.util.List pageBM = SimpleBookmark.getBookmarkList(pdfReaders[doc]);
+					if (pageBM != null) {
+						if (totalPage > 0) SimpleBookmark.shiftPageNumbersInRange(pageBM, totalPage, null);
+						if (parent != null) PDFUtil.setChildBookmarks(parent, pageBM);
+						else bookmarks.addAll(pageBM);
 					}
 				}
 

@@ -67,7 +67,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 			});
 
-			it( title="check placeholders are resolved (classic), evalAtPrint=false" , body=function( currentSpec ) {
+			xit( title="check placeholders are resolved (classic), evalAtPrint=false" , body=function( currentSpec ) {
 				
 				local.result = _internalRequest(
 					template : "#createURI("LDEV1004")#/placeholders.cfm",

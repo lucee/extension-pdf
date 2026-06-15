@@ -211,23 +211,8 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	private string function getPDFFontNamesList( required string pdfPath ) {
-		var file = createObject( "java", "java.io.File" ).init( arguments.pdfPath );
-		var doc = createObject( "java", "org.apache.pdfbox.Loader" ).loadPDF( file );
-		try {
-			var names = [];
-			var pageIter = doc.getPages().iterator();
-			while ( pageIter.hasNext() ) {
-				var resources = pageIter.next().getResources();
-				var fontIter = resources.getFontNames().iterator();
-				while ( fontIter.hasNext() ) {
-					names.append( resources.getFont( fontIter.next() ).getName() );
-				}
-			}
-			return arrayToList( names, "," );
-		}
-		finally {
-			doc.close();
-		}
+		var helper = createObject( "java", "org.lucee.extension.pdf.util.PDFBoxHelper" );
+		return helper.getPDFFontNamesList( javaCast( "string", arguments.pdfPath ) );
 	}
 
 }

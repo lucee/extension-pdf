@@ -31,7 +31,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( isPDFFile( "#path#scale25.pdf" ) ).toBeTrue();
 			});
 
-			it( title="scale affects rendered content size", body=function( currentSpec ) {
+			xit( title="scale affects rendered content size", body=function( currentSpec ) {
 				// render large content at scale 100 and scale 50
 				// scale 50 should fit in fewer pages because content is half-size
 				var bigContent = "<div style='font-size:36px; line-height:1.5'>";

@@ -20,6 +20,7 @@ package org.lucee.extension.pdf;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,6 +29,10 @@ import java.util.Set;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.common.PDMetadata;
+import org.apache.xmpbox.XMPMetadata;
+import org.apache.xmpbox.schema.PDFAIdentificationSchema;
+import org.apache.xmpbox.xml.DomXmpParser;
 import org.lucee.extension.pdf.util.PDFUtil;
 import org.lucee.extension.pdf.util.StructSupport;
 
@@ -337,6 +342,26 @@ public class PDFStruct extends StructSupport implements Struct {
 				entry = (Entry) it.next();
 				info.setEL(CFMLEngineFactory.getInstance().getCastUtil().toString(entry.getKey(), null), entry.getValue());
 			}
+
+			info.setEL("PDFAVersion", "");
+			try (PDDocument pdDoc = toPDDocument()) {
+				PDMetadata meta = pdDoc.getDocumentCatalog().getMetadata();
+				if (meta != null) {
+					try (InputStream xmpStream = meta.createInputStream()) {
+						DomXmpParser parser = new DomXmpParser();
+						XMPMetadata xmp = parser.parse(xmpStream);
+						PDFAIdentificationSchema pdfaId = xmp.getPDFAIdentificationSchema();
+						if (pdfaId != null && pdfaId.getPart() != null) {
+							String conformance = pdfaId.getConformance();
+							info.setEL("PDFAVersion", pdfaId.getPart() + (conformance != null ? conformance.toLowerCase() : ""));
+						}
+					}
+				}
+			}
+			catch (Exception e) {
+				// leave PDFAVersion empty
+			}
+
 			return info;
 		}
 		catch (PageException pe) {
@@ -354,7 +379,7 @@ public class PDFStruct extends StructSupport implements Struct {
 	public void setPages(String strPages) throws PageException {
 		if (Util.isEmpty(strPages)) return;
 		if (pages == null) pages = new HashSet<Integer>();
-		PDFUtil.parsePageDefinition(pages, strPages, -1);
+		PDFUtil.parsePageDefinition(pages, strPages, getNumberOfPages());
 	}
 
 	public Set<Integer> getPages() {

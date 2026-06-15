@@ -113,48 +113,14 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	// Returns an array of URI strings from all PDAnnotationLink annotations with URI actions.
 	private array function getLinkURIs( required string pdfPath ) {
-		var file = createObject( "java", "java.io.File" ).init( arguments.pdfPath );
-		var doc = createObject( "java", "org.apache.pdfbox.Loader" ).loadPDF( file );
-		try {
-			var uris = [];
-			var pageIter = doc.getPages().iterator();
-			while ( pageIter.hasNext() ) {
-				var annotIter = pageIter.next().getAnnotations().iterator();
-				while ( annotIter.hasNext() ) {
-					var annot = annotIter.next();
-					if ( annot.getSubtype() != "Link" ) continue;
-					var action = annot.getAction();
-					if ( isNull( action ) ) continue;
-					if ( action.getType() == "Action" && action.getSubType() == "URI" ) {
-						uris.append( action.getURI() );
-					}
-				}
-			}
-			return uris;
-		}
-		finally {
-			doc.close();
-		}
+		var helper = createObject( "java", "org.lucee.extension.pdf.util.PDFBoxHelper" );
+		return helper.getLinkURIs( javaCast( "string", arguments.pdfPath ) );
 	}
 
 	// Returns total count of Link-subtype annotations across all pages.
 	private numeric function countLinkAnnotations( required string pdfPath ) {
-		var file = createObject( "java", "java.io.File" ).init( arguments.pdfPath );
-		var doc = createObject( "java", "org.apache.pdfbox.Loader" ).loadPDF( file );
-		try {
-			var count = 0;
-			var pageIter = doc.getPages().iterator();
-			while ( pageIter.hasNext() ) {
-				var annotIter = pageIter.next().getAnnotations().iterator();
-				while ( annotIter.hasNext() ) {
-					if ( annotIter.next().getSubtype() == "Link" ) count++;
-				}
-			}
-			return count;
-		}
-		finally {
-			doc.close();
-		}
+		var helper = createObject( "java", "org.lucee.extension.pdf.util.PDFBoxHelper" );
+		return helper.countLinkAnnotations( javaCast( "string", arguments.pdfPath ) );
 	}
 
 }

@@ -302,6 +302,8 @@ public final class FSPDFDocument extends PDFDocument {
 		sb.append(".luceefspagecount:before {content: counter(pages);}").append('\n');
 		sb.append(".luceefssecpagenumber:before {content: counter(page);}").append('\n');
 		sb.append(".luceefssecpagecount:before {content: counter(pages);}").append('\n');
+		sb.append(".pdf-page-number:before {content: counter(page);}").append('\n');
+		sb.append(".pdf-page-count:before {content: counter(pages);}").append('\n');
 
 		sb.append("@page { margin: " + margin.getTop() + " " + margin.getRight() + " " + margin.getBottom() + " " + margin.getLeft() + "}").append('\n');
 		sb.append("@page { size: " + asString(dimension.getWidth()) + " " + asString(dimension.getHeight()) + ";}").append('\n');
@@ -387,11 +389,11 @@ public final class FSPDFDocument extends PDFDocument {
 
 	@Override
 	public String handlePageNumbers(String html) {
-		html = Util.replace(html.trim(), "{currentsectionpagenumber}", "<span class=\"luceefssecpagenumber\"/>", false);
-		html = Util.replace(html, "{totalsectionpagecount}", "<span class=\"luceefssecpagecount\"/>", false);
+		html = Util.replace(html.trim(), "{currentsectionpagenumber}", "<span class=\"pdf-page-number\"></span>", false);
+		html = Util.replace(html, "{totalsectionpagecount}", "<span class=\"pdf-page-count\"></span>", false);
 
-		html = Util.replace(html, "{currentpagenumber}", "<span class=\"luceefspagenumber\"/>", false);
-		html = Util.replace(html, "{totalpagecount}", "<span class=\"luceefspagecount\"/>", false);
+		html = Util.replace(html, "{currentpagenumber}", "<span class=\"pdf-page-number\"></span>", false);
+		html = Util.replace(html, "{totalpagecount}", "<span class=\"pdf-page-count\"></span>", false);
 		return html;
 	}
 }
