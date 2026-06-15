@@ -4,42 +4,35 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
+ * License as published by the Free Software Foundation; either 
  * version 2.1 of the License, or (at your option) any later version.
- *
+ * 
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
+ * 
+ * You should have received a copy of the GNU Lesser General Public 
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * 
  **/
 package org.lucee.extension.pdf;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.io.RandomAccessReadBuffer;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDDocumentInformation;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.common.PDMetadata;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
-import org.apache.xmpbox.XMPMetadata;
-import org.apache.xmpbox.schema.PDFAIdentificationSchema;
-import org.apache.xmpbox.xml.DomXmpParser;
 import org.lucee.extension.pdf.util.PDFUtil;
 import org.lucee.extension.pdf.util.StructSupport;
+
+import org.openpdf.text.pdf.PdfReader;
+import org.openpdf.text.pdf.PdfWriter;
 
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngineFactory;
@@ -62,7 +55,6 @@ public class PDFStruct extends StructSupport implements Struct {
 	private final String password;
 	private Resource resource;
 	private Set<Integer> pages;
-	private Struct cachedInfo;
 
 	public PDFStruct(byte[] barr, String password) {
 		this.barr = barr;
@@ -228,8 +220,40 @@ public class PDFStruct extends StructSupport implements Struct {
 	public int compareTo(DateTime dt) throws PageException {
 		return getInfo().compareTo(dt);
 	}
-
 	///////////////////////////////////////////////
+
+	public int getNumberOfPages() throws PageException {
+		return getPdfReader().getNumberOfPages();
+	}
+
+	public PdfReader getPdfReader() throws PageException {
+		try {
+			if (barr != null) {
+				if (password != null) return unlockPdf(new PdfReader(barr, password.getBytes()));
+				return unlockPdf(new PdfReader(barr));
+			}
+			if (password != null) return unlockPdf(new PdfReader(PDFUtil.toBytes(resource), password.getBytes()));
+			return unlockPdf(new PdfReader(PDFUtil.toBytes(resource)));
+		}
+		catch (IOException ioe) {
+			throw CFMLEngineFactory.getInstance().getExceptionUtil()
+					.createApplicationException("Error opening pdf file [" + resource + "], error thrown [" + ioe.getMessage() + "]");
+		}
+	}
+
+	public static PdfReader unlockPdf(PdfReader reader) {
+		if (reader == null || reader.isOpenedWithFullPermissions()) {
+			return reader;
+		}
+		try {
+			java.lang.reflect.Field f = reader.getClass().getDeclaredField("encrypted");
+			f.setAccessible(true);
+			f.set(reader, false);
+		}
+		catch (Exception e) {
+			/* ignore */ }
+		return reader;
+	}
 
 	private String getFilePath() {
 		if (resource == null) return "";
@@ -237,147 +261,104 @@ public class PDFStruct extends StructSupport implements Struct {
 	}
 
 	public Struct getInfo() {
-		if (cachedInfo != null) return cachedInfo;
-		PDDocument pdDoc = null;
+
+		PdfReader pr = null;
 		try {
-			pdDoc = toPDDocument();
-			PDDocumentInformation docInfo = pdDoc.getDocumentInformation();
-			AccessPermission ap = pdDoc.getCurrentAccessPermission();
-			boolean encrypted = pdDoc.isEncrypted();
+			pr = getPdfReader();
+			// PdfDictionary catalog = pr.getCatalog();
+			int permissions = pr.getPermissions();
+			boolean encrypted = pr.isEncrypted();
 
 			Struct info = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
 			info.setEL("FilePath", getFilePath());
 
-			// Access permissions
-			info.setEL("ChangingDocument", allowed(encrypted, ap != null ? ap.canModify() : true));
-			info.setEL("Commenting", allowed(encrypted, ap != null ? ap.canModifyAnnotations() : true));
-			info.setEL("ContentExtraction", allowed(encrypted, ap != null ? ap.canExtractForAccessibility() : true));
-			info.setEL("CopyContent", allowed(encrypted, ap != null ? ap.canExtractContent() : true));
-			info.setEL("DocumentAssembly", allowed(encrypted, ap != null ? ap.canAssembleDocument() : true));
-			info.setEL("FillingForm", allowed(encrypted, ap != null ? ap.canFillInForm() : true));
-			info.setEL("Printing", allowed(encrypted, ap != null ? ap.canPrint() : true));
+			// access
+			info.setEL("ChangingDocument", allowed(encrypted, permissions, PdfWriter.ALLOW_MODIFY_CONTENTS));
+			info.setEL("Commenting", allowed(encrypted, permissions, PdfWriter.ALLOW_MODIFY_ANNOTATIONS));
+			info.setEL("ContentExtraction", allowed(encrypted, permissions, PdfWriter.ALLOW_SCREENREADERS));
+			info.setEL("CopyContent", allowed(encrypted, permissions, PdfWriter.ALLOW_COPY));
+			info.setEL("DocumentAssembly", allowed(encrypted, permissions, PdfWriter.ALLOW_ASSEMBLY + PdfWriter.ALLOW_MODIFY_CONTENTS));
+			info.setEL("FillingForm", allowed(encrypted, permissions, PdfWriter.ALLOW_FILL_IN + PdfWriter.ALLOW_MODIFY_ANNOTATIONS));
+			info.setEL("Printing", allowed(encrypted, permissions, PdfWriter.ALLOW_PRINTING));
 			info.setEL("Secure", "");
-			info.setEL("Signing", allowed(encrypted, ap != null ? (ap.canModifyAnnotations() && ap.canFillInForm()) : true));
+			info.setEL("Signing", allowed(encrypted, permissions, PdfWriter.ALLOW_MODIFY_ANNOTATIONS + PdfWriter.ALLOW_MODIFY_CONTENTS + PdfWriter.ALLOW_FILL_IN));
 
-			info.setEL("Encryption", encrypted ? "Password Security" : "No Security");
-			info.setEL("TotalPages", CFMLEngineFactory.getInstance().getCastUtil().toDouble(pdDoc.getNumberOfPages()));
-			info.setEL("Version", String.valueOf(pdDoc.getVersion()));
+			info.setEL("Encryption", encrypted ? "Password Security" : "No Security");// MUST
+			info.setEL("TotalPages", CFMLEngineFactory.getInstance().getCastUtil().toDouble(pr.getNumberOfPages()));
+			info.setEL("Version", "1." + pr.getPdfVersion());
+			info.setEL("permissions", "" + permissions);
+			info.setEL("permiss", "" + PdfWriter.ALLOW_FILL_IN);
 
-			// Document info from metadata
-			info.setEL("Application", docInfo.getCreator() != null ? docInfo.getCreator() : "");
-			info.setEL("Author", docInfo.getAuthor() != null ? docInfo.getAuthor() : "");
+			info.setEL("Application", "");
+			info.setEL("Author", "");
 			info.setEL("CenterWindowOnScreen", "");
-			info.setEL("Created", formatDate(docInfo.getCreationDate()));
+			info.setEL("Created", "");
 			info.setEL("FitToWindow", "");
 			info.setEL("HideMenubar", "");
 			info.setEL("HideToolbar", "");
 			info.setEL("HideWindowUI", "");
-			info.setEL("Keywords", docInfo.getKeywords() != null ? docInfo.getKeywords() : "");
+			info.setEL("Keywords", "");
 			info.setEL("Language", "");
-			info.setEL("Modified", formatDate(docInfo.getModificationDate()));
+			info.setEL("Modified", "");
 			info.setEL("PageLayout", "");
-			info.setEL("Producer", docInfo.getProducer() != null ? docInfo.getProducer() : "");
+			info.setEL("Producer", "");
 			info.setEL("Properties", "");
 			info.setEL("ShowDocumentsOption", "");
 			info.setEL("ShowWindowsOption", "");
-			info.setEL("Subject", docInfo.getSubject() != null ? docInfo.getSubject() : "");
-			info.setEL("Title", docInfo.getTitle() != null ? docInfo.getTitle() : "");
-			info.setEL("Trapped", docInfo.getTrapped() != null ? docInfo.getTrapped() : "");
+			info.setEL("Subject", "");
+			info.setEL("Title", "");
+			info.setEL("Trapped", "");
 
-			// Page info
-			int total = pdDoc.getNumberOfPages();
+			int total = pr.getNumberOfPages() + 1;
+			Struct pagesize = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
 			Array rotation = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
-			Array pagesizeArr = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
+			Array pagesize1 = CFMLEngineFactory.getInstance().getCreationUtil().createArray();
 
-			for (int i = 0; i < total; i++) {
-				PDPage page = pdDoc.getPage(i);
-				rotation.appendEL(page.getRotation());
+			for (int i = 1; i < total; i++) {
+				rotation.appendEL(pr.getPageRotation(i));
+			}
 
-				Struct pagesize = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
-				PDRectangle mediaBox = page.getMediaBox();
-				pagesize.setEL("Height", mediaBox.getHeight());
-				pagesize.setEL("Width", mediaBox.getWidth());
-				pagesizeArr.appendEL(pagesize);
+			int count = pr.getNumberOfPages() + 1;
+
+			for (int j = 1; j < count; j++) {
+				pagesize.setEL("Height", pr.getPageSize(j).getHeight());
+				pagesize.setEL("Width", pr.getPageSize(j).getWidth());
+				pagesize1.appendEL(pagesize);
 			}
 
 			info.setEL("PageRotation", rotation);
-			info.setEL("Pagesize", pagesizeArr);
+			info.setEL("Pagesize", pagesize1);
 
-			// Custom metadata properties
-			for (String key : docInfo.getMetadataKeys()) {
-				if (!isStandardKey(key)) {
-					info.setEL(key, docInfo.getCustomMetadataValue(key));
-				}
+			// info
+			Map<String, String> imap = pr.getInfo();
+			Iterator it = imap.entrySet().iterator();
+			Map.Entry entry;
+			while (it.hasNext()) {
+				entry = (Entry) it.next();
+				info.setEL(CFMLEngineFactory.getInstance().getCastUtil().toString(entry.getKey(), null), entry.getValue());
 			}
-
-			// PDF/A identification from XMP metadata
-			info.setEL("PDFAVersion", "");
-			try {
-				PDMetadata meta = pdDoc.getDocumentCatalog().getMetadata();
-				if (meta != null) {
-					DomXmpParser xmpParser = new DomXmpParser();
-					XMPMetadata xmp = xmpParser.parse(meta.createInputStream());
-					PDFAIdentificationSchema pdfaId = xmp.getPDFAIdentificationSchema();
-					if (pdfaId != null && pdfaId.getPart() != null) {
-						String conformance = pdfaId.getConformance();
-						info.setEL("PDFAVersion", pdfaId.getPart() + (conformance != null ? conformance.toLowerCase() : ""));
-					}
-				}
-			}
-			catch (Exception e) {
-				// XMP parsing failed — leave as empty string
-			}
-
-			cachedInfo = info;
 			return info;
 		}
-		catch (IOException ioe) {
-			throw CFMLEngineFactory.getInstance().getExceptionUtil().createPageRuntimeException(
-				CFMLEngineFactory.getInstance().getExceptionUtil()
-					.createApplicationException("Error reading PDF info: " + ioe.getMessage()));
+		catch (PageException pe) {
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().createPageRuntimeException(pe);
 		}
 		finally {
-			if (pdDoc != null) {
-				try {
-					pdDoc.close();
-				}
-				catch (IOException e) {
-					// ignore
-				}
-			}
+			if (pr != null) pr.close();
 		}
 	}
 
-	private static boolean isStandardKey(String key) {
-		return "Title".equals(key) || "Author".equals(key) || "Subject".equals(key) ||
-			   "Keywords".equals(key) || "Creator".equals(key) || "Producer".equals(key) ||
-			   "CreationDate".equals(key) || "ModDate".equals(key) || "Trapped".equals(key);
-	}
-
-	private static String formatDate(Calendar cal) {
-		if (cal == null) return "";
-		return cal.getTime().toString();
-	}
-
-	private static Object allowed(boolean encrypted, boolean permission) {
-		return (!encrypted || permission) ? "Allowed" : "Not Allowed";
+	private static Object allowed(boolean encrypted, int permissions, int permission) {
+		return (!encrypted || (permissions & permission) > 0) ? "Allowed" : "Not Allowed";
 	}
 
 	public void setPages(String strPages) throws PageException {
 		if (Util.isEmpty(strPages)) return;
 		if (pages == null) pages = new HashSet<Integer>();
-		int lastPage;
-		try {
-			lastPage = getNumberOfPages();
-		}
-		catch (IOException e) {
-			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException(
-				"could not determine page count: " + e.getMessage());
-		}
-		PDFUtil.parsePageDefinition(pages, strPages, lastPage);
+		PDFUtil.parsePageDefinition(pages, strPages, -1);
 	}
 
 	public Set<Integer> getPages() {
+		// if(pages==null)pages=new HashSet();
 		return pages;
 	}
 
@@ -400,46 +381,22 @@ public class PDFStruct extends StructSupport implements Struct {
 		return getInfo().values();
 	}
 
-	/**
-	 * Load this PDF as a PDFBox PDDocument.
-	 * Caller is responsible for closing the returned document.
-	 */
 	public PDDocument toPDDocument() throws IOException {
 		PDDocument doc;
 		if (barr != null) {
-			if (password != null) {
-				doc = Loader.loadPDF(new RandomAccessReadBuffer(barr), password);
-			}
-			else {
-				doc = Loader.loadPDF(new RandomAccessReadBuffer(barr));
-			}
+			if (password != null) doc = Loader.loadPDF(barr, password);
+			else doc = Loader.loadPDF(barr);
 		}
 		else if (resource instanceof File) {
-			if (password != null) {
-				doc = Loader.loadPDF((File) resource, password);
-			}
-			else {
-				doc = Loader.loadPDF((File) resource);
-			}
+			if (password != null) doc = Loader.loadPDF((File) resource, password);
+			else doc = Loader.loadPDF((File) resource);
 		}
 		else {
 			barr = PDFUtil.toBytes(resource);
-			if (password != null) {
-				doc = Loader.loadPDF(new RandomAccessReadBuffer(barr), password);
-			}
-			else {
-				doc = Loader.loadPDF(new RandomAccessReadBuffer(barr));
-			}
+			if (password != null) doc = Loader.loadPDF(barr, password);
+			else doc = Loader.loadPDF(barr);
 		}
 		return doc;
-	}
 
-	/**
-	 * Get the number of pages in this PDF.
-	 */
-	public int getNumberOfPages() throws IOException {
-		try (PDDocument doc = toPDDocument()) {
-			return doc.getNumberOfPages();
-		}
 	}
 }

@@ -26,7 +26,7 @@ import org.apache.xmpbox.XMPMetadata;
 import org.apache.xmpbox.schema.PDFAIdentificationSchema;
 import org.apache.xmpbox.xml.DomXmpParser;
 import org.lucee.extension.pdf.PDFStruct;
-import org.lucee.extension.pdf.util.PDFUtil;
+import org.lucee.extension.pdf.PDFStruct;
 
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngineFactory;
@@ -44,10 +44,10 @@ public final class IsPDFArchive extends BIF implements Function {
 
 	private static final long serialVersionUID = 6909679675833681678L;
 
-	public static boolean call( PageContext pc, String path ) throws PageException {
+	public static boolean call(PageContext pc, String path) throws PageException {
 		try {
-			Resource res = CFMLEngineFactory.getInstance().getResourceUtil().toResourceExisting( pc, path );
-			PDFStruct pdfStruct = PDFUtil.toPDFStruct( pc, res, null );
+			Resource res = CFMLEngineFactory.getInstance().getResourceUtil().toResourceExisting(pc, path);
+			PDFStruct pdfStruct = new PDFStruct(res, null);
 
 			try (PDDocument pdDoc = pdfStruct.toPDDocument()) {
 				PDMetadata meta = pdDoc.getDocumentCatalog().getMetadata();
