@@ -841,6 +841,10 @@ public abstract class PDFDocument {
 		return htmlBookmarks;
 	}
 
+	public final boolean hasExplicitBookmarks() {
+		return !htmlBookmarks.isEmpty();
+	}
+
 	public abstract String handlePageNumbers(String html);
 
 	public void setPageOffset(int pageOffset) {

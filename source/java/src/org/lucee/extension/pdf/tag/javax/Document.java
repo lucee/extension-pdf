@@ -774,7 +774,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				}
 
 			}
-			doBookmarks = _document.getBookmark();
+			doBookmarks = _document.getBookmark() || _document.getHtmlBookmark() || hasExplicitBookmarks(documents);
 			doHtmlBookmarks = _document.getHtmlBookmark();
 		}
 		// only if there is no documentsection, we are interested in the content from document
@@ -849,6 +849,14 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		// setHeader(String, String)
 		if (!Util.isEmpty(saveAsName, true))
 			rspClass.getMethod("setHeader", String.class, String.class).invoke(rsp, "Content-Disposition", "inline; filename=\"" + saveAsName + "\"");
+	}
+
+	private boolean hasExplicitBookmarks(ArrayList<PDFDocument> docs) {
+		Iterator<PDFDocument> it = docs.iterator();
+		while (it.hasNext()) {
+			if (it.next().hasExplicitBookmarks()) return true;
+		}
+		return false;
 	}
 
 	private boolean hasEvalAtPrint(ArrayList<PDFDocument> documents2) {

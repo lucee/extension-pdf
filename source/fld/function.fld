@@ -63,6 +63,57 @@
 			<type>boolean</type>
 		</return>
 	</function>
+
+	<!-- GetPDFLinkURIs -->
+	<function>
+		<name>GetPDFLinkURIs</name>
+		<class maven="{maven}">org.lucee.extension.pdf.function.GetPDFLinkURIs</class>
+		<keywords>pdf,link</keywords>
+		<description>Returns URI strings from Link annotations in a PDF file.</description>
+		<argument>
+			<name>path</name>
+			<type>string</type>
+			<required>Yes</required>
+			<description>Path to a PDF file.</description>
+		</argument>
+		<return>
+			<type>array</type>
+		</return>
+	</function>
+
+	<!-- CountPDFLinkAnnotations -->
+	<function>
+		<name>CountPDFLinkAnnotations</name>
+		<class maven="{maven}">org.lucee.extension.pdf.function.CountPDFLinkAnnotations</class>
+		<keywords>pdf,link</keywords>
+		<description>Returns the count of Link annotations across all pages in a PDF file.</description>
+		<argument>
+			<name>path</name>
+			<type>string</type>
+			<required>Yes</required>
+			<description>Path to a PDF file.</description>
+		</argument>
+		<return>
+			<type>numeric</type>
+		</return>
+	</function>
+
+	<!-- GetPDFFontNamesList -->
+	<function>
+		<name>GetPDFFontNamesList</name>
+		<class maven="{maven}">org.lucee.extension.pdf.function.GetPDFFontNamesList</class>
+		<keywords>pdf,font</keywords>
+		<description>Returns embedded font names from a PDF file as a comma-separated list.</description>
+		<argument>
+			<name>path</name>
+			<type>string</type>
+			<required>Yes</required>
+			<description>Path to a PDF file.</description>
+		</argument>
+		<return>
+			<type>string</type>
+		</return>
+	</function>
 	
 	
 </func-lib>

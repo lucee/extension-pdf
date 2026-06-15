@@ -772,7 +772,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				}
 
 			}
-			doBookmarks = _document.getBookmark();
+			doBookmarks = _document.getBookmark() || _document.getHtmlBookmark() || hasExplicitBookmarks(documents);
 			doHtmlBookmarks = _document.getHtmlBookmark();
 		}
 		// only if there is no documentsection, we are interested in the content from document
@@ -832,6 +832,14 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		}
 		return SKIP_BODY;
 
+	}
+
+	private boolean hasExplicitBookmarks(ArrayList<PDFDocument> docs) {
+		Iterator<PDFDocument> it = docs.iterator();
+		while (it.hasNext()) {
+			if (it.next().hasExplicitBookmarks()) return true;
+		}
+		return false;
 	}
 
 	private boolean hasEvalAtPrint(ArrayList<PDFDocument> documents2) {

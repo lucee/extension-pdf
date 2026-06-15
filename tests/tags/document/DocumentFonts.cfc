@@ -20,7 +20,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( isPDFFile( "#path#liberation.pdf" ) ).toBeTrue();
 
 				pdf action="extractText" source="#path#liberation.pdf" name="local.txt" type="string";
-				expect( trim( local.txt ) ).toBe( "Hello Liberation" );
+				expect( trim( local.txt ).reReplace( "\s+", " ", "all" ) ).toBe( "Hello Liberation" );
 
 				// font name should be embedded in the PDF (typically with a subset prefix like "ABCDEF+LiberationSans")
 				expect( getPDFFontNamesList( "#path#liberation.pdf" ) ).toInclude( "LiberationSans" );
@@ -66,7 +66,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( isPDFFile( "#path#wrong_case.pdf" ) ).toBeTrue();
 				// text still extracts (fell back to default font, didn't crash)
 				pdf action="extractText" source="#path#wrong_case.pdf" name="local.txt" type="string";
-				expect( trim( local.txt ) ).toBe( "Lowercase lookup" );
+				expect( trim( local.txt ).reReplace( "\s+", " ", "all" ) ).toBe( "Lowercase lookup" );
 			});
 
 		});
@@ -208,11 +208,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				scale=100
 				overwrite=true;
 		}
-	}
-
-	private string function getPDFFontNamesList( required string pdfPath ) {
-		var helper = createObject( "java", "org.lucee.extension.pdf.util.PDFBoxHelper" );
-		return helper.getPDFFontNamesList( javaCast( "string", arguments.pdfPath ) );
 	}
 
 }

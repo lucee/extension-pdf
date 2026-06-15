@@ -113,14 +113,11 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	// Returns an array of URI strings from all PDAnnotationLink annotations with URI actions.
 	private array function getLinkURIs( required string pdfPath ) {
-		var helper = createObject( "java", "org.lucee.extension.pdf.util.PDFBoxHelper" );
-		return helper.getLinkURIs( javaCast( "string", arguments.pdfPath ) );
+		return getPDFLinkURIs( arguments.pdfPath );
 	}
 
-	// Returns total count of Link-subtype annotations across all pages.
 	private numeric function countLinkAnnotations( required string pdfPath ) {
-		var helper = createObject( "java", "org.lucee.extension.pdf.util.PDFBoxHelper" );
-		return helper.countLinkAnnotations( javaCast( "string", arguments.pdfPath ) );
+		return countPDFLinkAnnotations( arguments.pdfPath );
 	}
 
 }

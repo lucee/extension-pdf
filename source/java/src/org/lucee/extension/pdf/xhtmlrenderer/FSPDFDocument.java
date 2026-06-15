@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.lucee.extension.pdf.PDFDocument;
@@ -138,7 +139,8 @@ public final class FSPDFDocument extends PDFDocument {
 			InputStream is = srcfile.getInputStream();
 			try {
 
-				URL base = new URL("file://" + srcfile);
+				File htmlFile = srcfile instanceof File ? (File) srcfile : new File(srcfile.getAbsolutePath());
+				URL base = htmlFile.toURI().toURL();
 				if (!localUrl) {
 					String abs = srcfile.getAbsolutePath();
 					String contract = ClassUtil.ContractPath(pc, abs);
@@ -147,11 +149,11 @@ public final class FSPDFDocument extends PDFDocument {
 					}
 				}
 
-				// URL base = localUrl?new URL("file://"+srcfile):getBase();
 				render(pc, renderer, is, os, base, margin, dimension, pageOffset);
 			}
 			catch (Throwable t) {
 				if (t instanceof ThreadDeath) throw (ThreadDeath) t;
+				throw engine.getCastUtil().toPageException(t);
 			}
 			finally {
 				Util.closeEL(is);
@@ -314,7 +316,7 @@ public final class FSPDFDocument extends PDFDocument {
 		head.appendChild(style);
 
 		moveStyleScript(head, body);
-		injectHtmlBookmarks(head);
+		injectBookmarks(head, body);
 
 		if (getDebugHtml() != null) {
 			try (OutputStream os = getDebugHtml().getOutputStream()) {
@@ -325,18 +327,53 @@ public final class FSPDFDocument extends PDFDocument {
 		return doc;
 	}
 
-	private void injectHtmlBookmarks(Element head) {
-		List<String[]> bookmarks = getHtmlBookmarks();
-		if (bookmarks.isEmpty()) return;
+	private void injectBookmarks(Element head, Element body) {
+		List<String[]> explicit = getHtmlBookmarks();
+		List<Element> headings = new ArrayList<>();
+		if (getHtmlBookmark()) collectHeadingsInOrder(body, headings);
 
-		Element bookmarksEl = head.getOwnerDocument().createElement("bookmarks");
-		for (String[] bookmark: bookmarks) {
-			Element el = head.getOwnerDocument().createElement("bookmark");
+		if (explicit.isEmpty() && headings.isEmpty()) return;
+
+		Document owner = head.getOwnerDocument();
+		Element bookmarksEl = owner.createElement("bookmarks");
+
+		for (String[] bookmark: explicit) {
+			Element el = owner.createElement("bookmark");
 			el.setAttribute("name", bookmark[0]);
 			el.setAttribute("href", "#" + bookmark[1]);
 			bookmarksEl.appendChild(el);
 		}
+
+		int idx = 0;
+		for (Element heading: headings) {
+			String text = heading.getTextContent();
+			if (text != null) text = text.trim();
+			if (Util.isEmpty(text)) continue;
+			String id = heading.getAttribute("id");
+			if (Util.isEmpty(id)) {
+				id = "pdf-heading-" + idx++;
+				heading.setAttribute("id", id);
+			}
+			Element el = owner.createElement("bookmark");
+			el.setAttribute("name", text);
+			el.setAttribute("href", "#" + id);
+			bookmarksEl.appendChild(el);
+		}
+
 		head.appendChild(bookmarksEl);
+	}
+
+	private static void collectHeadingsInOrder(Node node, List<Element> out) {
+		if (node instanceof Element) {
+			String tag = ((Element) node).getTagName();
+			if (tag != null && tag.length() == 2 && tag.charAt(0) == 'h' && tag.charAt(1) >= '1' && tag.charAt(1) <= '6') {
+				out.add((Element) node);
+			}
+		}
+		NodeList children = node.getChildNodes();
+		for (int i = 0; i < children.getLength(); i++) {
+			collectHeadingsInOrder(children.item(i), out);
+		}
 	}
 
 	private String asString(double d) throws PageException {
@@ -346,6 +383,8 @@ public final class FSPDFDocument extends PDFDocument {
 	private void add(Document doc, Element body, String name) throws SAXException, IOException {
 		Element div = doc.createElement("div");
 		div.setAttribute("class", name);
+		if ("luceefsfooter".equals(name)) div.setAttribute("id", "pdf-footer");
+		else if ("luceefsheader".equals(name)) div.setAttribute("id", "pdf-header");
 		div.appendChild(doc.createTextNode("{{{" + name + "}}}"));
 		Node first = body.getFirstChild();
 		if (first != null) body.insertBefore(div, first);
