@@ -56,6 +56,7 @@ import org.openpdf.text.pdf.PdfImportedPage;
 import org.openpdf.text.pdf.PdfArray;
 import org.openpdf.text.pdf.PdfObject;
 import org.openpdf.text.pdf.PdfReader;
+import org.openpdf.text.pdf.PdfString;
 import org.openpdf.text.pdf.PdfWriter;
 import org.openpdf.text.pdf.SimpleBookmark;
 import org.openpdf.text.pdf.SimpleNamedDestination;
@@ -331,15 +332,19 @@ public class PDFUtil {
 		if (!doHtmlBookmarks && !doc.hasExplicitBookmarks()) return null;
 
 		List bookmarks = new ArrayList();
-		if (doHtmlBookmarks || doc.hasExplicitBookmarks()) {
+		if (doHtmlBookmarks) {
 			List fromReader = SimpleBookmark.getBookmarkList(reader);
 			if (fromReader != null) bookmarks.addAll(fromReader);
 		}
-
-		if (doc.hasExplicitBookmarks() && bookmarks.isEmpty()) {
-			for (String[] entry: doc.getExplicitBookmarks()) {
-				int page = resolveNamedDestinationPage(reader, entry[1]);
-				if (page > 0) bookmarks.add(generateGoToBookMark(entry[0], page));
+		else if (doc.hasExplicitBookmarks()) {
+			List fromReader = SimpleBookmark.getBookmarkList(reader);
+			if (fromReader != null && !fromReader.isEmpty()) bookmarks.addAll(fromReader);
+			if (bookmarks.isEmpty()) {
+				for (String[] entry: doc.getExplicitBookmarks()) {
+					int page = resolveNamedDestinationPage(reader, entry[1]);
+					if (page <= 0) page = resolveNamedDestinationPage(reader, "#" + entry[1]);
+					if (page > 0) bookmarks.add(generateGoToBookMark(entry[0], page));
+				}
 			}
 		}
 
@@ -350,6 +355,15 @@ public class PDFUtil {
 		java.util.HashMap<Object, Object> dests = SimpleNamedDestination.getNamedDestination(reader, false);
 		if (dests == null) return -1;
 		Object dest = dests.get(name);
+		if (dest == null) {
+			for (java.util.Map.Entry<Object, Object> entry: dests.entrySet()) {
+				String key = entry.getKey() instanceof PdfString ? ((PdfString) entry.getKey()).toString() : String.valueOf(entry.getKey());
+				if (name.equals(key)) {
+					dest = entry.getValue();
+					break;
+				}
+			}
+		}
 		if (dest == null) return -1;
 		if (dest instanceof String) {
 			String ref = (String) dest;

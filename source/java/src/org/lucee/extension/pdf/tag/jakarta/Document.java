@@ -748,7 +748,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	@Override
 	public int doEndTag() throws PageException {
 		// Self-closing <cfdocument srcfile="..." /> without body never calls doAfterBody
-		if (pdf == null && _document != null && (_document.getSrcfile() != null || !Util.isEmpty(_document.getSrc()))) {
+		if (pdf == null && (attrSrcfile != null || !Util.isEmpty(attrSrc))) {
+			getPDFDocument();
 			try {
 				return _doAfterBody();
 			}
@@ -949,7 +950,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 					copy.addPage(ip);
 				}
 			}
-			if (doBookmarks && !bookmarks.isEmpty()) copy.setOutlines(bookmarks);
+			if (doBookmarks) copy.setOutlines(bookmarks);
 		}
 		finally {
 			document.close();
