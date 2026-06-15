@@ -222,8 +222,10 @@ public class PDFUtil {
 	private static boolean removeBookmarks(Map bookmark, Set pages, boolean removePages) {
 		List kids = (List) bookmark.get("Kids");
 		if (kids != null) removeBookmarks(kids, pages, removePages);
+		if (pages == null) return false;
 		Integer page = CFMLEngineFactory.getInstance().getCastUtil().toInteger(CFMLEngineFactory.getInstance().getListUtil().first((String) bookmark.get("Page"), " ", true), -1);
-		return removePages == (pages != null && pages.contains(page));
+		boolean inSet = pages.contains(page);
+		return removePages ? inSet : !inSet;
 	}
 
 	public static String sanitizeFilename(String filename) {
