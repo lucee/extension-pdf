@@ -1,0 +1,16 @@
+---
+description: Commit and push fixes automatically after resolving bugs or CI failures
+alwaysApply: true
+---
+
+# Commit and Push After Fixes
+
+When you fix a bug, test failure, or CI issue in this repo:
+
+1. Verify the fix (compile or run relevant tests when feasible).
+2. Commit the change with a concise message focused on why.
+3. Push to the current branch (`git push -u origin HEAD` if not tracking remote).
+
+Do this without waiting for the user to ask — finishing a fix includes shipping it.
+
+Do not commit unrelated untracked files (e.g. `samples/`) unless the user asked for them.
