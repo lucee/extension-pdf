@@ -325,9 +325,10 @@ public class PDFUtil {
 
 	/**
 	 * Collect bookmarks from a Flying Saucer-rendered PDF section.
-	 * Explicit cfdocumentitem bookmarks are matched by title (injected h1), by outline
-	 * index with title override, or via named destinations; heading bookmarks come from
-	 * injected metadata when htmlbookmark=true.
+	 * Explicit cfdocumentitem bookmarks are emitted as inline &lt;bookmark&gt; elements with
+	 * matching &lt;head&gt;&lt;bookmarks&gt; entries and matched from the PDF outline by title,
+	 * by outline index with title override, or via named destinations; heading bookmarks come
+	 * from injected metadata when htmlbookmark=true.
 	 */
 	public static List collectDocumentBookmarks(PdfReader reader, PDFDocument doc, boolean doHtmlBookmarks) throws IOException {
 		if (!doHtmlBookmarks && !doc.hasExplicitBookmarks()) return null;

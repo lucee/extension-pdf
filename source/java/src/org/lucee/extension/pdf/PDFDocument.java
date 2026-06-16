@@ -835,7 +835,12 @@ public abstract class PDFDocument {
 	public void htmlBookmark(PageContext pc, String name) throws IOException {
 		String id = "luceebm" + htmlBookmarks.size();
 		htmlBookmarks.add(new String[] { name, id });
-		pc.forceWrite("<a id=\"" + id + "\"></a>");
+		pc.forceWrite("<bookmark name=\"" + escapeXmlAttribute(id) + "\"/>");
+	}
+
+	private static String escapeXmlAttribute(String value) {
+		if (value == null) return "";
+		return value.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;");
 	}
 
 	protected final List<String[]> getHtmlBookmarks() {
