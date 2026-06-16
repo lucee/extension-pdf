@@ -333,21 +333,10 @@ public final class FSPDFDocument extends PDFDocument {
 
 	private void injectBookmarks(Element head, Element body) {
 		clearHeadingBookmarks();
-		List<String[]> explicit = getHtmlBookmarks();
+		if (!getHtmlBookmark()) return;
+
 		List<Element> headings = new ArrayList<>();
-		if (getHtmlBookmark()) collectHeadingsInOrder(body, headings);
-
-		if (explicit.isEmpty() && headings.isEmpty()) return;
-
-		Document owner = head.getOwnerDocument();
-		Element bookmarksEl = owner.createElement("bookmarks");
-
-		for (String[] bookmark: explicit) {
-			Element el = owner.createElement("bookmark");
-			el.setAttribute("name", bookmark[0]);
-			el.setAttribute("href", "#" + bookmark[1]);
-			bookmarksEl.appendChild(el);
-		}
+		collectHeadingsInOrder(body, headings);
 
 		int idx = 0;
 		for (Element heading: headings) {
@@ -359,16 +348,8 @@ public final class FSPDFDocument extends PDFDocument {
 				id = "pdf-heading-" + idx++;
 				heading.setAttribute("id", id);
 			}
-			Element el = owner.createElement("bookmark");
-			el.setAttribute("name", text);
-			el.setAttribute("href", "#" + id);
-			bookmarksEl.appendChild(el);
 			addHeadingBookmark(text, id);
 		}
-
-		Node first = body.getFirstChild();
-		if (first != null) body.insertBefore(bookmarksEl, first);
-		else body.appendChild(bookmarksEl);
 	}
 
 	private static void collectHeadingsInOrder(Node node, List<Element> out) {

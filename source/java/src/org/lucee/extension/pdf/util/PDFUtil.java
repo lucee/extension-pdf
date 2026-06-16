@@ -325,8 +325,9 @@ public class PDFUtil {
 
 	/**
 	 * Collect bookmarks from a Flying Saucer-rendered PDF section.
-	 * Heading bookmarks come from the PDF outline when htmlbookmark=true; explicit
-	 * cfdocumentitem bookmarks are resolved via named destinations.
+	 * Explicit cfdocumentitem bookmarks are emitted as native &lt;bookmark&gt; elements and
+	 * matched from the PDF outline by title; heading bookmarks come from injected metadata
+	 * when htmlbookmark=true.
 	 */
 	public static List collectDocumentBookmarks(PdfReader reader, PDFDocument doc, boolean doHtmlBookmarks) throws IOException {
 		if (!doHtmlBookmarks && !doc.hasExplicitBookmarks()) return null;
@@ -336,20 +337,8 @@ public class PDFUtil {
 		java.util.Set<Integer> usedReaderIndexes = new java.util.HashSet<>();
 
 		if (doc.hasExplicitBookmarks()) {
-			List<String[]> explicit = doc.getExplicitBookmarks();
-			for (int i = 0; i < explicit.size(); i++) {
-				String[] entry = explicit.get(i);
-				Map bm = null;
-				if (fromReader != null && i < fromReader.size()) {
-					bm = new HashMap((Map) fromReader.get(i));
-					bm.put("Title", entry[0]);
-					usedReaderIndexes.add(Integer.valueOf(i));
-				}
-				else {
-					int page = resolveNamedDestinationPage(reader, entry[1]);
-					if (page <= 0) page = resolveNamedDestinationPage(reader, "#" + entry[1]);
-					if (page > 0) bm = generateGoToBookMark(entry[0], page);
-				}
+			for (String[] entry: doc.getExplicitBookmarks()) {
+				Map bm = findBookmarkByTitle(fromReader, entry[0], usedReaderIndexes);
 				if (bm != null) bookmarks.add(bm);
 			}
 		}

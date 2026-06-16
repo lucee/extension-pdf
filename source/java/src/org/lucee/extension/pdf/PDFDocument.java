@@ -833,9 +833,13 @@ public abstract class PDFDocument {
 	public abstract void pageBreak(PageContext pc) throws IOException;
 
 	public void htmlBookmark(PageContext pc, String name) throws IOException {
-		String id = "luceebm" + htmlBookmarks.size();
-		htmlBookmarks.add(new String[] { name, id });
-		pc.forceWrite("<div id=\"" + id + "\" name=\"" + id + "\" style=\"height:1px;font-size:1px;line-height:1px;\"></div>");
+		htmlBookmarks.add(new String[] { name, name });
+		pc.forceWrite("<bookmark name=\"" + escapeXmlAttribute(name) + "\"/>");
+	}
+
+	private static String escapeXmlAttribute(String value) {
+		if (value == null) return "";
+		return value.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;");
 	}
 
 	protected final List<String[]> getHtmlBookmarks() {
