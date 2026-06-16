@@ -310,6 +310,7 @@ public final class FSPDFDocument extends PDFDocument {
 		sb.append(".luceefssecpagecount:before {content: counter(pages);}").append('\n');
 		sb.append(".pdf-page-number:before {content: counter(page);}").append('\n');
 		sb.append(".pdf-page-count:before {content: counter(pages);}").append('\n');
+		sb.append("h1.lucee-explicit-bm {font-size:1px;line-height:1px;height:0;margin:0;padding:0;visibility:hidden;}").append('\n');
 
 		sb.append("@page { margin: " + margin.getTop() + " " + margin.getRight() + " " + margin.getBottom() + " " + margin.getLeft() + "}").append('\n');
 		sb.append("@page { size: " + asString(dimension.getWidth()) + " " + asString(dimension.getHeight()) + ";}").append('\n');
@@ -333,6 +334,7 @@ public final class FSPDFDocument extends PDFDocument {
 
 	private void injectBookmarks(Element head, Element body) {
 		clearHeadingBookmarks();
+		injectExplicitBookmarkHeadings(body);
 		if (!getHtmlBookmark()) return;
 
 		List<Element> headings = new ArrayList<>();
@@ -352,17 +354,53 @@ public final class FSPDFDocument extends PDFDocument {
 		}
 	}
 
+	private void injectExplicitBookmarkHeadings(Element body) {
+		List<String[]> explicit = getHtmlBookmarks();
+		if (explicit.isEmpty()) return;
+		Document doc = body.getOwnerDocument();
+		for (String[] entry: explicit) {
+			Element anchor = findElementById(body, entry[1]);
+			if (anchor == null) continue;
+			Element h1 = doc.createElement("h1");
+			h1.setAttribute("class", "lucee-explicit-bm");
+			h1.appendChild(doc.createTextNode(entry[0]));
+			Node parent = anchor.getParentNode();
+			Node next = anchor.getNextSibling();
+			if (next != null) parent.insertBefore(h1, next);
+			else parent.appendChild(h1);
+		}
+	}
+
+	private static Element findElementById(Node node, String id) {
+		if (node instanceof Element) {
+			Element el = (Element) node;
+			if (id.equals(el.getAttribute("id"))) return el;
+		}
+		NodeList children = node.getChildNodes();
+		for (int i = 0; i < children.getLength(); i++) {
+			Element found = findElementById(children.item(i), id);
+			if (found != null) return found;
+		}
+		return null;
+	}
+
 	private static void collectHeadingsInOrder(Node node, List<Element> out) {
 		if (node instanceof Element) {
-			String tag = ((Element) node).getTagName();
+			Element el = (Element) node;
+			String tag = el.getTagName();
 			if (tag != null && tag.length() == 2 && tag.charAt(0) == 'h' && tag.charAt(1) >= '1' && tag.charAt(1) <= '6') {
-				out.add((Element) node);
+				if (!isExplicitBookmarkHeading(el)) out.add(el);
 			}
 		}
 		NodeList children = node.getChildNodes();
 		for (int i = 0; i < children.getLength(); i++) {
 			collectHeadingsInOrder(children.item(i), out);
 		}
+	}
+
+	private static boolean isExplicitBookmarkHeading(Element heading) {
+		String cls = heading.getAttribute("class");
+		return cls != null && cls.contains("lucee-explicit-bm");
 	}
 
 	private String asString(double d) throws PageException {
