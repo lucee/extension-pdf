@@ -331,24 +331,55 @@ public class PDFUtil {
 	public static List collectDocumentBookmarks(PdfReader reader, PDFDocument doc, boolean doHtmlBookmarks) throws IOException {
 		if (!doHtmlBookmarks && !doc.hasExplicitBookmarks()) return null;
 
+		List fromReader = SimpleBookmark.getBookmarkList(reader);
 		List bookmarks = new ArrayList();
-		if (doHtmlBookmarks) {
-			List fromReader = SimpleBookmark.getBookmarkList(reader);
-			if (fromReader != null) bookmarks.addAll(fromReader);
-		}
-		else if (doc.hasExplicitBookmarks()) {
-			List fromReader = SimpleBookmark.getBookmarkList(reader);
-			if (fromReader != null && !fromReader.isEmpty()) bookmarks.addAll(fromReader);
-			if (bookmarks.isEmpty()) {
-				for (String[] entry: doc.getExplicitBookmarks()) {
+		java.util.Set<Integer> usedReaderIndexes = new java.util.HashSet<>();
+
+		if (doc.hasExplicitBookmarks()) {
+			List<String[]> explicit = doc.getExplicitBookmarks();
+			for (int i = 0; i < explicit.size(); i++) {
+				String[] entry = explicit.get(i);
+				Map bm = null;
+				if (fromReader != null && i < fromReader.size()) {
+					bm = new HashMap((Map) fromReader.get(i));
+					bm.put("Title", entry[0]);
+					usedReaderIndexes.add(Integer.valueOf(i));
+				}
+				else {
 					int page = resolveNamedDestinationPage(reader, entry[1]);
 					if (page <= 0) page = resolveNamedDestinationPage(reader, "#" + entry[1]);
-					if (page > 0) bookmarks.add(generateGoToBookMark(entry[0], page));
+					if (page > 0) bm = generateGoToBookMark(entry[0], page);
 				}
+				if (bm != null) bookmarks.add(bm);
+			}
+		}
+
+		if (doHtmlBookmarks) {
+			for (String[] entry: doc.getHeadingBookmarks()) {
+				Map bm = findBookmarkByTitle(fromReader, entry[0], usedReaderIndexes);
+				if (bm == null) {
+					int page = resolveNamedDestinationPage(reader, entry[1]);
+					if (page <= 0) page = resolveNamedDestinationPage(reader, "#" + entry[1]);
+					if (page > 0) bm = generateGoToBookMark(entry[0], page);
+				}
+				if (bm != null) bookmarks.add(bm);
 			}
 		}
 
 		return bookmarks.isEmpty() ? null : bookmarks;
+	}
+
+	private static Map findBookmarkByTitle(List fromReader, String title, java.util.Set<Integer> usedReaderIndexes) {
+		if (fromReader == null || title == null) return null;
+		for (int i = 0; i < fromReader.size(); i++) {
+			if (usedReaderIndexes.contains(Integer.valueOf(i))) continue;
+			Map bm = (Map) fromReader.get(i);
+			if (title.equals(bm.get("Title"))) {
+				usedReaderIndexes.add(Integer.valueOf(i));
+				return bm;
+			}
+		}
+		return null;
 	}
 
 	private static int resolveNamedDestinationPage(PdfReader reader, String name) throws IOException {

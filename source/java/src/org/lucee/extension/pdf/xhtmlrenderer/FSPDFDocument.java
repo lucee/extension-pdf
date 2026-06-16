@@ -332,6 +332,7 @@ public final class FSPDFDocument extends PDFDocument {
 	}
 
 	private void injectBookmarks(Element head, Element body) {
+		clearHeadingBookmarks();
 		List<String[]> explicit = getHtmlBookmarks();
 		List<Element> headings = new ArrayList<>();
 		if (getHtmlBookmark()) collectHeadingsInOrder(body, headings);
@@ -362,6 +363,7 @@ public final class FSPDFDocument extends PDFDocument {
 			el.setAttribute("name", text);
 			el.setAttribute("href", "#" + id);
 			bookmarksEl.appendChild(el);
+			addHeadingBookmark(text, id);
 		}
 
 		Node first = body.getFirstChild();

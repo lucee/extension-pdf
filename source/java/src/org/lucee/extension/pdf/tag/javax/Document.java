@@ -966,7 +966,10 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 					copy.addPage(ip);
 				}
 			}
-			if (doBookmarks) copy.setOutlines(bookmarks);
+			if (doBookmarks) {
+				if (!bookmarks.isEmpty()) copy.setOutlines(bookmarks);
+				else if (_document.getBookmark() && !doHtmlBookmarks && !hasExplicitBookmarks(documents)) copy.setOutlines(new ArrayList());
+			}
 		}
 		finally {
 			document.close();

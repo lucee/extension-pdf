@@ -171,6 +171,7 @@ public abstract class PDFDocument {
 	private int pages;
 	private List<Resource> tempFiles = new ArrayList<>();
 	private final List<String[]> htmlBookmarks = new ArrayList<>();
+	private final List<String[]> headingBookmarks = new ArrayList<>();
 
 	public static final int TYPE_NONE = 0;
 	public static final int TYPE_FS = 1; // AKA "modern"
@@ -847,6 +848,18 @@ public abstract class PDFDocument {
 
 	public final List<String[]> getExplicitBookmarks() {
 		return htmlBookmarks;
+	}
+
+	protected final void clearHeadingBookmarks() {
+		headingBookmarks.clear();
+	}
+
+	protected final void addHeadingBookmark(String name, String id) {
+		headingBookmarks.add(new String[] { name, id });
+	}
+
+	public final List<String[]> getHeadingBookmarks() {
+		return headingBookmarks;
 	}
 
 	public final Resource getSrcfile() {
