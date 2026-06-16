@@ -783,12 +783,14 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				}
 
 			}
-			doBookmarks = _document.getBookmark() || _document.getHtmlBookmark() || hasExplicitBookmarks(documents);
-			doHtmlBookmarks = _document.getHtmlBookmark();
 		}
 		// only if there is no documentsection, we are interested in the content from document
 		if (documents.size() == 0) {
 			documents.add(_document);
+		}
+		if (_document != null) {
+			doBookmarks = _document.getBookmark() || _document.getHtmlBookmark() || hasExplicitBookmarks(documents);
+			doHtmlBookmarks = _document.getHtmlBookmark();
 		}
 
 		if (!second && hasEvalAtPrint(documents)) {
