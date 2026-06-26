@@ -46,6 +46,7 @@
             <arg value="clean"/>
             <arg value="${effective.goal}"/>
             <arg value="-Drevision=${bundleversion}"/>
+            <arg value="-Dlucee.version=${luceeCoreVersion}"/>
             <arg value="-DperformRelease=${is.deploy}"/>
             <arg value="-e"/>
             <arg value="--settings"/>
@@ -61,6 +62,7 @@
             <arg value="-Dmdep.useRepositoryLayout=true"/>
             <arg value="-DexcludeScope=provided"/>
             <arg value="-Drevision=${bundleversion}"/>
+            <arg value="-Dlucee.version=${luceeCoreVersion}"/>
             <arg value="dependency:copy-dependencies"/>
         </exec>
 
