@@ -399,27 +399,29 @@ public class PDFUtil {
 
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 
-		PDDocument pdDoc = doc.toPDDocument();
-		int n = pdDoc.getNumberOfPages();
-		Iterator<Integer> it = pageNumbers.iterator();
-		int p;
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			int n = pdDoc.getNumberOfPages();
+			Iterator<Integer> it = pageNumbers.iterator();
+			int p;
 
-		PDFRenderer pdfRender = new PDFRenderer(pdDoc);
+			PDFRenderer pdfRender = new PDFRenderer(pdDoc);
+			pdfRender.setSubsamplingAllowed(true);
 
-		while (it.hasNext()) {
-			p = it.next();
+			while (it.hasNext()) {
+				p = it.next();
 
-			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+				if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
 
-			// thumbnail image file destination
-			String imageDestination = destination + "/" + imagePrefix + "_page_" + p + "." + format;
+				// thumbnail image file destination
+				String imageDestination = destination + "/" + imagePrefix + "_page_" + p + "." + format;
 
-			BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
-			Resource res = engine.getResourceUtil().toResourceNotExisting(pc, imageDestination);
-			if (res.exists() && !overwrite) throw new RuntimeException("Thumbnail image file already exists [" + imageDestination + "] and overwrite was false");
-			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res, true);
+				BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
+				Resource res = engine.getResourceUtil().toResourceNotExisting(pc, imageDestination);
+				if (res.exists() && !overwrite) throw new RuntimeException("Thumbnail image file already exists [" + imageDestination + "] and overwrite was false");
+				engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res, true);
+			}
 		}
 	}
 
