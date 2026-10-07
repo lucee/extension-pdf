@@ -31,10 +31,39 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
+import org.apache.pdfbox.pdmodel.PDDocumentInformation;
+import org.apache.pdfbox.pdmodel.PDDocumentNameDictionary;
+import org.apache.pdfbox.pdmodel.PDEmbeddedFilesNameTreeNode;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.common.filespecification.PDComplexFileSpecification;
+import org.apache.pdfbox.pdmodel.common.filespecification.PDEmbeddedFile;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
+import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
+import org.apache.pdfbox.pdmodel.interactive.form.PDField;
+import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSBase;
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.common.PDStream;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdfwriter.ContentStreamWriter;
+import org.apache.pdfbox.pdfparser.PDFStreamParser;
+import org.apache.pdfbox.contentstream.operator.Operator;
+import javax.imageio.ImageIO;
+import org.apache.pdfbox.cos.COSName;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.tag.Constants;
 import org.lucee.extension.pdf.util.PDFUtil;
@@ -61,12 +90,15 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.ext.function.BIF;
 import lucee.runtime.type.Array;
 import lucee.runtime.type.Collection.Key;
+import lucee.runtime.type.Query;
 import lucee.runtime.type.Struct;
 import lucee.runtime.util.Cast;
 import lucee.runtime.util.ClassUtil;
 import lucee.runtime.util.Strings;
 
 public class PDF extends BodyTagImpl implements Constants {
+
+	private static final COSName WATERMARK_TAG = COSName.getPDFName("Watermark");
 
 	private int action = ACTION_PROCESSDDX;
 	private boolean ascending = false;
@@ -115,6 +147,16 @@ public class PDF extends BodyTagImpl implements Constants {
 	private float topmargin = 0.5f;
 	private float bottommargin = 0.5f;
 	private Font font = null;
+	private float hscale = 1.0f;
+	private float vscale = 1.0f;
+	private boolean noBookmarks = false;
+	private boolean noLinks = false;
+	private boolean noJavaScript = false;
+	private boolean noAttachments = false;
+	private boolean noMetadata = false;
+	private boolean noThumbnails = false;
+	private boolean noComments = false;
+	private boolean noForms = false;
 
 	@Override
 	public void release() {
@@ -166,6 +208,16 @@ public class PDF extends BodyTagImpl implements Constants {
 		topmargin = 0.5f;
 		bottommargin = 0.5f;
 		font = null;
+		hscale = 1.0f;
+		vscale = 1.0f;
+		noBookmarks = false;
+		noLinks = false;
+		noJavaScript = false;
+		noAttachments = false;
+		noMetadata = false;
+		noThumbnails = false;
+		noComments = false;
+		noForms = false;
 	}
 
 	/**
@@ -173,6 +225,46 @@ public class PDF extends BodyTagImpl implements Constants {
 	 */
 	public void setImageprefix(String imagePrefix) {
 		this.imagePrefix = imagePrefix;
+	}
+
+	public void setHscale(double hscale) {
+		this.hscale = (float) hscale;
+	}
+
+	public void setVscale(double vscale) {
+		this.vscale = (float) vscale;
+	}
+
+	public void setNobookmarks(boolean noBookmarks) {
+		this.noBookmarks = noBookmarks;
+	}
+
+	public void setNolinks(boolean noLinks) {
+		this.noLinks = noLinks;
+	}
+
+	public void setNojavascript(boolean noJavaScript) {
+		this.noJavaScript = noJavaScript;
+	}
+
+	public void setNoattachments(boolean noAttachments) {
+		this.noAttachments = noAttachments;
+	}
+
+	public void setNometadata(boolean noMetadata) {
+		this.noMetadata = noMetadata;
+	}
+
+	public void setNothumbnails(boolean noThumbnails) {
+		this.noThumbnails = noThumbnails;
+	}
+
+	public void setNocomments(boolean noComments) {
+		this.noComments = noComments;
+	}
+
+	public void setNoforms(boolean noForms) {
+		this.noForms = noForms;
 	}
 
 	public void setText(String text) {
@@ -235,7 +327,7 @@ public class PDF extends BodyTagImpl implements Constants {
 	 */
 	public void setAction(String strAction) throws PageException {
 
-		strAction = Document.trimAndLower(strAction);
+		strAction = Document.trimAndLower(strAction).replace("-", "").replace("_", "");
 		if ("addwatermark".equals(strAction)) action = ACTION_ADD_WATERMARK;
 		else if ("add-watermark".equals(strAction)) action = ACTION_ADD_WATERMARK;
 		else if ("add_watermark".equals(strAction)) action = ACTION_ADD_WATERMARK;
@@ -274,12 +366,20 @@ public class PDF extends BodyTagImpl implements Constants {
 		else if ("extract-images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extract_images".equals(strAction)) action = ACTION_EXTRACT_IMAGES;
 		else if ("extractbookmarks".equals(strAction)) action = ACTION_EXTRACT_BOOKMARKS;
+		else if ("transform".equals(strAction)) action = ACTION_TRANSFORM;
+		else if ("addattachments".equals(strAction)) action = ACTION_ADD_ATTACHMENTS;
+		else if ("extractattachments".equals(strAction)) action = ACTION_EXTRACT_ATTACHMENTS;
+		else if ("removeattachments".equals(strAction)) action = ACTION_REMOVE_ATTACHMENTS;
+		else if ("readsignaturefields".equals(strAction)) action = ACTION_READ_SIGNATURE_FIELDS;
+		else if ("validatesignature".equals(strAction)) action = ACTION_VALIDATE_SIGNATURE;
+		else if ("optimize".equals(strAction)) action = ACTION_OPTIMIZE;
+		else if ("sanitize".equals(strAction)) action = ACTION_SANITIZE;
+		else if ("addstamp".equals(strAction)) action = ACTION_ADD_STAMP;
 
 		else throw engine.getExceptionUtil()
 				.createApplicationException("Invalid PDF action [" + strAction + "], supported actions are "
-						+ "[addHeader, addFooter, addWatermark, deletePages, extractBookmarks, extractImage, extractText, getInfo, merge, open, "
-						+ "removePassword, protect, read, removeWatermark, setInfo, thumbnail, write]");
-
+						+ "[addAttachments, addHeader, addFooter, addStamp, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, optimize, "
+						+ "readSignatureFields, removeAttachments, removePassword, protect, read, removeWatermark, sanitize, setInfo, thumbnail, transform, validateSignature, write]");
 	}
 
 	public void setType(String strType) throws PageException {
@@ -664,6 +764,15 @@ public class PDF extends BodyTagImpl implements Constants {
 				doActionExtractText();
 			}
 			else if (ACTION_EXTRACT_BOOKMARKS == action) doActionExtractBookmarks();
+			else if (ACTION_TRANSFORM == action) doActionTransform();
+			else if (ACTION_ADD_ATTACHMENTS == action) doActionAddAttachments();
+			else if (ACTION_EXTRACT_ATTACHMENTS == action) doActionExtractAttachments();
+			else if (ACTION_REMOVE_ATTACHMENTS == action) doActionRemoveAttachments();
+			else if (ACTION_READ_SIGNATURE_FIELDS == action) doActionReadSignatureFields();
+			else if (ACTION_VALIDATE_SIGNATURE == action) doActionValidateSignature();
+			else if (ACTION_OPTIMIZE == action) doActionOptimize();
+			else if (ACTION_SANITIZE == action) doActionSanitize();
+			else if (ACTION_ADD_STAMP == action) doActionAddStamp();
 
 			// else if(ACTION_PROCESSDDX==action) throw
 			// engine.getExceptionUtil().createApplicationException("action [processddx] not supported");
@@ -911,7 +1020,7 @@ public class PDF extends BodyTagImpl implements Constants {
 		}
 	}
 
-	private void doActionAddWatermark() throws PageException, IOException, DocumentException {
+	private void doActionAddWatermark() throws PageException, IOException {
 		required("pdf", "addWatermark", "source", source);
 		if (copyFrom == null && image == null)
 			throw engine.getExceptionUtil().createApplicationException("PDF action [addWaterMark] requires one of the following attributes " + "[copyFrom, image]");
@@ -919,25 +1028,19 @@ public class PDF extends BodyTagImpl implements Constants {
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
-		// image
-		Image img = null;
-		byte[] barr;
-
+		BufferedImage watermarkImage = null;
 		if (image != null) {
 			if (image instanceof String) {
 				Resource res = engine.getResourceUtil().toResourceExisting(pageContext, (String) image);
-				img = Image.getInstance(res.getPath());
-				// TODO lucee.runtime.img.Image ri =
-				// lucee.runtime.img.Image.createImage(pageContext,image,false,false,true,null);
-				// TODO img=Image.getInstance(ri.getBufferedImage(),null,false);
+				watermarkImage = ImageIO.read(new java.io.File(res.getAbsolutePath()));
 			}
 			else {
-				barr = engine.getCastUtil().toBinary(image);
-				img = Image.getInstance(barr);
+				byte[] barr = engine.getCastUtil().toBinary(image);
+				watermarkImage = ImageIO.read(new ByteArrayInputStream(barr));
 			}
 		}
-		// copy From
 		else {
+			byte[] barr;
 			try {
 				Resource res = copyFrom instanceof String ? engine.getResourceUtil().toResourceExisting(pageContext, (String) copyFrom) : engine.getCastUtil().toResource(copyFrom);
 				barr = PDFUtil.toBytes(res);
@@ -945,159 +1048,191 @@ public class PDF extends BodyTagImpl implements Constants {
 			catch (PageException ee) {
 				barr = engine.getCastUtil().toBinary(copyFrom);
 			}
-
-			img = Image.getInstance(PDFUtil.toImage(new PDFStruct(barr, password)), null, false);
+			watermarkImage = PDFUtil.toImage(new PDFStruct(barr, password));
 		}
 
-		// position
 		float x = UNDEFINED, y = UNDEFINED;
 		if (!Util.isEmpty(position)) {
 			int index = position.indexOf(',');
-			if (index == -1) throw engine.getExceptionUtil().createApplicationException(
-					"Attribute [position] has an invalid value [" + position + "]," + "value should follow one of the following pattern [40,50], [40,] or [,50]");
+			if (index == -1)
+				throw engine.getExceptionUtil().createApplicationException(
+						"Attribute [position] has an invalid value [" + position + "]," + "value should follow one of the following pattern [40,50], [40,] or [,50]");
 			String strX = position.substring(0, index).trim();
 			String strY = position.substring(index + 1).trim();
 			if (!Util.isEmpty(strX)) x = engine.getCastUtil().toIntValue(strX);
 			if (!Util.isEmpty(strY)) y = engine.getCastUtil().toIntValue(strY);
-
 		}
 
 		PDFStruct doc = toPDFDocument(source, password, null);
 		doc.setPages(pages);
-		PdfReader reader = doc.getPdfReader();
-		reader.consolidateNamedDestinations();
-		java.util.List bookmarks = SimpleBookmark.getBookmarkList(reader);
-		ArrayList master = new ArrayList();
-		if (bookmarks != null) master.addAll(bookmarks);
 
-		// output
-		boolean destIsSource = false;
-		if (destination != null && doc.getResource() != null && destination.equals(doc.getResource())) destIsSource = true;
-		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource || destination == null) {
-			os = new ByteArrayOutputStream();
-		}
-		else if (destination != null) {
-			os = destination.getOutputStream();
-		}
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDImageXObject pdImage = LosslessFactory.createFromImage(pdDoc, watermarkImage);
+			Set<Integer> _pages = doc.getPages();
+			int len = pdDoc.getNumberOfPages();
 
-		try {
+			for (int i = 0; i < len; i++) {
+				if (_pages != null && !_pages.contains(Integer.valueOf(i + 1))) continue;
 
-			int len = reader.getNumberOfPages();
-			PdfStamper stamp = new PdfStamper(reader, os);
+				PDPage page = pdDoc.getPage(i);
+				PDRectangle pageSize = page.getMediaBox();
 
-			if (len > 0) {
-				if (x == UNDEFINED || y == UNDEFINED) {
-					PdfImportedPage first = stamp.getImportedPage(reader, 1);
-					if (y == UNDEFINED) y = (first.getHeight() - img.getHeight()) / 2;
-					if (x == UNDEFINED) x = (first.getWidth() - img.getWidth()) / 2;
+				float imgX = x != UNDEFINED ? x : (pageSize.getWidth() - pdImage.getWidth()) / 2;
+				float imgY = y != UNDEFINED ? y : (pageSize.getHeight() - pdImage.getHeight()) / 2;
+
+				try (PDPageContentStream cs = new PDPageContentStream(pdDoc, page,
+						foreground ? PDPageContentStream.AppendMode.APPEND : PDPageContentStream.AppendMode.PREPEND, true, true)) {
+
+					cs.beginMarkedContent(WATERMARK_TAG);
+
+					PDExtendedGraphicsState gs = new PDExtendedGraphicsState();
+					gs.setNonStrokingAlphaConstant(opacity);
+					cs.setGraphicsStateParameters(gs);
+
+					if (rotation != 0) {
+						float centerX = imgX + pdImage.getWidth() / 2;
+						float centerY = imgY + pdImage.getHeight() / 2;
+						cs.transform(org.apache.pdfbox.util.Matrix.getTranslateInstance(centerX, centerY));
+						cs.transform(org.apache.pdfbox.util.Matrix.getRotateInstance(Math.toRadians(rotation), 0, 0));
+						cs.transform(org.apache.pdfbox.util.Matrix.getTranslateInstance(-pdImage.getWidth() / 2, -pdImage.getHeight() / 2));
+						cs.drawImage(pdImage, 0, 0);
+					}
+					else {
+						cs.drawImage(pdImage, imgX, imgY);
+					}
+
+					cs.endMarkedContent();
 				}
-				img.setAbsolutePosition(x, y);
-				// img.setAlignment(Image.ALIGN_JUSTIFIED); ration geht nicht anhand mitte
-
 			}
 
-			// rotation
-			if (rotation != 0) {
-				img.setRotationDegrees(rotation);
-			}
-
-			Set _pages = doc.getPages();
-			for (int i = 1; i <= len; i++) {
-				if (_pages != null && !_pages.contains(Integer.valueOf(i))) continue;
-				PdfContentByte cb = foreground ? stamp.getOverContent(i) : stamp.getUnderContent(i);
-				PdfGState gs1 = new PdfGState();
-				// print.out("op:"+opacity);
-				gs1.setFillOpacity(opacity);
-				// gs1.setStrokeOpacity(opacity);
-				cb.setGState(gs1);
-				cb.addImage(img);
-			}
-			if (bookmarks != null) stamp.setOutlines(master);
-			stamp.close();
+			pdDoc.save(os);
 		}
 		finally {
-			Util.closeEL(os);
-			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
-				}
-				else if (destination == null && doc.getResource() != null)
-					engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), doc.getResource(), true); // No destination and name attribute
-																																			// specify means addWatermark to source
-																																			// file
-			}
+			finalizeOutput( os, doc, name );
 		}
 	}
 
-	private void doActionRemoveWatermark() throws PageException, IOException, DocumentException {
+	private void doActionRemoveWatermark() throws PageException, IOException {
 		required("pdf", "removeWatermark", "source", source);
 
 		if (destination != null && destination.exists() && !overwrite)
 			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
 
-		BufferedImage bi = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g = bi.createGraphics();
-		g.setBackground(Color.BLACK);
-		g.clearRect(0, 0, 1, 1);
-
-		Image img = Image.getInstance(bi, null, false);
-		img.setAbsolutePosition(1, 1);
-
 		PDFStruct doc = toPDFDocument(source, password, null);
 		doc.setPages(pages);
-		PdfReader reader = doc.getPdfReader();
 
-		boolean destIsSource;
 		if (destination == null) {
-			destIsSource = true;
 			destination = doc.getResource();
-			if (destination == null) throw engine.getExceptionUtil().createApplicationException("PDF Source is not based on a resource, attribute [destination] file is required");
+			if (destination == null)
+				throw engine.getExceptionUtil().createApplicationException("PDF Source is not based on a resource, attribute [destination] file is required");
 		}
-		else destIsSource = destination != null && doc.getResource() != null && destination.equals(doc.getResource());
 
-		java.util.List bookmarks = SimpleBookmark.getBookmarkList(reader);
-		ArrayList master = new ArrayList();
-		if (bookmarks != null) master.addAll(bookmarks);
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			Set<Integer> _pages = doc.getPages();
+			int len = pdDoc.getNumberOfPages();
 
-		// output
-		OutputStream os = null;
-		if (!Util.isEmpty(name) || destIsSource) {
-			os = new ByteArrayOutputStream();
-		}
-		else if (destination != null) {
-			os = destination.getOutputStream();
-		}
-		// PDFUtil.encrypt(doc, os, newUserPassword, newOwnerPassword, permissions, encryption);
-		try {
-			int len = reader.getNumberOfPages();
-			PdfStamper stamp = new PdfStamper(reader, os);
-
-			Set _pages = doc.getPages();
-			for (int i = 1; i <= len; i++) {
-				if (_pages != null && !_pages.contains(Integer.valueOf(i))) continue;
-				PdfContentByte cb = foreground ? stamp.getOverContent(i) : stamp.getUnderContent(i);
-				PdfGState gs1 = new PdfGState();
-				gs1.setFillOpacity(0);
-				cb.setGState(gs1);
-				cb.addImage(img);
+			for (int i = 0; i < len; i++) {
+				if (_pages != null && !_pages.contains(Integer.valueOf(i + 1))) continue;
+				stripWatermarkFromPage(pdDoc, pdDoc.getPage(i));
 			}
-			if (bookmarks != null) stamp.setOutlines(master);
-			stamp.close();
+
+			pdDoc.save(os);
 		}
 		finally {
-			Util.closeEL(os);
-			if (os instanceof ByteArrayOutputStream) {
-				if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(((ByteArrayOutputStream) os).toByteArray()), destination, true);// MUST overwrite
-				if (!Util.isEmpty(name)) {
-					pageContext.setVariable(name, new PDFStruct(((ByteArrayOutputStream) os).toByteArray(), password));
+			finalizeOutput( os, doc, name );
+		}
+	}
+
+	private void stripWatermarkFromPage(PDDocument pdDoc, PDPage page) throws IOException {
+		PDFStreamParser parser = new PDFStreamParser(page);
+
+		List<Object> output = new ArrayList<>();
+		List<Object> pendingOperands = new ArrayList<>();
+		int suppressDepth = 0;
+		boolean modified = false;
+		java.util.Set<COSName> xobjectsInWatermark = new java.util.HashSet<>();
+		java.util.Set<COSName> xobjectsOutsideWatermark = new java.util.HashSet<>();
+
+		Object token;
+		while ((token = parser.parseNextToken()) != null) {
+			if (token instanceof Operator) {
+				Operator op = (Operator) token;
+				String opName = op.getName();
+
+				if ("BMC".equals(opName) || "BDC".equals(opName)) {
+					boolean isWatermark = !pendingOperands.isEmpty()
+							&& pendingOperands.get(0) instanceof COSName
+							&& WATERMARK_TAG.equals(pendingOperands.get(0));
+					if (suppressDepth > 0) {
+						suppressDepth++;
+					}
+					else if (isWatermark) {
+						suppressDepth = 1;
+						modified = true;
+					}
+					else {
+						output.addAll(pendingOperands);
+						output.add(op);
+					}
+					pendingOperands.clear();
+					continue;
+				}
+
+				if ("EMC".equals(opName)) {
+					if (suppressDepth > 0) {
+						suppressDepth--;
+					}
+					else {
+						output.addAll(pendingOperands);
+						output.add(op);
+					}
+					pendingOperands.clear();
+					continue;
+				}
+
+				if ("Do".equals(opName) && !pendingOperands.isEmpty()
+						&& pendingOperands.get(pendingOperands.size() - 1) instanceof COSName) {
+					COSName xobj = (COSName) pendingOperands.get(pendingOperands.size() - 1);
+					(suppressDepth > 0 ? xobjectsInWatermark : xobjectsOutsideWatermark).add(xobj);
+				}
+
+				if (suppressDepth == 0) {
+					output.addAll(pendingOperands);
+					output.add(op);
+				}
+				pendingOperands.clear();
+			}
+			else {
+				pendingOperands.add(token);
+			}
+		}
+
+		if (!modified) return;
+
+		PDStream newStream = new PDStream(pdDoc);
+		try (OutputStream out = newStream.createOutputStream(COSName.FLATE_DECODE)) {
+			ContentStreamWriter writer = new ContentStreamWriter(out);
+			writer.writeTokens(output);
+		}
+		page.setContents(newStream);
+
+		xobjectsInWatermark.removeAll(xobjectsOutsideWatermark);
+		if (!xobjectsInWatermark.isEmpty() && page.getResources() != null
+				&& page.getResources().getCOSObject() != null) {
+			COSDictionary resources = page.getResources().getCOSObject();
+			COSBase xobjBase = resources.getDictionaryObject(COSName.XOBJECT);
+			if (xobjBase instanceof COSDictionary) {
+				COSDictionary xobjDict = (COSDictionary) xobjBase;
+				for (COSName orphan : xobjectsInWatermark) {
+					xobjDict.removeItem(orphan);
 				}
 			}
 		}
 	}
 
-	private void doActionDeletePages() throws PageException, IOException, DocumentException {
+private void doActionDeletePages() throws PageException, IOException, DocumentException {
 		required("pdf", "deletePage", "pages", pages, true);
 		required("pdf", "deletePage", "source", source);
 
@@ -1510,6 +1645,504 @@ public class PDF extends BodyTagImpl implements Constants {
 	 * 
 	 * throw new CasterException(source,PdfReader.class); }
 	 */
+
+	// Helper to create output stream based on destination/source configuration
+	private OutputStream createOutputStream( PDFStruct doc, boolean needsBytes ) throws PageException, IOException {
+		boolean destIsSource = destination != null && doc.getResource() != null && destination.equals( doc.getResource() );
+		if ( needsBytes || destIsSource || destination == null ) {
+			return new ByteArrayOutputStream();
+		}
+		return destination.getOutputStream();
+	}
+
+	// Helper to finalize output - handles copy-back and sets variable as PDFStruct if varName provided
+	private byte[] finalizeOutput( OutputStream os, PDFStruct doc, String varName ) throws PageException, IOException {
+		Util.closeEL( os );
+		if ( os instanceof ByteArrayOutputStream ) {
+			byte[] bytes = ( (ByteArrayOutputStream) os ).toByteArray();
+			if ( destination != null ) {
+				engine.getIOUtil().copy( new ByteArrayInputStream( bytes ), destination, true );
+			}
+			else if ( Util.isEmpty( varName ) && doc.getResource() != null ) {
+				// In-place modification only when caller specified neither destination nor name —
+				// otherwise [name] would silently mutate the source file.
+				engine.getIOUtil().copy( new ByteArrayInputStream( bytes ), doc.getResource(), true );
+			}
+			if ( !Util.isEmpty( varName ) )
+				pageContext.setVariable( varName, new PDFStruct( bytes, password ) );
+			return bytes;
+		}
+		return null;
+	}
+
+	private void doActionTransform() throws PageException, IOException {
+		required("pdf", "transform", "source", source);
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+		int len = doc.getNumberOfPages();
+
+		if (pages == null) pages = "1-" + len;
+		Set<Integer> pageSet = PDFUtil.parsePageDefinition(pages, len);
+
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			for (int i = 0; i < len; i++) {
+				if (pageSet != null && !pageSet.contains(i + 1)) continue;
+
+				PDPage page = pdDoc.getPage(i);
+
+				// Apply rotation (must be 0, 90, 180, or 270)
+				if (rotation != 0) {
+					int currentRotation = page.getRotation();
+					int newRotation = (currentRotation + (int) rotation) % 360;
+					if (newRotation < 0) newRotation += 360;
+					page.setRotation(newRotation);
+				}
+
+				// Apply scaling via media box transformation
+				if (hscale != 1.0f || vscale != 1.0f) {
+					PDRectangle mediaBox = page.getMediaBox();
+					float newWidth = mediaBox.getWidth() * hscale;
+					float newHeight = mediaBox.getHeight() * vscale;
+					page.setMediaBox(new PDRectangle(newWidth, newHeight));
+
+					// Also adjust crop box if present
+					PDRectangle cropBox = page.getCropBox();
+					if (cropBox != null) {
+						page.setCropBox(new PDRectangle(cropBox.getWidth() * hscale, cropBox.getHeight() * vscale));
+					}
+				}
+			}
+
+			pdDoc.save(os);
+		}
+		finally {
+			finalizeOutput( os, doc, name );
+		}
+	}
+
+	private void doActionAddAttachments() throws PageException, IOException {
+		required("pdf", "addAttachments", "source", source);
+		if (params == null || params.isEmpty())
+			throw engine.getExceptionUtil().createApplicationException("PDF action [addAttachments] requires at least one cfpdfparam child tag");
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentNameDictionary names = pdDoc.getDocumentCatalog().getNames();
+			if (names == null) {
+				names = new PDDocumentNameDictionary(pdDoc.getDocumentCatalog());
+				pdDoc.getDocumentCatalog().setNames(names);
+			}
+
+			PDEmbeddedFilesNameTreeNode efTree = names.getEmbeddedFiles();
+			Map<String, PDComplexFileSpecification> existingFiles = new java.util.HashMap<>();
+			if (efTree != null) {
+				Map<String, PDComplexFileSpecification> existing = efTree.getNames();
+				if (existing != null) existingFiles.putAll(existing);
+			}
+			else {
+				efTree = new PDEmbeddedFilesNameTreeNode();
+			}
+
+			for (PDFParamBean param : params) {
+				Object paramSource = param.getSource();
+				Resource attachRes = engine.getResourceUtil().toResourceExisting(pageContext, paramSource.toString());
+
+				String filename = param.getFilename();
+				if (Util.isEmpty(filename)) filename = attachRes.getName();
+
+				byte[] fileBytes = PDFUtil.toBytes(attachRes);
+
+				PDEmbeddedFile embeddedFile = new PDEmbeddedFile(pdDoc, new ByteArrayInputStream(fileBytes));
+				embeddedFile.setSize(fileBytes.length);
+
+				String mimeType = param.getMimetype();
+				if (!Util.isEmpty(mimeType)) {
+					embeddedFile.setSubtype(mimeType);
+				}
+
+				PDComplexFileSpecification fileSpec = new PDComplexFileSpecification();
+				fileSpec.setFile(filename);
+				fileSpec.setEmbeddedFile(embeddedFile);
+
+				String desc = param.getDescription();
+				if (!Util.isEmpty(desc)) {
+					fileSpec.setFileDescription(desc);
+				}
+
+				existingFiles.put(filename, fileSpec);
+			}
+
+			efTree.setNames(existingFiles);
+			names.setEmbeddedFiles(efTree);
+
+			pdDoc.save(os);
+		}
+		finally {
+			finalizeOutput( os, doc, name );
+		}
+	}
+
+	private void doActionExtractAttachments() throws PageException, IOException {
+		required("pdf", "extractAttachments", "source", source);
+		required("pdf", "extractAttachments", "destination", destination);
+
+		if (!destination.exists()) destination.mkdirs();
+		if (!destination.isDirectory())
+			throw engine.getExceptionUtil().createApplicationException("Destination must be a directory for extractAttachments");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+		Array result = engine.getCreationUtil().createArray();
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentNameDictionary names = pdDoc.getDocumentCatalog().getNames();
+			if (names != null) {
+				PDEmbeddedFilesNameTreeNode efTree = names.getEmbeddedFiles();
+				if (efTree != null) {
+					Map<String, PDComplexFileSpecification> files = efTree.getNames();
+					if (files != null) {
+						for (Map.Entry<String, PDComplexFileSpecification> entry : files.entrySet()) {
+							String filename = entry.getKey();
+							PDComplexFileSpecification fileSpec = entry.getValue();
+							PDEmbeddedFile embeddedFile = fileSpec.getEmbeddedFile();
+
+							if (embeddedFile != null) {
+								String safeName = PDFUtil.sanitizeFilename(filename);
+								if (safeName == null) continue;
+
+								Resource outFile = destination.getRealResource(safeName);
+								if (outFile.exists() && !overwrite) {
+									if (stopOnError)
+										throw engine.getExceptionUtil().createApplicationException("File [" + outFile + "] already exists");
+									continue;
+								}
+
+								engine.getIOUtil().copy(embeddedFile.createInputStream(), outFile, true);
+
+								Struct info = engine.getCreationUtil().createStruct();
+								info.set("filename", filename);
+								info.set("path", outFile.getAbsolutePath());
+								info.set("size", embeddedFile.getSize());
+								if (fileSpec.getFileDescription() != null) {
+									info.set("description", fileSpec.getFileDescription());
+								}
+								result.append(info);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (!Util.isEmpty(name)) {
+			pageContext.setVariable(name, result);
+		}
+	}
+
+	private void doActionRemoveAttachments() throws PageException, IOException {
+		required("pdf", "removeAttachments", "source", source);
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		OutputStream os = createOutputStream( doc, !Util.isEmpty( name ) );
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentNameDictionary names = pdDoc.getDocumentCatalog().getNames();
+			if (names != null) {
+				names.setEmbeddedFiles(null);
+			}
+
+			pdDoc.save(os);
+		}
+		finally {
+			finalizeOutput( os, doc, name );
+		}
+	}
+
+	private void doActionReadSignatureFields() throws PageException, IOException {
+		required("pdf", "readSignatureFields", "source", source);
+		required("pdf", "readSignatureFields", "name", name, true);
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		// Create query with columns: name, signable, isSigned, certifiable
+		Query query = engine.getCreationUtil().createQuery(new String[] { "name", "signable", "isSigned", "certifiable" }, 0, "signatureFields");
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDAcroForm acroForm = pdDoc.getDocumentCatalog().getAcroForm();
+			if (acroForm != null) {
+				for (PDField field : acroForm.getFieldTree()) {
+					if (field instanceof PDSignatureField) {
+						PDSignatureField sigField = (PDSignatureField) field;
+						int row = query.addRow();
+						query.setAt("name", row, sigField.getFullyQualifiedName());
+						query.setAt("signable", row, true);
+						query.setAt("isSigned", row, sigField.getSignature() != null);
+						query.setAt("certifiable", row, false); // Would need deeper inspection
+					}
+				}
+			}
+		}
+
+		pageContext.setVariable(name, query);
+	}
+
+	private void doActionValidateSignature() throws PageException, IOException {
+		required("pdf", "validateSignature", "source", source);
+		required("pdf", "validateSignature", "name", name, true);
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		// Create result struct with signature validation info
+		Struct result = engine.getCreationUtil().createStruct();
+		Array signatures = engine.getCreationUtil().createArray();
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			List<PDSignature> signatureList = pdDoc.getSignatureDictionaries();
+
+			boolean hasSignatures = !signatureList.isEmpty();
+			boolean allValid = true;
+
+			for (PDSignature sig : signatureList) {
+				Struct sigInfo = engine.getCreationUtil().createStruct();
+
+				// Basic signature information
+				sigInfo.set(engine.getCreationUtil().createKey("name"), sig.getName() != null ? sig.getName() : "");
+				sigInfo.set(engine.getCreationUtil().createKey("reason"), sig.getReason() != null ? sig.getReason() : "");
+				sigInfo.set(engine.getCreationUtil().createKey("location"), sig.getLocation() != null ? sig.getLocation() : "");
+				sigInfo.set(engine.getCreationUtil().createKey("contactInfo"), sig.getContactInfo() != null ? sig.getContactInfo() : "");
+				sigInfo.set(engine.getCreationUtil().createKey("signDate"), sig.getSignDate() != null ? sig.getSignDate().getTime() : null);
+
+				// Filter and SubFilter
+				String filter = sig.getFilter();
+				String subFilter = sig.getSubFilter();
+				sigInfo.set(engine.getCreationUtil().createKey("filter"), filter != null ? filter : "");
+				sigInfo.set(engine.getCreationUtil().createKey("subFilter"), subFilter != null ? subFilter : "");
+
+				// Check if signature has byte range (indicates it covers document content)
+				int[] byteRange = sig.getByteRange();
+				boolean hasValidByteRange = byteRange != null && byteRange.length == 4;
+				sigInfo.set(engine.getCreationUtil().createKey("hasValidByteRange"), hasValidByteRange);
+
+				// Check if signature has content (is actually signed)
+				boolean isSigned = sig.getContents() != null && sig.getContents().length > 0;
+				sigInfo.set(engine.getCreationUtil().createKey("isSigned"), isSigned);
+
+				// Basic validation status - without full cryptographic validation
+				// Full validation would require certificate chain verification
+				boolean valid = isSigned && hasValidByteRange;
+				sigInfo.set(engine.getCreationUtil().createKey("valid"), valid);
+
+				if (!valid) allValid = false;
+
+				signatures.append(sigInfo);
+			}
+
+			result.set(engine.getCreationUtil().createKey("hasSignatures"), hasSignatures);
+			result.set(engine.getCreationUtil().createKey("signatureCount"), signatureList.size());
+			result.set(engine.getCreationUtil().createKey("allValid"), hasSignatures && allValid);
+			result.set(engine.getCreationUtil().createKey("signatures"), signatures);
+		}
+
+		pageContext.setVariable(name, result);
+	}
+
+	/**
+	 * Optimize a PDF by removing specified elements.
+	 * Reduces file size by stripping bookmarks, links, JavaScript, attachments, metadata, etc.
+	 */
+	private void doActionOptimize() throws PageException, IOException {
+		required("pdf", "optimize", "source", source);
+		required("pdf", "optimize", "destination", destination);
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentCatalog catalog = pdDoc.getDocumentCatalog();
+
+			// Remove bookmarks/outline
+			if (noBookmarks) {
+				catalog.setDocumentOutline(null);
+			}
+
+			// Remove JavaScript
+			if (noJavaScript) {
+				// Remove document-level JavaScript
+				COSDictionary names = (COSDictionary) catalog.getCOSObject().getDictionaryObject(COSName.NAMES);
+				if (names != null) {
+					names.removeItem(COSName.getPDFName("JavaScript"));
+				}
+				// Remove open action if it's JavaScript
+				catalog.setOpenAction(null);
+			}
+
+			// Remove attachments/embedded files
+			if (noAttachments) {
+				catalog.setNames(null); // Removes EmbeddedFiles name tree
+				PDDocumentNameDictionary nameDictionary = catalog.getNames();
+				if (nameDictionary != null) {
+					nameDictionary.setEmbeddedFiles(null);
+				}
+			}
+
+			// Remove metadata
+			if (noMetadata) {
+				pdDoc.setDocumentInformation(new PDDocumentInformation());
+				catalog.setMetadata(null);
+			}
+
+			// Remove links and annotations
+			if (noLinks || noComments) {
+				for (PDPage page : pdDoc.getPages()) {
+					List<PDAnnotation> annotations = page.getAnnotations();
+					if (annotations != null) {
+						List<PDAnnotation> toRemove = new ArrayList<>();
+						for (PDAnnotation annot : annotations) {
+							if (noLinks && annot instanceof PDAnnotationLink) {
+								toRemove.add(annot);
+							}
+							else if (noComments && !(annot instanceof PDAnnotationLink)) {
+								// Remove non-link annotations (comments, highlights, etc.)
+								toRemove.add(annot);
+							}
+						}
+						annotations.removeAll(toRemove);
+					}
+				}
+			}
+
+			// Remove forms/AcroForm
+			if (noForms) {
+				catalog.setAcroForm(null);
+			}
+
+			// Remove page thumbnails
+			if (noThumbnails) {
+				for (PDPage page : pdDoc.getPages()) {
+					page.getCOSObject().removeItem(COSName.THUMB);
+				}
+			}
+
+			// Save optimized PDF
+			OutputStream os = destination.getOutputStream();
+			try {
+				pdDoc.save(os);
+			}
+			finally {
+				Util.closeEL(os);
+			}
+		}
+	}
+
+	/**
+	 * Sanitize a PDF for security by removing potentially dangerous elements.
+	 * More aggressive than optimize - removes JavaScript, links, actions, attachments, and metadata.
+	 */
+	private void doActionSanitize() throws PageException, IOException {
+		required("pdf", "sanitize", "source", source);
+		required("pdf", "sanitize", "destination", destination);
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		PDFStruct doc = toPDFDocument(source, password, null);
+
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentCatalog catalog = pdDoc.getDocumentCatalog();
+
+			// Always remove JavaScript for sanitize
+			COSDictionary names = (COSDictionary) catalog.getCOSObject().getDictionaryObject(COSName.NAMES);
+			if (names != null) {
+				names.removeItem(COSName.getPDFName("JavaScript"));
+			}
+			catalog.setOpenAction(null);
+
+			// Always remove attachments for sanitize
+			PDDocumentNameDictionary nameDictionary = catalog.getNames();
+			if (nameDictionary != null) {
+				nameDictionary.setEmbeddedFiles(null);
+			}
+
+			// Always remove metadata for sanitize
+			pdDoc.setDocumentInformation(new PDDocumentInformation());
+			catalog.setMetadata(null);
+
+			// Remove all links and form actions
+			for (PDPage page : pdDoc.getPages()) {
+				List<PDAnnotation> annotations = page.getAnnotations();
+				if (annotations != null) {
+					List<PDAnnotation> toRemove = new ArrayList<>();
+					for (PDAnnotation annot : annotations) {
+						// Remove link annotations
+						if (annot instanceof PDAnnotationLink) {
+							toRemove.add(annot);
+						}
+						// Remove any annotation with an action
+						else if (annot.getCOSObject().containsKey(COSName.A) ||
+								 annot.getCOSObject().containsKey(COSName.AA)) {
+							toRemove.add(annot);
+						}
+					}
+					annotations.removeAll(toRemove);
+				}
+			}
+
+			// Remove form actions but keep form fields (optional based on noForms)
+			PDAcroForm acroForm = catalog.getAcroForm();
+			if (acroForm != null) {
+				if (noForms) {
+					catalog.setAcroForm(null);
+				}
+				else {
+					// Just remove actions from form
+					for (PDField field : acroForm.getFieldTree()) {
+						field.getCOSObject().removeItem(COSName.A);
+						field.getCOSObject().removeItem(COSName.AA);
+					}
+				}
+			}
+
+			// Save sanitized PDF
+			OutputStream os = destination.getOutputStream();
+			try {
+				pdDoc.save(os);
+			}
+			finally {
+				Util.closeEL(os);
+			}
+		}
+	}
+
+	/**
+	 * Add a stamp image to PDF pages (similar to watermark but as annotation).
+	 */
+	private void doActionAddStamp() throws PageException, IOException {
+		required("pdf", "addStamp", "source", source);
+		required("pdf", "addStamp", "image", image);
+
+		if (destination == null && name == null)
+			throw engine.getExceptionUtil().createApplicationException("Either [destination] or [name] is required for action addStamp");
+
+		if (destination != null && destination.exists() && !overwrite)
+			throw engine.getExceptionUtil().createApplicationException("Destination PDF file [" + destination + "] already exists");
+
+		// Use same approach as watermark but with stamp annotation
+		// For now, delegate to watermark implementation since stamp is essentially a positioned image
+		doActionAddWatermark();
+	}
 
 	protected void setParam(PDFParamBean param) {
 		if (params == null) params = new ArrayList<PDFParamBean>();

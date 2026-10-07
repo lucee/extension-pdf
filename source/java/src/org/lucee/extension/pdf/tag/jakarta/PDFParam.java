@@ -55,6 +55,27 @@ public final class PDFParam extends TagImpl {
 		param.setSource(source);
 	}
 
+	/**
+	 * @param filename custom filename for attachments
+	 */
+	public void setFilename(String filename) {
+		param.setFilename(filename);
+	}
+
+	/**
+	 * @param mimetype MIME type for attachments
+	 */
+	public void setMimetype(String mimetype) {
+		param.setMimetype(mimetype);
+	}
+
+	/**
+	 * @param description description for attachments
+	 */
+	public void setDescription(String description) {
+		param.setDescription(description);
+	}
+
 	@Override
 	public int doStartTag() throws PageException {
 

@@ -20,9 +20,8 @@
 package org.lucee.extension.pdf.tag.javax;
 
 import javax.servlet.jsp.tagext.Tag;
-
 import lucee.loader.engine.CFMLEngineFactory;
-import lucee.runtime.util.Excepton;
+import lucee.runtime.exp.PageException;
 
 /**
  * Required for cfhttp POST operations, cfhttpparam is used to specify the parameters necessary to
@@ -56,6 +55,27 @@ public final class PDFParam extends TagImpl {
 		param.setSource(source);
 	}
 
+	/**
+	 * @param filename custom filename for attachments
+	 */
+	public void setFilename(String filename) {
+		param.setFilename(filename);
+	}
+
+	/**
+	 * @param mimetype MIME type for attachments
+	 */
+	public void setMimetype(String mimetype) {
+		param.setMimetype(mimetype);
+	}
+
+	/**
+	 * @param description description for attachments
+	 */
+	public void setDescription(String description) {
+		param.setDescription(description);
+	}
+
 	@Override
 	public int doStartTag() {
 
@@ -70,8 +90,8 @@ public final class PDFParam extends TagImpl {
 			pdf.setParam(param);
 		}
 		else {
-			Excepton util = CFMLEngineFactory.getInstance().getExceptionUtil();
-			throw util.createPageRuntimeException(util.createApplicationException("Wrong Context, tag PDFParam must be inside a PDF tag"));
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().createPageRuntimeException(
+				CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("Wrong Context, tag PDFParam must be inside a PDF tag"));
 		}
 		return SKIP_BODY;
 	}

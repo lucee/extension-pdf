@@ -44,6 +44,7 @@ import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFStruct;
 import org.lucee.extension.pdf.tag.Constants;
 
@@ -52,9 +53,14 @@ import org.openpdf.text.DocumentException;
 import org.openpdf.text.pdf.PRAcroForm;
 import org.openpdf.text.pdf.PdfCopy;
 import org.openpdf.text.pdf.PdfImportedPage;
+import org.openpdf.text.pdf.PdfArray;
+import org.openpdf.text.pdf.PdfObject;
 import org.openpdf.text.pdf.PdfReader;
+import org.openpdf.text.pdf.PdfString;
 import org.openpdf.text.pdf.PdfWriter;
 import org.openpdf.text.pdf.SimpleBookmark;
+import org.openpdf.text.pdf.SimpleNamedDestination;
+import org.openpdf.text.pdf.PRIndirectReference;
 
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
@@ -222,8 +228,19 @@ public class PDFUtil {
 	private static boolean removeBookmarks(Map bookmark, Set pages, boolean removePages) {
 		List kids = (List) bookmark.get("Kids");
 		if (kids != null) removeBookmarks(kids, pages, removePages);
+		if (pages == null) return false;
 		Integer page = CFMLEngineFactory.getInstance().getCastUtil().toInteger(CFMLEngineFactory.getInstance().getListUtil().first((String) bookmark.get("Page"), " ", true), -1);
-		return removePages == (pages != null && pages.contains(page));
+		boolean inSet = pages.contains(page);
+		return removePages ? inSet : !inSet;
+	}
+
+	public static String sanitizeFilename(String filename) {
+		if (filename == null) return null;
+		String safe = filename.replace('\\', '/');
+		int lastSlash = safe.lastIndexOf('/');
+		if (lastSlash >= 0) safe = safe.substring(lastSlash + 1);
+		if (safe.isEmpty() || safe.equals(".") || safe.equals("..") || safe.indexOf('\0') >= 0) return null;
+		return safe;
 	}
 
 	public static Set<Integer> parsePageDefinition(String strPages, int lastPageNumber) throws PageException {
@@ -304,6 +321,100 @@ public class PDFUtil {
 			((List) kids).addAll(children);
 		}
 		else parent.put("Kids", children);
+	}
+
+	/**
+	 * Collect bookmarks from a Flying Saucer-rendered PDF section.
+	 * Explicit cfdocumentitem bookmarks use anchor ids in the body with matching
+	 * &lt;head&gt;&lt;bookmarks&gt; entries and are matched from the PDF outline by title,
+	 * by outline index with title override, or via named destinations; heading bookmarks come
+	 * from injected metadata when htmlbookmark=true.
+	 */
+	public static List collectDocumentBookmarks(PdfReader reader, PDFDocument doc, boolean doHtmlBookmarks) throws IOException {
+		if (!doHtmlBookmarks && !doc.hasExplicitBookmarks()) return null;
+
+		List fromReader = SimpleBookmark.getBookmarkList(reader);
+		List bookmarks = new ArrayList();
+		java.util.Set<Integer> usedReaderIndexes = new java.util.HashSet<>();
+
+		if (doc.hasExplicitBookmarks()) {
+			List<String[]> explicit = doc.getExplicitBookmarks();
+			for (int i = 0; i < explicit.size(); i++) {
+				String[] entry = explicit.get(i);
+				Map bm = findBookmarkByTitle(fromReader, entry[0], usedReaderIndexes);
+				if (bm == null && fromReader != null && i < fromReader.size()) {
+					bm = new HashMap((Map) fromReader.get(i));
+					bm.put("Title", entry[0]);
+					usedReaderIndexes.add(Integer.valueOf(i));
+				}
+				if (bm == null) {
+					int page = resolveNamedDestinationPage(reader, entry[1]);
+					if (page <= 0) page = resolveNamedDestinationPage(reader, "#" + entry[1]);
+					if (page > 0) bm = generateGoToBookMark(entry[0], page);
+				}
+				if (bm != null) bookmarks.add(bm);
+			}
+		}
+
+		if (doHtmlBookmarks) {
+			for (String[] entry: doc.getHeadingBookmarks()) {
+				Map bm = findBookmarkByTitle(fromReader, entry[0], usedReaderIndexes);
+				if (bm == null) {
+					int page = resolveNamedDestinationPage(reader, entry[1]);
+					if (page <= 0) page = resolveNamedDestinationPage(reader, "#" + entry[1]);
+					if (page > 0) bm = generateGoToBookMark(entry[0], page);
+				}
+				if (bm != null) bookmarks.add(bm);
+			}
+		}
+
+		return bookmarks.isEmpty() ? null : bookmarks;
+	}
+
+	private static Map findBookmarkByTitle(List fromReader, String title, java.util.Set<Integer> usedReaderIndexes) {
+		if (fromReader == null || title == null) return null;
+		for (int i = 0; i < fromReader.size(); i++) {
+			if (usedReaderIndexes.contains(Integer.valueOf(i))) continue;
+			Map bm = (Map) fromReader.get(i);
+			if (title.equals(bm.get("Title"))) {
+				usedReaderIndexes.add(Integer.valueOf(i));
+				return bm;
+			}
+		}
+		return null;
+	}
+
+	private static int resolveNamedDestinationPage(PdfReader reader, String name) throws IOException {
+		java.util.HashMap<Object, Object> dests = SimpleNamedDestination.getNamedDestination(reader, false);
+		if (dests == null) return -1;
+		Object dest = dests.get(name);
+		if (dest == null) {
+			for (java.util.Map.Entry<Object, Object> entry: dests.entrySet()) {
+				String key = entry.getKey() instanceof PdfString ? ((PdfString) entry.getKey()).toString() : String.valueOf(entry.getKey());
+				if (name.equals(key)) {
+					dest = entry.getValue();
+					break;
+				}
+			}
+		}
+		if (dest == null) return -1;
+		if (dest instanceof String) {
+			String ref = (String) dest;
+			for (int p = 1; p <= reader.getNumberOfPages(); p++) {
+				if (ref.equals(reader.getPageOrigRef(p).toString())) return p;
+			}
+		}
+		if (dest instanceof PdfArray) {
+			PdfArray arr = (PdfArray) dest;
+			if (arr.size() == 0) return -1;
+			PdfObject pageObj = arr.getPdfObject(0);
+			if (pageObj instanceof PRIndirectReference) {
+				for (int p = 1; p <= reader.getNumberOfPages(); p++) {
+					if (pageObj.equals(reader.getPageOrigRef(p))) return p;
+				}
+			}
+		}
+		return -1;
 	}
 
 	public static PdfReader toPdfReader(PageContext pc, Object value, String password) throws IOException, PageException {

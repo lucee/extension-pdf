@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>pdf-extension</artifactId>
-    <version>3.0.0.1-BETA</version>
+    <version>3.0.0.2</version>
     <packaging>pom</packaging>
     <name>PDF Extension</name>
 
@@ -73,7 +73,7 @@
             </activation>
             <build>
                 <plugins>
-                    <plugin>
+<plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
                         <version>3.0.1</version>
@@ -135,7 +135,9 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
+
+
+<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>1.8</version>

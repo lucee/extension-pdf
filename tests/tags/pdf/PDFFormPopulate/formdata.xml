@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<fields>
+	<firstName>John</firstName>
+	<lastName>Doe</lastName>
+	<email>john@example.com</email>
+	<phone>555-1234</phone>
+</fields>

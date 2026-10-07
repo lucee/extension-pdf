@@ -109,6 +109,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private String attrSrc = null;
 	private Resource attrSrcfile = null;
 	private String attrUserAgent = null;
+	private Object attrResourceHandler = null;
+	private Object attrDebugHtml = null;
 
 	public Document() {
 		this._document = null;
@@ -159,6 +161,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		attrSrc = null;
 		attrSrcfile = null;
 		attrUserAgent = null;
+		attrResourceHandler = null;
+		attrDebugHtml = null;
 	}
 
 	@Override
@@ -217,8 +221,41 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			if (attrUserAgent != null) {
 				_document.setUserAgent(attrUserAgent);
 			}
+			if (attrResourceHandler != null) {
+				_document.setOnResourceFetch(attrResourceHandler);
+			}
+			if (attrDebugHtml != null) {
+				_document.setDebugHtml(resolveDebugHtml(attrDebugHtml));
+			}
+			if (scale > 0) {
+				_document.setScale(scale);
+			}
 		}
 		return _document;
+	}
+
+	/**
+	 * Resolve the debughtml attribute to a Resource.
+	 * Boolean true → sidecar: filename's path with .html extension (requires filename).
+	 * Anything else → coerce to string path, resolve via ResourceUtil.
+	 */
+	private Resource resolveDebugHtml(Object value) throws PageException {
+		if (value instanceof Boolean) {
+			if (!((Boolean) value).booleanValue()) return null;
+			if (filename == null) {
+				throw engine.getExceptionUtil().createApplicationException(
+					"debughtml=true requires the filename attribute to be set; pass a path string instead when using name= mode");
+			}
+			String pdfPath = filename.getAbsolutePath();
+			String htmlPath = pdfPath.toLowerCase().endsWith(".pdf")
+				? pdfPath.substring(0, pdfPath.length() - 4) + ".html"
+				: pdfPath + ".html";
+			return engine.getResourceUtil().toResourceNotExisting(pageContext, htmlPath);
+		}
+		String path = engine.getCastUtil().toString(value);
+		Resource r = engine.getResourceUtil().toResourceNotExisting(pageContext, path);
+		pageContext.getConfig().getSecurityManager().checkFileLocation(r);
+		return r;
 	}
 
 	public List<PDFDocument> getPDFDocuments() {
@@ -555,9 +592,17 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 * @throws PageException
 	 */
 	public void setScale(double scale) throws PageException {
-		if (scale < 0) throw engine.getExceptionUtil().createApplicationException("scale must be a positive number");
+		if (scale <= 0) throw engine.getExceptionUtil().createApplicationException("scale must be a positive number");
 		if (scale > 100) throw engine.getExceptionUtil().createApplicationException("scale must be a number less or equal than 100");
 		this.scale = (int) scale;
+	}
+
+	public void setResourcehandler(Object resourceHandler) {
+		this.attrResourceHandler = resourceHandler;
+	}
+
+	public void setDebughtml(Object debugHtml) {
+		this.attrDebugHtml = debugHtml;
 	}
 
 	/**
@@ -702,6 +747,16 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 
 	@Override
 	public int doEndTag() throws PageException {
+		// Self-closing <cfdocument srcfile="..." /> without body never calls doAfterBody
+		if (pdf == null && (attrSrcfile != null || !Util.isEmpty(attrSrc))) {
+			getPDFDocument();
+			try {
+				return _doAfterBody();
+			}
+			catch (Exception e) {
+				throw engine.getCastUtil().toPageException(e);
+			}
+		}
 		return EVAL_PAGE;
 	}
 
@@ -727,12 +782,14 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				}
 
 			}
-			doBookmarks = _document.getBookmark();
-			doHtmlBookmarks = _document.getHtmlBookmark();
 		}
 		// only if there is no documentsection, we are interested in the content from document
 		if (documents.size() == 0) {
 			documents.add(_document);
+		}
+		if (_document != null) {
+			doBookmarks = _document.getBookmark() || _document.getHtmlBookmark() || hasExplicitBookmarks(documents);
+			doHtmlBookmarks = _document.getHtmlBookmark();
 		}
 
 		if (!second && hasEvalAtPrint(documents)) {
@@ -787,6 +844,14 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		}
 		return SKIP_BODY;
 
+	}
+
+	private boolean hasExplicitBookmarks(ArrayList<PDFDocument> docs) {
+		Iterator<PDFDocument> it = docs.iterator();
+		while (it.hasNext()) {
+			if (it.next().hasExplicitBookmarks()) return true;
+		}
+		return false;
 	}
 
 	private boolean hasEvalAtPrint(ArrayList<PDFDocument> documents2) {
@@ -871,13 +936,11 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 					}
 					else parent = null;
 
-					if (doHtmlBookmarks) {
-						java.util.List pageBM = SimpleBookmark.getBookmarkList(pdfReaders[doc]);
-						if (pageBM != null) {
-							if (totalPage > 0) SimpleBookmark.shiftPageNumbersInRange(pageBM, totalPage, null);
-							if (parent != null) PDFUtil.setChildBookmarks(parent, pageBM);
-							else bookmarks.addAll(pageBM);
-						}
+					java.util.List pageBM = PDFUtil.collectDocumentBookmarks(pdfReaders[doc], pdfDocs[doc], doHtmlBookmarks);
+					if (pageBM != null) {
+						if (totalPage > 0) SimpleBookmark.shiftPageNumbersInRange(pageBM, totalPage, null);
+						if (parent != null) PDFUtil.setChildBookmarks(parent, pageBM);
+						else bookmarks.addAll(pageBM);
 					}
 				}
 
@@ -889,7 +952,10 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 					copy.addPage(ip);
 				}
 			}
-			if (doBookmarks && !bookmarks.isEmpty()) copy.setOutlines(bookmarks);
+			if (doBookmarks) {
+				if (!bookmarks.isEmpty()) copy.setOutlines(bookmarks);
+				else if (_document.getBookmark() && !doHtmlBookmarks && !hasExplicitBookmarks(documents)) copy.setOutlines(new ArrayList());
+			}
 		}
 		finally {
 			document.close();
