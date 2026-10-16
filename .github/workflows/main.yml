@@ -1,12 +1,37 @@
 name: Java CI Combined
 
-on: [push, pull_request, workflow_dispatch]
+# Push publishes the -SNAPSHOT version already in pom.xml to the Sonatype snapshot repo (and S3, until the cut-off).
+# A manual run picks a type: release (default) X.Y.Z.N, rc X.Y.Z.N-RC, beta X.Y.Z.N-BETA, alpha X.Y.Z.N-ALPHA
+# (N from the -SNAPSHOT in pom.xml), then commits the next -SNAPSHOT. Type "snapshot" only deploys the current snapshot.
+# Where each version goes:
+#   final (X.Y.Z.N) and -SNAPSHOT: mvn deploy (Maven Central / snapshot repo) + S3 Maven layout
+#   -RC, -BETA, -ALPHA:            mvn install (signed), S3 Maven layout only (maven.lucee-services.com), never Central
+# A push to a branch with a -SNAPSHOT version also commits the next -SNAPSHOT after the deploy,
+# so every commit gets its own build number. The bump commit itself does not bump again.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'What to publish: release (X.Y.Z.N), rc (-RC), beta (-BETA), alpha (-ALPHA), or snapshot (deploy the current -SNAPSHOT, no bump)'
+        type: choice
+        options:
+          - release
+          - rc
+          - beta
+          - alpha
+          - snapshot
+        default: release
 
 jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.extract-version.outputs.VERSION }}
+      release: ${{ steps.extract-version.outputs.RELEASE }}
+      next_version: ${{ steps.extract-version.outputs.NEXT_VERSION }}
+      lucee_matrix: ${{ steps.lucee-matrix.outputs.MATRIX }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,9 +52,81 @@ jobs:
 
       - name: Extract version number
         id: extract-version
+        env:
+          # A manual run releases unless the box is unticked. Push and pull_request never do.
+          RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.type || 'snapshot' }}
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | tr -d '\r')
+          RELEASE=false
+          NEXT_VERSION=""
+          case "$RELEASE_TYPE" in
+            release) SUFFIX="" ;;
+            rc) SUFFIX="-RC" ;;
+            beta) SUFFIX="-BETA" ;;
+            alpha) SUFFIX="-ALPHA" ;;
+            snapshot) SUFFIX="none" ;;
+            *) echo "::error::unknown release type [${RELEASE_TYPE}]"; exit 1 ;;
+          esac
+          if [[ "$SUFFIX" != "none" ]]; then
+            if [[ "$VERSION" != *-SNAPSHOT ]]; then
+              echo "::error::A release run needs a -SNAPSHOT version in pom.xml (found ${VERSION})"
+              exit 1
+            fi
+            RELEASE_VERSION="${VERSION%-SNAPSHOT}"
+            if ! [[ "$RELEASE_VERSION" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
+              echo "::error::[${RELEASE_VERSION}] is not a 4-part release version"
+              exit 1
+            fi
+            PREFIX="${RELEASE_VERSION%.*}"
+            LAST="${RELEASE_VERSION##*.}"
+            NEXT_VERSION="${PREFIX}.$((10#$LAST + 1))-SNAPSHOT"
+            VERSION="${RELEASE_VERSION}${SUFFIX}"
+            if ! [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){3}(-RC|-BETA|-ALPHA)?$ ]]; then
+              echo "::error::[${VERSION}] is not a valid release version"
+              exit 1
+            fi
+            RELEASE=true
+            echo "Release run: publish ${VERSION}, then bump pom.xml to ${NEXT_VERSION}"
+          fi
+          echo "Using VERSION=${VERSION} RELEASE=${RELEASE} NEXT_VERSION=${NEXT_VERSION}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "RELEASE=${RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "NEXT_VERSION=${NEXT_VERSION}" >> "$GITHUB_OUTPUT"
+
+      # Repository and organization variables are not passed to pull_request runs from forks, so
+      # vars.LUCEE_TEST_VERSIONS_71 is empty there and fromJSON('') fails the whole run before build-and-test starts.
+      # Use the variable when it is set, otherwise test the latest build of each Lucee line through
+      # a version query (script-runner resolves it), so fork PRs are tested too.
+      - name: Resolve Lucee test matrix
+        id: lucee-matrix
+        env:
+          TEST_VERSIONS: ${{ vars.LUCEE_TEST_VERSIONS_71 }}
+          # this extension needs Lucee 7.1 or newer (luceeCoreVersion in pom.xml)
+          FALLBACK_LINES: "7.1 8.0"
+          # Lucee 8.0 requires this extension, so it is always tested, even when the variable has no 8.0 entry
+          REQUIRED_LINES: "8.0"
+        run: |
+          set -euo pipefail
+          if [[ -n "${TEST_VERSIONS// }" ]] && echo "$TEST_VERSIONS" | jq -e 'type == "array" and length > 0' > /dev/null; then
+            echo "Using vars.LUCEE_TEST_VERSIONS_71"
+            MATRIX=$(echo "$TEST_VERSIONS" | jq -c '.')
+          else
+            echo "::notice::vars.LUCEE_TEST_VERSIONS_71 is not available (fork pull request?), testing the latest build of: ${FALLBACK_LINES}"
+            MATRIX=$(printf '%s\n' $FALLBACK_LINES | jq -R -s -c 'split("\n") | map(select(length > 0)) | map({version: (. + "/all/light"), query: (. + "/all/light")})')
+          fi
+          for LINE in $REQUIRED_LINES; do
+            if ! echo "$MATRIX" | jq -e --arg l "$LINE" 'any(.[]; ((.query // "") | startswith($l + "/")) or ((.version // "") | test("^[a-z]*-?" + ($l | gsub("\\."; "\\.")) + "\\.")))' > /dev/null; then
+              echo "Adding the latest ${LINE} build to the matrix"
+              MATRIX=$(echo "$MATRIX" | jq -c --arg l "$LINE" '. + [{version: ($l + "/all/light"), query: ($l + "/all/light")}]')
+            fi
+          done
+          # artifact names cannot contain "/", so give every entry a label.
+          # testRef is the lucee/lucee branch of the same line (6.2, 7.1, ...), so each core runs the test suite
+          # written for it; tests for core fixes on newer lines would otherwise fail on older cores.
+          MATRIX=$(echo "$MATRIX" | jq -c 'map(. + {label: ((.version // .query) | gsub("[^A-Za-z0-9._-]"; "-")), testRef: (((.query // .version) | capture("(?<l>[0-9]+\\.[0-9]+)").l) // "")})')
+          echo "Lucee test matrix: ${MATRIX}"
+          echo "MATRIX=${MATRIX}" >> "$GITHUB_OUTPUT"
 
       - name: Cache Lucee files
         uses: actions/cache@v4
@@ -37,21 +134,13 @@ jobs:
           path: ~/work/_actions/lucee/script-runner/main/lucee-download-cache
           key: lucee-downloads
 
-      - name: Import GPG key
-        run: |
-          echo "$GPG_PRIVATE_KEY" | base64 --decode | gpg --batch --import
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-
   build-and-test:
     runs-on: ubuntu-latest
     needs: setup
-    env:
-      LUCEE_TEST_VERSIONS_71: ${{ vars.LUCEE_TEST_VERSIONS_71 }}
     strategy:
       fail-fast: false
       matrix:
-        lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS_71) }}
+        lucee: ${{ fromJSON(needs.setup.outputs.lucee_matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -69,19 +158,35 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-v2-
 
-      - name: Build and Install with Maven (for testing only)
+      # A release run builds the version with -SNAPSHOT removed, the same one deploy publishes.
+      - name: Set the version for this run
+        if: needs.setup.outputs.release == 'true'
         env:
-          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          VERSION: ${{ needs.setup.outputs.version }}
         run: |
-          echo "------- Maven Install (to create a local test build) -------";
+          set -euo pipefail
+          python3 - "$VERSION" <<'PY'
+          import pathlib, re, sys
+          new = sys.argv[1]
+          path = pathlib.Path("pom.xml")
+          text = path.read_text()
+          pattern = r"(<artifactId>pdf-extension</artifactId>\s*<version>)[^<]+(</version>)"
+          text2, n = re.subn(pattern, lambda m: m.group(1) + new + m.group(2), text, count=1)
+          if n != 1:
+              raise SystemExit(f"project version was not updated (matches={n})")
+          path.write_text(text2)
+          print(f"pom.xml version is now {new}")
+          PY
+
+      - name: Build and Install with Maven
+        run: |
+          echo "------- Maven Install -------";
           mvn -B -e -f pom.xml clean install -Dgoal=install
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pdf-lex-${{ matrix.lucee.version }}
+          name: pdf-lex-${{ matrix.lucee.label }}
           path: |
             target/*.lex
             !target/*.lite.lex
@@ -90,14 +195,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: lucee/lucee
+          ref: ${{ matrix.lucee.testRef }}
           path: lucee
-          ref: ${{ matrix.lucee.branch }}
 
       - name: Patch LDEV2506 for removed classic PDF engine
         run: |
           sed -i 's/classic,modern/modern/' lucee/test/tickets/LDEV2506/test.cfm
           sed -i "s/Created a pdf with type = \"classic\",Created a pdf with type = \"modern\"/Created a pdf with type = \"modern\"/" lucee/test/tickets/LDEV2506.cfc
           sed -i "s/type = 'modern' and 'classic'/type = 'modern'/" lucee/test/tickets/LDEV2506.cfc
+
+      - name: Prepare extension dir for tests
+        run: rm -f target/*.lite.lex
+
+      - name: Log Lucee test matrix version
+        run: |
+          echo "Matrix lucee.version: ${{ matrix.lucee.version }}"
+          echo "Matrix lucee.query: ${{ matrix.lucee.query }}"
+          if [ -n "${{ matrix.lucee.query }}" ]; then
+            echo "Note: script-runner uses luceeVersionQuery when set; it overrides luceeVersion."
+          fi
 
       - name: Run Lucee Test Suite
         uses: lucee/script-runner@main
@@ -115,7 +231,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [setup, build-and-test]
-    if: always() && needs.build-and-test.result == 'success'
+    # pull requests (often from forks) get no secrets, so they only build and test
+    if: always() && needs.build-and-test.result == 'success' && github.event_name != 'pull_request'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -140,29 +257,152 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
-      - name: Debug env
-        env:
-          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+      - name: Install Maven 3.9.16
+        # ubuntu-latest moved to Maven 3.10.0 (Oct 2026), which stages maven-metadata-local.xml
+        # in org/lucee/pdf-extension/; Central then rejects the bundle
+        # ("Bundle has content that does NOT have a .pom file"). Pin 3.9.16 for the deploy.
         run: |
-          if [[ -z "${MAVEN_USERNAME}" ]]; then echo "MAVEN_USERNAME is empty"; exit 1; fi
-          echo "::add-mask::${MAVEN_USERNAME}"
-          echo "MAVEN_USERNAME (masked): ${MAVEN_USERNAME}"
-          echo "MAVEN_USERNAME length: ${#MAVEN_USERNAME}"
-          printf "MAVEN_USERNAME sha256: %s\n" "$(printf %s "$MAVEN_USERNAME" | sha256sum | cut -d' ' -f1)"
+          curl -fsSL -o /tmp/maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.9.16/binaries/apache-maven-3.9.16-bin.tar.gz
+          echo "831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6  /tmp/maven.tar.gz" | sha512sum -c -
+          tar -xzf /tmp/maven.tar.gz -C /tmp
+          echo "/tmp/apache-maven-3.9.16/bin" >> "$GITHUB_PATH"
+          /tmp/apache-maven-3.9.16/bin/mvn -v
+
+      - name: Set the version for this run
+        if: needs.setup.outputs.release == 'true'
+        env:
+          VERSION: ${{ needs.setup.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 - "$VERSION" <<'PY'
+          import pathlib, re, sys
+          new = sys.argv[1]
+          path = pathlib.Path("pom.xml")
+          text = path.read_text()
+          pattern = r"(<artifactId>pdf-extension</artifactId>\s*<version>)[^<]+(</version>)"
+          text2, n = re.subn(pattern, lambda m: m.group(1) + new + m.group(2), text, count=1)
+          if n != 1:
+              raise SystemExit(f"project version was not updated (matches={n})")
+          path.write_text(text2)
+          print(f"pom.xml version is now {new}")
+          PY
 
       - name: Build and Deploy with Maven
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          VERSION: ${{ needs.setup.outputs.version }}
         run: |
-          if [[ "${{ needs.setup.outputs.version }}" == *-SNAPSHOT ]]; then
-            echo "------- Maven Deploy snapshot on ${{ github.event_name }} -------";
+          set -euo pipefail
+          if [[ "$VERSION" == *-SNAPSHOT ]]; then
+            echo "------- Maven Deploy snapshot ${VERSION} on ${{ github.event_name }} -------";
             mvn -B -e -f pom.xml clean deploy -Dgoal=deploy --settings maven-settings.xml
-          elif [[ "${{ needs.setup.outputs.version }}" == *-ALPHA ]]; then
-            echo "------- Maven Install alpha on ${{ github.event_name }} -------";
-            mvn -B -e -f pom.xml clean install -Dgoal=install --settings maven-settings.xml
+          elif [[ "$VERSION" =~ -(RC|BETA|ALPHA)$ ]]; then
+            # pre-releases are not published to Maven Central, only to S3 (s3 job below)
+            echo "------- Maven Install (signed) ${VERSION} on ${{ github.event_name }}, S3 only -------";
+            mvn -B -e -f pom.xml clean install -Dgoal=install -DperformRelease=true --settings maven-settings.xml
           else
-            echo "------- Maven Deploy release on ${{ github.event_name }} -------";
+            echo "------- Maven Deploy release ${VERSION} on ${{ github.event_name }} -------";
             mvn -B -e -f pom.xml clean deploy -Dgoal=deploy -DperformRelease=true --settings maven-settings.xml
           fi
+
+      # everything the S3 upload needs (LDEV-6568): full and lite .lex plus the flattened POM
+      - name: Upload artifact for S3
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-s3
+          include-hidden-files: true
+          path: |
+            target/*.lex
+            .flattened-pom.xml
+
+  # upload the published build to the Maven folders, LDEV-6568.
+  # Cut-off rules (SNAPSHOTs stop on 2027-03-01) live in the called workflow.
+  # Finals and SNAPSHOTs are also on Central / the snapshot repo; RC, BETA and ALPHA are only here.
+  # secrets: inherit passes the org secrets S3_ACCESS_ID_DOWNLOAD and S3_SECRET_KEY_DOWNLOAD.
+  # The called workflow warns and skips when those secrets are not available to this repo.
+  s3:
+    needs: [setup, deploy]
+    if: always() && needs.deploy.result == 'success' && github.event_name != 'pull_request'
+    uses: lucee/lucee/.github/workflows/extension-s3-upload.yml@7.1
+    with:
+      artifact-name: pdf-s3
+      version: ${{ needs.setup.outputs.version }}
+    secrets: inherit
+
+  # After a release deploy, or a SNAPSHOT deploy on a push, commit the next -SNAPSHOT.
+  # No loop: the push uses the workflow token, which does not start another workflow run,
+  # and runs started by github-actions[bot] or with the bump message are skipped anyway.
+  bump:
+    runs-on: ubuntu-latest
+    needs: [setup, deploy, s3]
+    if: >-
+      always() && needs.deploy.result == 'success'
+      && (needs.s3.result == 'success' || needs.s3.result == 'skipped')
+      && (needs.setup.outputs.release == 'true'
+        || (github.event_name == 'push'
+          && startsWith(github.ref, 'refs/heads/')
+          && endsWith(needs.setup.outputs.version, '-SNAPSHOT')
+          && github.actor != 'github-actions[bot]'
+          && !startsWith(github.event.head_commit.message, 'Set version to ')
+          && !contains(github.event.head_commit.message, '[skip ci]')))
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Bump to the next SNAPSHOT
+        env:
+          NEXT_VERSION: ${{ needs.setup.outputs.next_version }}
+          DEPLOYED_VERSION: ${{ needs.setup.outputs.version }}
+          IS_RELEASE: ${{ needs.setup.outputs.release }}
+        run: |
+          set -euo pipefail
+          if [[ "$IS_RELEASE" != "true" ]]; then
+            # push: bump from the version on the branch tip, only if nobody bumped it since this deploy
+            CURRENT=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | tr -d '\r')
+            if [[ "$CURRENT" != "$DEPLOYED_VERSION" ]]; then
+              echo "Branch is at ${CURRENT}, deployed ${DEPLOYED_VERSION}; already bumped, nothing to do"
+              exit 0
+            fi
+            BASE="${CURRENT%-SNAPSHOT}"
+            if ! [[ "$BASE" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
+              echo "::warning::[${CURRENT}] is not a 4-part SNAPSHOT version, not bumping"
+              exit 0
+            fi
+            NEXT_VERSION="${BASE%.*}.$((10#${BASE##*.} + 1))-SNAPSHOT"
+            echo "Push run: bump pom.xml from ${CURRENT} to ${NEXT_VERSION}"
+          fi
+          if [[ -z "$NEXT_VERSION" ]]; then
+            echo "::error::next version was not resolved"
+            exit 1
+          fi
+          python3 - "$NEXT_VERSION" <<'PY'
+          import pathlib, re, sys
+          new = sys.argv[1]
+          path = pathlib.Path("pom.xml")
+          text = path.read_text()
+          pattern = r"(<artifactId>pdf-extension</artifactId>\s*<version>)[^<]+(</version>)"
+          text2, n = re.subn(pattern, lambda m: m.group(1) + new + m.group(2), text, count=1)
+          if n != 1:
+              raise SystemExit(f"project version was not updated (matches={n})")
+          path.write_text(text2)
+          print(f"pom.xml version is now {new}")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pom.xml
+          if git diff --cached --quiet; then
+            echo "pom.xml already at ${NEXT_VERSION}"
+            exit 0
+          fi
+          git commit -m "Set version to ${NEXT_VERSION}"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
