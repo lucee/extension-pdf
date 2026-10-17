@@ -32,7 +32,25 @@ jobs:
       release: ${{ steps.extract-version.outputs.RELEASE }}
       next_version: ${{ steps.extract-version.outputs.NEXT_VERSION }}
       lucee_matrix: ${{ steps.lucee-matrix.outputs.MATRIX }}
+      publish: ${{ steps.publish.outputs.PUBLISH }}
     steps:
+      # Only pushes and manual runs on master/main, a version branch (1.0, 2.0, ...) or release/* may
+      # publish (deploy, s3) or commit (bump). Feature and PR branches only build and test.
+      - name: Decide whether this run may publish
+        id: publish
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          PUBLISH=false
+          if [[ "$EVENT" == "push" || "$EVENT" == "workflow_dispatch" ]]; then
+            BRANCH="${REF#refs/heads/}"
+            if [[ "$REF" == refs/heads/* ]] && [[ "$BRANCH" == "master" || "$BRANCH" == "main" || "$BRANCH" =~ ^[0-9]+(\.[0-9]+)*$ || "$BRANCH" == release/* ]]; then
+              PUBLISH=true
+            fi
+          fi
+          echo "event=${EVENT} ref=${REF} publish=${PUBLISH}"
+          echo "PUBLISH=${PUBLISH}" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -232,7 +250,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, build-and-test]
     # pull requests (often from forks) get no secrets, so they only build and test
-    if: always() && needs.build-and-test.result == 'success' && github.event_name != 'pull_request'
+    if: always() && needs.build-and-test.result == 'success' && needs.setup.outputs.publish == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -325,7 +343,7 @@ jobs:
   # The called workflow warns and skips when those secrets are not available to this repo.
   s3:
     needs: [setup, deploy]
-    if: always() && needs.deploy.result == 'success' && github.event_name != 'pull_request'
+    if: always() && needs.deploy.result == 'success' && needs.setup.outputs.publish == 'true'
     uses: lucee/lucee/.github/workflows/extension-s3-upload.yml@7.1
     with:
       artifact-name: pdf-s3
@@ -340,6 +358,7 @@ jobs:
     needs: [setup, deploy, s3]
     if: >-
       always() && needs.deploy.result == 'success'
+      && needs.setup.outputs.publish == 'true'
       && (needs.s3.result == 'success' || needs.s3.result == 'skipped')
       && (needs.setup.outputs.release == 'true'
         || (github.event_name == 'push'
