@@ -336,6 +336,63 @@ jobs:
             target/*.lex
             .flattened-pom.xml
 
+  # LDEV-6603: publish every final, ALPHA, BETA and RC build as a GitHub release with its .lex files attached,
+  # so ext.lucee.org can redirect downloads to GitHub releases (LDEV-6511). -SNAPSHOT builds get no GitHub release.
+  # Separate job, so a failure here never blocks the Maven Central or S3 upload.
+  github-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [setup, deploy]
+    if: >-
+      always() && needs.deploy.result == 'success'
+      && needs.setup.outputs.publish == 'true'
+      && !endsWith(needs.setup.outputs.version, '-SNAPSHOT')
+    permissions:
+      # create the release (and its tag) and upload its assets
+      contents: write
+    steps:
+      # the same files the S3 job uploads (built by the deploy job with the published version)
+      - name: Download published extension
+        uses: actions/download-artifact@v4
+        with:
+          name: pdf-s3
+          path: release-files
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.setup.outputs.version }}
+          IS_DEFAULT_BRANCH: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mapfile -t FILES < <(find release-files -type f \( -name "*-${VERSION}.lex" -o -name "*-${VERSION}.lite.lex" \) | sort)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::no .lex files for $VERSION found"; find release-files -type f; exit 1
+          fi
+          printf 'Asset: %s\n' "${FILES[@]}"
+
+          # the release tag is the exact published version (3.0.0.4 or 3.0.0.4-RC), created on this commit
+          # if it does not exist yet. ALPHA/BETA/RC are pre-releases and never "latest".
+          if [[ "$VERSION" == *-* ]]; then
+            PRE=(--prerelease --latest=false)
+          elif [ "$IS_DEFAULT_BRANCH" == "true" ]; then
+            PRE=(--latest)
+          else
+            PRE=(--latest=false)
+          fi
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists - uploading assets again"
+            gh release upload "$VERSION" "${FILES[@]}" --clobber
+          else
+            echo "Creating release $VERSION ${PRE[*]} on $GITHUB_SHA"
+            gh release create "$VERSION" "${FILES[@]}" "${PRE[@]}" --target "$GITHUB_SHA" \
+              --title "$VERSION" \
+              --notes "Build $VERSION from commit $GITHUB_SHA, published by $RUN_URL"
+          fi
+
   # upload the published build to the Maven folders, LDEV-6568.
   # Cut-off rules (SNAPSHOTs stop on 2027-03-01) live in the called workflow.
   # Finals and SNAPSHOTs are also on Central / the snapshot repo; RC, BETA and ALPHA are only here.
