@@ -50,6 +50,7 @@ import org.xml.sax.SAXException;
 import org.openpdf.text.DocumentException;
 import org.openpdf.text.pdf.BaseFont;
 
+import lucee.commons.io.log.Log;
 import lucee.commons.io.res.ContentType;
 import lucee.commons.net.http.HTTPResponse;
 import lucee.loader.engine.CFMLEngineFactory;
@@ -80,7 +81,7 @@ public final class FSPDFDocument extends PDFDocument {
 						resolver.addFont(child.getAbsolutePath(), BaseFont.IDENTITY_H, fontembed);
 					}
 					catch (Exception e) {
-						// e.printStackTrace();
+						logFontError(pc, child, e);
 					}
 				}
 			}
@@ -119,6 +120,35 @@ public final class FSPDFDocument extends PDFDocument {
 			engine.getIOUtil().closeSilent(baos);
 		}
 		return baos.toByteArray();
+	}
+
+	private static final String[] FONT_EXTENSIONS = { ".ttf", ".otf", ".ttc", ".afm", ".pfm", ".pfb" };
+
+	/**
+	 * a font in fontdirectory that can't be loaded used to be ignored silently, and the document then
+	 * rendered with a fallback font; log it so the cause can be found. Files that are not fonts at all
+	 * (readme, .DS_Store, ...) are only logged at debug level.
+	 */
+	private static void logFontError(PageContext pc, File file, Exception e) {
+		Log log = getPdfLog(pc);
+		if (log == null) return;
+		String name = file.getName().toLowerCase();
+		boolean isFont = false;
+		for (String ext: FONT_EXTENSIONS) {
+			if (name.endsWith(ext)) {
+				isFont = true;
+				break;
+			}
+		}
+		if (isFont) log.log(Log.LEVEL_WARN, "pdf", "cfdocument fontdirectory: failed to load font [" + file.getAbsolutePath() + "], it is ignored", e);
+		else log.log(Log.LEVEL_DEBUG, "pdf", "cfdocument fontdirectory: ignoring [" + file.getAbsolutePath() + "], not a loadable font: " + e.getMessage());
+	}
+
+	private static Log getPdfLog(PageContext pc) {
+		if (pc == null) return null;
+		Log log = pc.getConfig().getLog("pdf");
+		if (log == null) log = pc.getConfig().getLog("application");
+		return log;
 	}
 
 	private void content(ITextRenderer renderer, PageContext pc, OutputStream os, Margin margin, Dimension dimension, int pageOffset)
