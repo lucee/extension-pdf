@@ -383,7 +383,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 */
 	public void setFilename(String filename) throws PageException {
 		this.filename = engine.getResourceUtil().toResourceNotExisting(pageContext, filename);
-		// pageContext.getConfig().getSecurityManager().checkFileLocation(this.filename);
+		pageContext.getConfig().getSecurityManager().checkFileLocation(this.filename);
 	}
 
 	/**
