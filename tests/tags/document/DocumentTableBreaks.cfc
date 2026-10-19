@@ -147,6 +147,40 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				}
 			});
 
+			it( title="thead repeats on every page of a multi page table", body=function( currentSpec ) {
+				var file = "#path#thead_repeat.pdf";
+				var html = "<table border='1' cellpadding='5' cellspacing='0' width='100%'>";
+				html &= "<thead><tr><th>HEADCELL_A</th><th>HEADCELL_B</th></tr></thead>";
+				html &= "<tfoot><tr><td>FOOTCELL_A</td><td>FOOTCELL_B</td></tr></tfoot><tbody>";
+				for ( var i = 1; i <= 120; i++ ) {
+					html &= "<tr><td>Body #i#</td><td>Value #i#</td></tr>";
+				}
+				html &= "</tbody></table>";
+
+				document format="pdf" pagetype="A4" filename="#file#" overwrite=true {
+					writeOutput( html );
+				}
+
+				pdf action="getInfo" source="#file#" name="local.info";
+				expect( info.totalPages ).toBeGT( 1 );
+				for ( var p = 1; p <= info.totalPages; p++ ) {
+					pdf action="extractText" source="#file#" pages="#p#" name="local.pageText" type="string";
+					expect( pageText ).toInclude( "HEADCELL_A", "thead should repeat on page #p#" );
+					expect( pageText ).toInclude( "FOOTCELL_A", "tfoot should repeat on page #p#" );
+				}
+				pdf action="extractText" source="#file#" name="local.all" type="string";
+				for ( var i = 1; i <= 120; i++ ) {
+					expect( all ).toInclude( "Body #i#", "row #i# should not be lost" );
+				}
+			});
+
+			it( title="thead repeats on page 2 with a rowspan crossing the page break", body=function( currentSpec ) {
+				var file = "#path#rowspan_thead.pdf";
+				pdf action="extractText" source="#file#" pages="2" name="local.page2" type="string";
+				// case sensitive: "GROUP_HEADER" (the rowspan cell) must not count as the "Group" header cell
+				expect( page2 ).toIncludeWithCase( "Group", "thead should repeat on page 2" );
+			});
+
 		});
 
 		describe( "cfdocument table rendering - forum reproduction", function() {

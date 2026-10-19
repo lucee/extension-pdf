@@ -328,6 +328,8 @@ public final class FSPDFDocument extends PDFDocument {
 		if (h != null) sb.append("@page { @top-center    { content: element(header) }}").append('\n');
 		if (f != null) sb.append("@page { @bottom-center { content: element(footer) }}").append('\n');
 
+		// repeat <thead>/<tfoot> on every page a table spans (Flying Saucer only does that with paginate)
+		sb.append("table { -fs-table-paginate: paginate; }").append('\n');
 		sb.append(".luceefspagenumber:before {content: counter(page);}").append('\n');
 		sb.append(".luceefspagecount:before {content: counter(pages);}").append('\n');
 		sb.append(".luceefssecpagenumber:before {content: counter(page);}").append('\n');
