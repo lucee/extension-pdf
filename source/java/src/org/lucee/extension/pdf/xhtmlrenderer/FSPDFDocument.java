@@ -339,9 +339,11 @@ public final class FSPDFDocument extends PDFDocument {
 		sb.append("@page { size: " + asString(dimension.getWidth()) + " " + asString(dimension.getHeight()) + ";}").append('\n');
 		sb.append("body {font-size: 21px;}").append('\n');
 
+		// the defaults derived from the tag attributes go first, so CSS in the document (e.g. @page size
+		// or margin, body font-size) comes later in the cascade and wins
 		Element style = doc.createElement("style");
 		style.appendChild(doc.createTextNode(sb.toString()));
-		head.appendChild(style);
+		head.insertBefore(style, head.getFirstChild());
 
 		moveStyleScript(head, body);
 		injectBookmarks(head, body);
