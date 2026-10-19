@@ -104,6 +104,14 @@ public final class FSPDFDocument extends PDFDocument {
 
 		Margin margin = new Margin(this, unitFactor, margintop, marginbottom, marginleft, marginright);
 
+		// scale: render on a page enlarged by 100/scale, PDFDocument.render() then scales every page
+		// back down to the requested size, so the content (not the page) ends up smaller
+		if (scale > 0 && scale < 100) {
+			double factor = 100D / scale;
+			dimension = new Dimension((int) Math.round(dimension.getWidth() * factor), (int) Math.round(dimension.getHeight() * factor));
+			margin.setScaleFactor(factor);
+		}
+
 		if ((margin.getLeftAsPoint() + margin.getRightAsPoint()) > dimension.getWidth()) throw engine.getExceptionUtil().createApplicationException(
 				"current document width (" + engine.getCastUtil().toString(dimension.getWidth()) + " point) is smaller that specified horizontal margin  ("
 						+ engine.getCastUtil().toString(margin.getLeftAsPoint() + margin.getRightAsPoint()) + " point).",

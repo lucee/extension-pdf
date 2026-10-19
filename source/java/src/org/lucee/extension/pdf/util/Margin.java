@@ -32,6 +32,9 @@ public class Margin {
 	private final double right;
 	private Cast cast;
 
+	// > 1 when the document is rendered on an enlarged page and scaled down afterwards (cfdocument scale)
+	private double scaleFactor = 1D;
+
 	public Margin(PDFDocument doc, double unitFactor, double top, double bottom, double left, double right) {
 		this.cast = CFMLEngineFactory.getInstance().getCastUtil();
 
@@ -89,20 +92,28 @@ public class Margin {
 		}
 	}
 
+	/**
+	 * Enlarges all margins by the given factor, so they keep their size when the rendered page is
+	 * scaled down by 1/factor afterwards.
+	 */
+	public void setScaleFactor(double scaleFactor) {
+		this.scaleFactor = scaleFactor;
+	}
+
 	public double getTopAsPoint() {
-		return toPoint(top, unitFactorTop);
+		return toPoint(top, unitFactorTop) * scaleFactor;
 	}
 
 	public double getBottomAsPoint() {
-		return toPoint(bottom, unitFactorBottom);
+		return toPoint(bottom, unitFactorBottom) * scaleFactor;
 	}
 
 	public double getLeftAsPoint() {
-		return toPoint(left, unitFactorLeft);
+		return toPoint(left, unitFactorLeft) * scaleFactor;
 	}
 
 	public double getRightAsPoint() {
-		return toPoint(right, unitFactorRight);
+		return toPoint(right, unitFactorRight) * scaleFactor;
 	}
 
 	public String getTop() {
@@ -122,6 +133,7 @@ public class Margin {
 	}
 
 	private String get(double nbr, int unit, double unitFactor) {
+		if (scaleFactor != 1D) return cast.toString(toPoint(nbr, unitFactor) * scaleFactor) + "pt";
 
 		if (unit == UNIT_PT || unit == UNIT_PX || isInteger(nbr)) {
 			return cast.toString(nbr) + getUnitAsString(unit);
