@@ -11,11 +11,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			writeOutput( "<h1>Test PDF Content</h1><p>This is test content for write action.</p>" );
 		}
 
-		// Create a PDF with form fields for flatten test
-		document fileName="#path#form_src.pdf" overwrite=true {
-			writeOutput( '<form><input type="text" name="firstName" value="" /></form>' );
-		}
-		pdfform action="populate" source="#path#form_src.pdf"
+		// AcroForm fixture built with PDFBox (Flying Saucer does not turn HTML <input> into form fields)
+		var fixture = getDirectoryFromPath( getCurrentTemplatePath() ) & "fixtures/form.pdf";
+		pdfform action="populate" source="#fixture#"
 			destination="#path#form_filled.pdf" overwrite=true {
 			pdfformparam name="firstName" value="Sherlock";
 		}
@@ -53,11 +51,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( isPDFFile( "#path#modified.pdf" ) ).toBeTrue();
 			});
 
-			it( title="write with flatten=true removes form fields, value remains visible", skip=true, body=function( currentSpec ) {
-				// PDFBOX-5962 (3.0.4+): flatten() empties getFields() in memory but the underlying
-				// COS field array survives save, so the form is resurrected on reload. The documented
-				// getAcroForm(null) workaround doesn't help when the source PDF was previously populated
-				// in a separate session. Re-enable once PDFBox lands a real fix.
+			it( title="write with flatten=true removes form fields, value remains visible", body=function( currentSpec ) {
 				// Sanity check the source has form fields
 				pdfform action="read" source="#path#form_filled.pdf" result="local.before";
 				expect( before.firstName ).toBe( "Sherlock" );
@@ -73,6 +67,30 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 				// Value still visible in page text
 				pdf action="extractText" source="#path#form_flattened.pdf" name="local.text" type="string";
+				expect( text ).toInclude( "Sherlock" );
+
+				// no form left in the document at all
+				pdfform action="read" source="#path#form_flattened.pdf" XMLdata="local.xml";
+				expect( xml ).notToInclude( "Sherlock" );
+			});
+
+			it( title="write without flatten keeps the form fields", body=function( currentSpec ) {
+				pdf action="write" source="#path#form_filled.pdf"
+					destination="#path#form_kept.pdf" overwrite=true;
+
+				pdfform action="read" source="#path#form_kept.pdf" result="local.after";
+				expect( after.firstName ).toBe( "Sherlock" );
+				expect( structCount( after ) ).toBe( 4 );
+			});
+
+			it( title="write flatten=true with destination equal to source", body=function( currentSpec ) {
+				fileCopy( "#path#form_filled.pdf", "#path#form_inplace.pdf" );
+				pdf action="write" source="#path#form_inplace.pdf"
+					destination="#path#form_inplace.pdf" overwrite=true flatten=true;
+
+				pdfform action="read" source="#path#form_inplace.pdf" result="local.after";
+				expect( structCount( after ) ).toBe( 0 );
+				pdf action="extractText" source="#path#form_inplace.pdf" name="local.text" type="string";
 				expect( text ).toInclude( "Sherlock" );
 			});
 

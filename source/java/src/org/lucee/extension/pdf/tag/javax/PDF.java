@@ -805,7 +805,8 @@ public class PDF extends BodyTagImpl implements Constants {
 		}
 
 		try {
-			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, version);
+			if (flatten) writeFlattened(doc, os);
+			else PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, version);
 		}
 		finally {
 			Util.closeEL(os);
@@ -814,8 +815,37 @@ public class PDF extends BodyTagImpl implements Constants {
 			}
 		}
 		this.overwrite = true;
+		// the flattened output keeps the document info already; setInfo re-reads [source] and would
+		// overwrite the flattened destination with the unflattened source again
+		if (flatten) return;
 		this.info = doc.getInfo();
 		doActionSetInfo();
+	}
+
+	/**
+	 * writes the document with all form fields flattened into the page content. Done with PDFBox
+	 * directly, because concat (PdfCopy) re-imports the widget annotations and the fields come back.
+	 */
+	private void writeFlattened(PDFStruct doc, OutputStream os) throws IOException {
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentCatalog catalog = pdDoc.getDocumentCatalog();
+			PDAcroForm acroForm = catalog.getAcroForm(null);
+			if (acroForm != null) {
+				acroForm.flatten(acroForm.getFields(), true);
+				// PDFBOX-5962 (3.0.4+): after flatten() the COS /Fields array can survive the save and
+				// the form is resurrected on reload; a flattened document has no form, so drop it
+				catalog.setAcroForm(null);
+			}
+			if (version != null && !version.isEmpty()) {
+				try {
+					pdDoc.setVersion(Float.parseFloat(version));
+				}
+				catch (NumberFormatException nfe) {
+					// keep the source version
+				}
+			}
+			pdDoc.save(os);
+		}
 	}
 
 	private void doActionAddHeaderFooter(boolean isHeader) throws PageException, IOException, DocumentException {
