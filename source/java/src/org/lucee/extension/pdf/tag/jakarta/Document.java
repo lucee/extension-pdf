@@ -34,6 +34,7 @@ import java.util.Map;
 import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
+import org.lucee.extension.pdf.util.ContentDisposition;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
 
@@ -824,7 +825,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 				throw engine.getExceptionUtil().createApplicationException("content is already flushed", "you can't rewrite head of response after part of the page is flushed");
 			rsp.setContentType("application/pdf");
 			rsp.setContentLength(pdf.length);
-			if (!Util.isEmpty(saveAsName, true)) rsp.setHeader("Content-Disposition", "inline; filename=\"" + saveAsName + "\"");
+			String disposition = ContentDisposition.inline(saveAsName);
+			if (disposition != null) rsp.setHeader("Content-Disposition", disposition);
 
 			OutputStream os = getOutputStream();
 			try {

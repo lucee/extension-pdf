@@ -34,6 +34,7 @@ import java.util.Map;
 import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
+import org.lucee.extension.pdf.util.ContentDisposition;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
 
@@ -858,8 +859,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		rspClass.getMethod("setContentLength", int.class).invoke(rsp, pdf.length);
 
 		// setHeader(String, String)
-		if (!Util.isEmpty(saveAsName, true))
-			rspClass.getMethod("setHeader", String.class, String.class).invoke(rsp, "Content-Disposition", "inline; filename=\"" + saveAsName + "\"");
+		String disposition = ContentDisposition.inline(saveAsName);
+		if (disposition != null) rspClass.getMethod("setHeader", String.class, String.class).invoke(rsp, "Content-Disposition", disposition);
 	}
 
 	private boolean hasExplicitBookmarks(ArrayList<PDFDocument> docs) {
