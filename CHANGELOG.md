@@ -1,22 +1,26 @@
 # Lucee PDF Extension - Changelog
 
-## v3.0 - OpenHTMLToPDF
+## v3.0
 
-Major rewrite switching from Flying Saucer/iText to OpenHTMLToPDF + PDFBox 3.x.
+Requires **Lucee 7.1+** and **Java 21**. `cfdocument` keeps the Flying Saucer renderer, updated to 10.3 and now on OpenPDF instead of iText 2. All `cfpdf`/`cfpdfform` work is done with PDFBox 3. The commercial PD4ML ("classic") engine is gone.
 
 ### Breaking Changes
 
-- **Engine Removed**: PD4ML engine no longer available (was commercial/proprietary)
-- **Engine Replaced**: Flying Saucer + iText replaced with OpenHTMLToPDF + PDFBox 3.x
-- **Java Requirement**: Requires Java 11+
+- **Lucee 7.1+ and Java 21 required.** The extension is built for Jakarta EE (Tomcat 10+). For Lucee 6, use PDF Extension 1.0 or 2.0.
+- **`type="classic"` (PD4ML) is now an error.** `cfdocument type="classic"`, `type="pd4ml"` and `this.pdf.type = "classic"` throw `PDF engine [classic] is no longer supported, please use [modern] instead.` In 2.x they rendered with PD4ML. `type="modern"` (or no type) is the only engine.
+- **iText 2 removed.** The renderer now writes through OpenPDF 3. Code that reached into the old `com.lowagie` classes via `createObject` no longer works.
+- **`cfpdf` without `action`** throws `attribute [action] is required for tag [cfpdf]` instead of silently doing nothing (LDEV-6654).
 
 ### Library Stack
 
 | Component | Version | Purpose |
 |-----------|---------|---------|
-| OpenHTMLToPDF | 1.1.37 | HTML/CSS to PDF rendering |
-| PDFBox | 3.0.7 | PDF manipulation (cfpdf actions) |
-| jsoup | 1.22.1 | HTML parsing/cleanup |
+| Flying Saucer | 10.3.0 | HTML/CSS rendering for `cfdocument` |
+| OpenPDF | 3.0.5 | PDF output of the renderer, merge/concat, watermark/header/footer stamping |
+| PDFBox | 3.0.7 | `cfpdf` / `cfpdfform` actions (text, images, forms, attachments, signatures, optimize, ...) |
+| xmpbox | 3.0.7 | PDF/A detection (XMP metadata) |
+| TagSoup | 1.2.1 | HTML clean-up before rendering |
+| Bouncy Castle | 1.84 | encryption and signature validation |
 
 ### New cfpdf Actions
 
@@ -163,69 +167,45 @@ Child tag of cfpdfform for specifying form field values.
 
 ### Bookmarks
 
-- **Accurate page destinations**: Bookmarks now use OpenHTMLToPDF's native `<bookmarks>` support, pointing to exact rendered page positions instead of section start pages
-- **Merge preserves bookmarks**: `cfpdf action="merge"` with `keepbookmark=true` now preserves and remaps bookmarks from all source PDFs, with correct page offsets
-- **Page filtering**: Bookmarks pointing to excluded pages are automatically removed during merge
-- **HTML heading bookmarks**: `htmlbookmark=true` creates bookmarks with correct per-page destinations
+- **HTML heading bookmarks**: `htmlbookmark=true` creates the outline from `<h1>`–`<h6>`, using Flying Saucer's `<bookmarks>` support, so entries point to the rendered page.
+- **Merge keeps bookmarks**: `cfpdf action="merge"` with `keepbookmark=true` keeps the bookmarks of all sources, shifts them by each source's page offset, and drops bookmarks to pages that are excluded.
 
-### cfdocument scale attribute
+### cfdocument
 
-The `scale` attribute (1-100) now works, rendering content at the specified percentage of the page size.
-
-```cfml
-<cfdocument format="pdf" scale="50">
-    <h1>Half-size content</h1>
-</cfdocument>
-```
-
-### cfdocument resourceHandler attribute
-
-Custom resource fetching for images, CSS, and other resources. Accepts a Component (with `onResourceFetch(url, parsedUrl)` method) or a UDF. Return binary/string content to use, or null to fall through to default fetching. Useful for session-protected resources or custom auth.
-
-The handler receives two arguments:
-
-- `url` (string) — the raw URL
-- `parsedUrl` (struct) — with keys: `protocol`, `host`, `port`, `path`, `query`, `fragment`
+- **`scale`** (1–100) shrinks the content to that percentage while the page size stays as requested (LDEV-6641).
+- **`resourceHandler`**: a Component (with `onResourceFetch( url, parsedUrl )`) or a UDF that can supply remote (http/https) resources, such as images, CSS and the `src` document. Return binary or string content to use it, or null to fall through to the default fetch. `parsedUrl` has the keys `protocol`, `host`, `port`, `path`, `query` and `fragment`. If the handler throws, the error is logged to the `pdf` log and the default fetch is used (LDEV-6640).
 
 ```cfml
-<!--- Component handler --->
-<cfdocument format="pdf" resourceHandler="#new my.ResourceHandler()#">
-    <img src="http://internal/session-image.png"/>
-</cfdocument>
-
-<!--- UDF handler with parsed URL --->
 <cfdocument format="pdf" resourceHandler="#function( url, parsedUrl ) {
-    if ( arguments.parsedUrl.host == "internal" ) {
-        return myCustomFetch( arguments.url, session.authToken );
-    }
+    if ( arguments.parsedUrl.host == "internal" ) return myCustomFetch( arguments.url, session.authToken );
 }#">
     <img src="http://internal/protected.png"/>
 </cfdocument>
 ```
 
-### Improvements
-
-- **Smaller Footprint**: Significantly reduced JAR size vs iText
-- **No License Issues**: All open source libraries (Apache 2.0, LGPL)
-- **Better CSS Support**: CSS 2.1 with some CSS3 support via OpenHTMLToPDF
-- **Modern PDFBox**: PDFBox 3.x with improved performance and security
-- **Self-closing HTML tags**: Unknown/custom tags are allowed to self-close for compatibility with real-world HTML
-- **Removed legacy v2 dist jars**: Cleaned out old iText, Flying Saucer, TagSoup, and pre-release PDFBox jars
-- **OpenHTMLToPDF logging bridge**: Replaced the JUL handler with a native `XRLogger` impl (`LuceeXRLogger`). Engine output now reaches Lucee's pdf log with SLF4J `{}` placeholders correctly substituted, throwables forwarded with stack traces, and per-call PageContext lookup so admin reconfig takes effect without restart.
-- **Font load diagnostics**: When a font in a `fontdirectory` can't have its TTF family name read (corrupt file, etc.), `cfdocument` now logs a WARN to the `pdf` log with the file path and the family name it fell back to (the filename). Previously this silently degraded — users would set `fontdirectory`, the font lookup would later miss because the registered family name didn't match what they expected, and there was no signal at all. Successful registrations are logged at DEBUG.
+- **`debughtml`**: writes the fully assembled HTML that is passed to the renderer (after CSS injection, header/footer and bookmark injection). `debughtml=true` writes a `.html` file next to `filename`; `debughtml="path/to/dump.html"` writes to that path.
+- **CSS in the document wins over the tag defaults**: the generated defaults (page size and margins from the tag attributes, page counters, header/footer running elements) are placed first in `<head>`, so `@page { size: …; margin: … }` and other document CSS override them (LDEV-6649).
+- **Table headers repeat**: `<thead>` and `<tfoot>` are repeated on every page a table spans (LDEV-6650).
+- **Remote fetch timeout**: the `src` document, images and stylesheets are fetched with a connect/read timeout of 30s. It can be changed with the system property `lucee.pdf.remote.timeout` or the env var `LUCEE_PDF_REMOTE_TIMEOUT` (milliseconds). Before, an unresponsive host could block the request forever (LDEV-6651).
+- **Font load diagnostics**: a font in `fontdirectory` that can't be loaded is logged as a WARN to the `pdf` log instead of being ignored silently (LDEV-6655).
 
 ### Bug Fixes
 
-- **`cfdocumentitem type="footer"` only rendered on the last page**: The footer `<div>` was appended at the end of `<body>`, so OpenHTMLToPDF's `position: running(footer)` only picked it up *after* its source position — leaving every earlier page with no footer. Now prepended like the header, so the running element is declared before pagination begins and flows into every page's `@bottom-center` margin box. CSS page counters (`<span class="pdf-page-number">` / `pdf-page-count`, and the `{currentpagenumber}` / `{totalpagecount}` placeholders) now produce correct "Page X of Y" output on every page.
+- `cfpdf action="write" flatten=true` flattens form fields (LDEV-6643).
+- `cfpdf action="merge" directory=… filter=…` applies the filter: `*` and `?` wildcards, `|` for several patterns, case-insensitive (LDEV-6644).
+- `cfpdf` `extractText`, `thumbnail`, `extractImage` and PDF watermarks close the source document, so there are no more leaked file handles, and `extractText type="xml"` returns well-formed XML (LDEV-6642).
+- `cfdocument saveAsName` is sanitised in the `Content-Disposition` header (CR/LF and quotes removed, RFC 5987 `filename*` for non-ASCII names) (LDEV-6646).
+- `cfdocument filename` is checked against the security manager's file access, like `srcfile` (LDEV-6647).
+- The header/footer template index is bounds checked for `evalAtPrint` headers/footers (LDEV-6653).
 
-### New cfdocument Attributes
+### Removed
 
-- **`debughtml`**: dump the fully-assembled HTML (after engine CSS injection, header/footer flow, and bookmark injection) that gets passed to OpenHTMLToPDF. Useful when a PDF renders unexpectedly and you want to see what the engine actually fed the renderer. `debughtml=true` writes a `.html` sidecar next to `filename`; `debughtml="path/to/dump.html"` writes to an explicit path. Requires `filename` to be set when used in boolean form.
+- PD4ML engine and related classes (see Breaking Changes).
+- iText 2 (replaced by OpenPDF 3 for the renderer and by PDFBox 3 for `cfpdf`).
+- `FontsJarExtractor` / `initDefaultFontDirectory()`: these seeded `{lucee-config}/fonts` from a `fonts.jar` that is no longer shipped. The font directory fallback chain (`cfdocument fontdirectory` → `this.pdf.fontDirectory` → `{lucee-config}/fonts`) is unchanged; populate `{lucee-config}/fonts` yourself if you want a default set (LDEV-6656).
+- The test-only functions `GetPDFLinkURIs`, `CountPDFLinkAnnotations` and `GetPDFFontNamesList`, which had been registered as BIFs in 3.0 snapshots (LDEV-6652).
 
-### Removed Features
+### Not supported (known gaps)
 
-- PD4ML engine and related classes
-- Flying Saucer renderer (replaced by OpenHTMLToPDF)
-- iText dependency (replaced by PDFBox)
-- `FontsJarExtractor` and `initDefaultFontDirectory()` — PD4ML-era bootstrap that scanned the classpath for a legacy `fonts.jar` and seeded `{lucee-config}/fonts`. The jar isn't shipped on Lucee 7.x so the call was a no-op. The font-directory fallback chain (`cfdocument fontdirectory` → `this.pdf.fontDirectory` → `{lucee-config}/fonts`) is unchanged; admins now populate `{lucee-config}/fonts` themselves if they want a default set.
-- Type/engine selection machinery: `PDFDocument.TYPE_NONE`/`TYPE_PD4ML`/`TYPE_FS` constants, `PDFDocument.newInstance(int)`, `ApplicationSettings.getType()` and the `this.pdf.type` parsing block, and the `selectedType` field in the `cfdocument` tag. The `type` attribute on `cfdocument` and the `this.pdf.type` setting are still accepted (TLD compat) but silently ignored — OpenHTMLToPDF is the only engine.
+- `cfpdf action="processDDX"` is not implemented.
+- HTML `<input>` elements in `cfdocument` are not turned into AcroForm fields (Flying Saucer limitation). Use `cfpdfform action="populate"` on an existing form PDF instead.

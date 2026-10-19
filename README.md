@@ -7,10 +7,15 @@ Docs: https://docs.lucee.org/categories/pdf.html
 Issues: https://luceeserver.atlassian.net/issues/?jql=labels%20%3D%20PDF
 
 
+## Requirements
+
+* Lucee 7.1 or newer (Jakarta EE). For Lucee 6 use PDF Extension 1.0 or 2.0.
+* Java 21
+
 ## Build
 
 ### Requirements
-* [Apache Ant](https://ant.apache.org/)
-* Java 8
+* Java 21
+* [Apache Maven](https://maven.apache.org/) 3.9+
 
-Run `ant` in the project directory to build.
+Run `mvn package` in the project directory. The `.lex` files are written to `target/`.
