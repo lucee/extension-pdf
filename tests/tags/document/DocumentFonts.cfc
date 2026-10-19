@@ -23,7 +23,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( trim( local.txt ).reReplace( "\s+", " ", "all" ) ).toBe( "Hello Liberation" );
 
 				// font name should be embedded in the PDF (typically with a subset prefix like "ABCDEF+LiberationSans")
-				expect( getPDFFontNamesList( "#path#liberation.pdf" ) ).toInclude( "LiberationSans" );
+				expect( getFontNames( "#path#liberation.pdf" ) ).toInclude( "LiberationSans" );
 			});
 
 			it( title="Arabic font renders RTL text (LDEV-3836 family regression)", body=function( currentSpec ) {
@@ -188,7 +188,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( trim( local.txt ) ).toBe( "From AppCfc" );
 
 				// proves the Application.cfc-supplied font dir was actually used
-				expect( getPDFFontNamesList( pdfPath ) ).toInclude( "LiberationSans" );
+				expect( getFontNames( pdfPath ) ).toInclude( "LiberationSans" );
 			});
 
 		});
@@ -208,6 +208,26 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				scale=100
 				overwrite=true;
 		}
+	}
+
+	// embedded font names as a comma separated list
+	private string function getFontNames( required string pdfPath ) {
+		return pdfBoxHelper().getPDFFontNamesList( javaCast( "string", arguments.pdfPath ) );
+	}
+
+	// PDFBox introspection for assertions. The helper class lives in the extension bundle, which is not
+	// on the CFML classpath, so it is loaded through the extension's own maven coordinate.
+	private function pdfBoxHelper() {
+		if ( isNull( variables._pdfBoxHelper ) ) {
+			var version = "";
+			var q = extensionList();
+			loop query=q {
+				if ( q.name contains "PDF Extension" ) version = q.version;
+			}
+			if ( !len( version ) ) throw( message="PDF extension is not installed" );
+			variables._pdfBoxHelper = createObject( "java", "org.lucee.extension.pdf.util.PDFBoxHelper", { maven: [ "org.lucee:pdf:" & version ] } );
+		}
+		return variables._pdfBoxHelper;
 	}
 
 }
