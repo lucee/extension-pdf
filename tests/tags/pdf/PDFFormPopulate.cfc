@@ -5,20 +5,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 		if ( directoryExists( variables.path ) ) directoryDelete( variables.path, true );
 		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
-		// Generate a PDF with real AcroFields from HTML form elements
-		document fileName="#path#form.pdf" overwrite=true {
-			writeOutput( '
-				<html><body>
-				<h1>Test Form</h1>
-				<form>
-					<p>First: <input type="text" name="firstName" value="" /></p>
-					<p>Last: <input type="text" name="lastName" value="" /></p>
-					<p>Email: <input type="text" name="email" value="" /></p>
-					<p>Phone: <input type="text" name="phone" value="" /></p>
-				</form>
-				</body></html>
-			' );
-		}
+		// AcroForm fixture built with PDFBox (empty text fields firstName, lastName, email, phone); Flying Saucer does not
+		// turn HTML <input> elements into form fields, so the form can't come from cfdocument
+		fileCopy( getDirectoryFromPath( getCurrentTemplatePath() ) & "fixtures/form.pdf", "#path#form.pdf" );
 
 		// Create test XML data
 		variables.testXML = '<?xml version="1.0"?>
@@ -38,7 +27,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	function run( testResults, testBox ) {
 
-		xdescribe( "cfpdfform action=populate with cfpdfformparam", function() {
+		describe( "cfpdfform action=populate with cfpdfformparam", function() {
 
 			it( title="populate single field", body=function( currentSpec ) {
 				pdfform action="populate" source="#path#form.pdf"
@@ -79,7 +68,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 		});
 
-		xdescribe( "cfpdfform action=populate with XMLdata", function() {
+		describe( "cfpdfform action=populate with XMLdata", function() {
 
 			it( title="populate from XML file", body=function( currentSpec ) {
 				pdfform action="populate" source="#path#form.pdf"
@@ -119,7 +108,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 		});
 
-		xdescribe( "cfpdfform action=populate options", function() {
+		describe( "cfpdfform action=populate options", function() {
 
 			it( title="populate with name attribute returns PDF variable", body=function( currentSpec ) {
 				pdfform action="populate" source="#path#form.pdf" name="local.filled" {
