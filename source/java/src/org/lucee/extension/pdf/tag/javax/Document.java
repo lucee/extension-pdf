@@ -648,7 +648,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		fontembed = fontembed.trim();
 		Boolean fe = engine.getCastUtil().toBoolean(fontembed, null);
 		if (fe == null) {
-			if ("selective".equalsIgnoreCase(fontembed)) this.attrFontembed = PDFDocument.FONT_EMBED_SELECCTIVE;
+			if ("selective".equalsIgnoreCase(fontembed)) this.attrFontembed = PDFDocument.FONT_EMBED_SELECTIVE;
 			else throw engine.getExceptionUtil().createAbortException("invalid value for fontembed [" + fontembed + "], valid values for fontembed are [yes,no,selective]");
 		}
 		else if (fe.booleanValue()) {

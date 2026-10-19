@@ -111,7 +111,7 @@ public abstract class PDFDocument {
 	// fontembed
 	public static final int FONT_EMBED_NO = 0;
 	public static final int FONT_EMBED_YES = 1;
-	public static final int FONT_EMBED_SELECCTIVE = FONT_EMBED_YES;
+	public static final int FONT_EMBED_SELECTIVE = FONT_EMBED_YES;
 
 	// unit
 	public static final double UNIT_FACTOR_CM = Margin.UNIT_FACTOR_CM;// 85d / 3d;// =28.333333333333333333333333333333333333333333;
