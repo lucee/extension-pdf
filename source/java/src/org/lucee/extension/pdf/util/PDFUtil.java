@@ -444,7 +444,9 @@ public class PDFUtil {
 	}
 
 	public static BufferedImage toImage(PDFStruct doc) throws PageException, IOException {
-		return new PDFRenderer(doc.toPDDocument()).renderImage(0, 1); // 0 is page number, 1 is scale
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			return new PDFRenderer(pdDoc).renderImage(0, 1); // 0 is page number, 1 is scale
+		}
 	}
 
 	public static void writeImages(byte[] input, Set pages, Resource outputDirectory, String prefix, String format, int scale, boolean overwrite, boolean goodQuality,
@@ -454,55 +456,76 @@ public class PDFUtil {
 	}
 
 	public static Object extractText(PDFStruct doc, Set<Integer> pageNumbers, int type, Resource destination) throws IOException, InvalidPasswordException {
-		PDDocument pdDoc = doc.toPDDocument();
-		// PDDocument newDocument = new PDDocument();
-		// List pages = pdDoc.getDocumentCatalog().getAllPages();
-		// pages.
-		// pdDoc.getDocumentCatalog().
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
-		int n = pdDoc.getNumberOfPages();
-		Iterator<Integer> it = pageNumbers.iterator();
-		// PDFTextStripper textStripper=new PDFTextStripper();
-		int p;
 		StringBuilder sb = new StringBuilder();
-		PDFTextStripper stripper = new PDFTextStripper();
-		if (destination != null) stripper.setLineSeparator(" ");
-
-		if (type == Constants.TYPE_XML) {
-			sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-			sb.append("<DocText>");
-			sb.append("<TextPerPage>");
-		}
-
-		while (it.hasNext()) {
-			PDDocument document = new PDDocument();
-			p = it.next();
-			if (type == Constants.TYPE_XML) sb.append("<page pagenumber=" + "\"" + p + "\" " + ">");
-			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
-			document.addPage(pdDoc.getDocumentCatalog().getPages().get(p - 1));
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			int n = pdDoc.getNumberOfPages();
+			Iterator<Integer> it = pageNumbers.iterator();
+			int p;
+			PDFTextStripper stripper = new PDFTextStripper();
 			stripper.setSortByPosition(true);
-			String text = stripper.getText(document);
-			sb.append(text);
-			if (type == Constants.TYPE_XML) sb.append("</page>");
-		}
-		if (type == Constants.TYPE_XML) {
-			sb.append("</TextPerPage>");
-			sb.append("</DocText>");
-		}
+			if (destination != null) stripper.setLineSeparator(" ");
 
-		// print.o(pages);
+			if (type == Constants.TYPE_XML) {
+				sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+				sb.append("<DocText>");
+				sb.append("<TextPerPage>");
+			}
 
-		// pdDoc.
-		// PDFTextStripperByArea stripper = new PDFTextStripperByArea();
-		// PDFHighlighter stripper = new PDFHighlighter();
-		// PDFText2HTML stripper = new PDFText2HTML("UDF-8");// TODO pass in encoding
-		// PDFTextStripper stripper = new PDFTextStripper();
-		// StringWriter writer = new StringWriter();
-		// stripper.writeText(document, writer);
+			while (it.hasNext()) {
+				p = it.next();
+				if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+				// extract a single page straight from the document, no temporary PDDocument needed
+				stripper.setStartPage(p);
+				stripper.setEndPage(p);
+				String text = stripper.getText(pdDoc);
+				if (type == Constants.TYPE_XML) {
+					sb.append("<page pagenumber=\"").append(p).append("\">");
+					sb.append(escapeXml(text));
+					sb.append("</page>");
+				}
+				else sb.append(text);
+			}
+			if (type == Constants.TYPE_XML) {
+				sb.append("</TextPerPage>");
+				sb.append("</DocText>");
+			}
+		}
 
 		if (destination != null) engine.getIOUtil().copy(new ByteArrayInputStream(sb.toString().getBytes("UTF-8")), destination, true);
 		return sb.toString();
-		// return pdDoc.getDocumentCatalog().getAllPages().get(2);
+	}
+
+	/**
+	 * Escapes text for an XML text node, and drops characters XML 1.0 does not allow (e.g. control
+	 * characters that some PDFs contain).
+	 */
+	static String escapeXml(String text) {
+		if (text == null) return "";
+		StringBuilder sb = new StringBuilder(text.length());
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			switch (c) {
+			case '&':
+				sb.append("&amp;");
+				break;
+			case '<':
+				sb.append("&lt;");
+				break;
+			case '>':
+				sb.append("&gt;");
+				break;
+			case '"':
+				sb.append("&quot;");
+				break;
+			case '\'':
+				sb.append("&apos;");
+				break;
+			default:
+				if (c == 0x9 || c == 0xA || c == 0xD || (c >= 0x20 && c <= 0xD7FF) || (c >= 0xE000 && c <= 0xFFFD) || Character.isSurrogate(c)) sb.append(c);
+			}
+		}
+		return sb.toString();
 	}
 
 	public static void thumbnail(PageContext pc, PDFStruct doc, String destination, Set<Integer> pageNumbers, String format, String imagePrefix, int scale, boolean overwrite)
@@ -510,68 +533,69 @@ public class PDFUtil {
 
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 
-		PDDocument pdDoc = doc.toPDDocument();
-		int n = pdDoc.getNumberOfPages();
-		Iterator<Integer> it = pageNumbers.iterator();
-		int p;
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			int n = pdDoc.getNumberOfPages();
+			Iterator<Integer> it = pageNumbers.iterator();
+			int p;
 
-		PDFRenderer pdfRender = new PDFRenderer(pdDoc);
+			PDFRenderer pdfRender = new PDFRenderer(pdDoc);
 
-		while (it.hasNext()) {
-			p = it.next();
+			while (it.hasNext()) {
+				p = it.next();
 
-			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+				if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
 
-			// thumbnail image file destination
-			String imageDestination = destination + "/" + imagePrefix + "_page_" + p + "." + format;
+				// thumbnail image file destination
+				String imageDestination = destination + "/" + imagePrefix + "_page_" + p + "." + format;
 
-			BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
-			Resource res = engine.getResourceUtil().toResourceNotExisting(pc, imageDestination);
-			if (res.exists() && !overwrite) throw new RuntimeException("Thumbnail image file already exists [" + imageDestination + "] and overwrite was false");
-			engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res, true);
+				BufferedImage thumbnailImage = pdfRender.renderImageWithDPI(p - 1, scale);
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				ImageIO.write(thumbnailImage, format, baos); // this one not support .tiff format
+				Resource res = engine.getResourceUtil().toResourceNotExisting(pc, imageDestination);
+				if (res.exists() && !overwrite) throw new RuntimeException("Thumbnail image file already exists [" + imageDestination + "] and overwrite was false");
+				engine.getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res, true);
+			}
 		}
 	}
 
 	public static void extractImages(PageContext pc, PDFStruct doc, Set<Integer> pageNumbers, Resource destination, String imagePrefix, String format, boolean overwrite)
 			throws IOException, InvalidPasswordException, PageException {
 
-		PDDocument pdDoc = doc.toPDDocument();
-		int n = pdDoc.getNumberOfPages();
-		Iterator<Integer> it = pageNumbers.iterator();
-		int p;
-		PDPageTree pages = pdDoc.getPages();
-		int i = 1;
-		while (it.hasNext()) {
-			p = it.next();
-			if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
-			PDResources pdResources = pages.get(p - 1).getResources();
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			int n = pdDoc.getNumberOfPages();
+			Iterator<Integer> it = pageNumbers.iterator();
+			int p;
+			PDPageTree pages = pdDoc.getPages();
+			int i = 1;
+			while (it.hasNext()) {
+				p = it.next();
+				if (p > n) throw new RuntimeException("pdf page size [" + p + "] out of range, maximum page size is [" + n + "]");
+				PDResources pdResources = pages.get(p - 1).getResources();
 
-			// workjaround, getXObjectNames() returns images in reverse order
-			ArrayList<COSName> xObjectNamesReversed = new ArrayList<>();
-			for (COSName name: pdResources.getXObjectNames()) {
-				xObjectNamesReversed.add(name);
-			}
-			Collections.reverse(xObjectNamesReversed);
+				// workjaround, getXObjectNames() returns images in reverse order
+				ArrayList<COSName> xObjectNamesReversed = new ArrayList<>();
+				for (COSName name: pdResources.getXObjectNames()) {
+					xObjectNamesReversed.add(name);
+				}
+				Collections.reverse(xObjectNamesReversed);
 
-			for (COSName name: xObjectNamesReversed) {
-				PDXObject o = pdResources.getXObject(name);
+				for (COSName name: xObjectNamesReversed) {
+					PDXObject o = pdResources.getXObject(name);
 
-				if (o instanceof PDImageXObject) {
-					PDImageXObject image = (PDImageXObject) o;
-					String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
-					CFMLEngine engine = CFMLEngineFactory.getInstance();
-					Resource res = engine.getResourceUtil().toResourceNotExisting(pc, filename);
-					if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					ImageIO.write(image.getImage(), format, baos);
-					CFMLEngineFactory.getInstance().getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res.getOutputStream(), true, true);
-					i++;
+					if (o instanceof PDImageXObject) {
+						PDImageXObject image = (PDImageXObject) o;
+						String filename = destination + "/" + imagePrefix + "-" + i + "." + format;
+						CFMLEngine engine = CFMLEngineFactory.getInstance();
+						Resource res = engine.getResourceUtil().toResourceNotExisting(pc, filename);
+						if (res.exists() && !overwrite) throw new RuntimeException("image file already exists [" + filename + "] and overwrite was false");
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						ImageIO.write(image.getImage(), format, baos);
+						CFMLEngineFactory.getInstance().getIOUtil().copy(new ByteArrayInputStream(baos.toByteArray()), res.getOutputStream(), true, true);
+						i++;
+					}
 				}
 			}
 		}
-
 	}
 
 	public static Object extractBookmarks(PageContext pc, PdfReader reader) throws IOException, InvalidPasswordException, PageException {
