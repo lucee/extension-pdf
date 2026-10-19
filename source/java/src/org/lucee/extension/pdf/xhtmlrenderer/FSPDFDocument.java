@@ -43,6 +43,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xhtmlrenderer.pdf.ITextFontResolver;
+import org.xhtmlrenderer.pdf.ITextOutputDevice;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -66,7 +67,14 @@ public final class FSPDFDocument extends PDFDocument {
 
 	@Override
 	public byte[] _render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException, DocumentException {
-		ITextRenderer renderer = new ITextRenderer();
+		ITextRenderer renderer;
+		if (hasResourceHandler()) {
+			// a custom user agent lets the resourceHandler supply CSS, images and other resources
+			ITextOutputDevice outputDevice = new ITextOutputDevice(ITextRenderer.DEFAULT_DOTS_PER_POINT);
+			ResourceHandlerUserAgent userAgent = new ResourceHandlerUserAgent(outputDevice, ITextRenderer.DEFAULT_DOTS_PER_PIXEL, this, pc);
+			renderer = new ITextRenderer(ITextRenderer.DEFAULT_DOTS_PER_POINT, ITextRenderer.DEFAULT_DOTS_PER_PIXEL, outputDevice, userAgent);
+		}
+		else renderer = new ITextRenderer();
 
 		// prepare(fontDirectory, "fs.properties");
 
@@ -167,6 +175,14 @@ public final class FSPDFDocument extends PDFDocument {
 		else if (src != null) {
 			if (charset == null) charset = pc.getResourceCharset();
 			URL url = engine.getHTTPUtil().toURL(src);
+
+			// resourceHandler can supply the document itself
+			byte[] fromHandler = fetchFromResourceHandler(pc, url.toExternalForm());
+			if (fromHandler != null) {
+				if (mimeType == MIMETYPE_OTHER) mimeType = MIMETYPE_TEXT_HTML;
+				render(pc, renderer, new ByteArrayInputStream(fromHandler), os, url, margin, dimension, pageOffset);
+				return;
+			}
 
 			// set Proxy
 			if (Util.isEmpty(proxyserver) && config.isProxyEnableFor(url.getHost())) {

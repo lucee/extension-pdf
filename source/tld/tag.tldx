@@ -204,7 +204,7 @@
 			<name>resourceHandler</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<description>A Component or UDF that handles resource fetching (images, CSS, etc). The handler receives two named arguments: `url` (string, the raw URL) and `parsedUrl` (struct with keys: protocol, host, port, path, query, fragment). A Component should expose an `onResourceFetch( url, parsedUrl )` method. Return binary or string content to use, or null to fall through to default fetching. (since v3)</description>
+			<description>A Component or UDF that handles fetching of remote (http/https) resources: the document itself when using the `src` attribute, and images, CSS etc. referenced by the document. The handler receives two named arguments: `url` (string, the raw URL) and `parsedUrl` (struct with keys: protocol, host, port, path, query, fragment). A Component should expose an `onResourceFetch( url, parsedUrl )` method. Return binary or string content to use, or null to fall through to default fetching. (since v3)</description>
 		</attribute>
 		<attribute>
 			<type>string</type>
