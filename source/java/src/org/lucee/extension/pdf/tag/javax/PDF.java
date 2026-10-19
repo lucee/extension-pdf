@@ -801,9 +801,9 @@ public class PDF extends BodyTagImpl implements Constants {
 			else if (ACTION_OPTIMIZE == action) doActionOptimize();
 			else if (ACTION_SANITIZE == action) doActionSanitize();
 			else if (ACTION_ADD_STAMP == action) doActionAddStamp();
-
-			// else if(ACTION_PROCESSDDX==action) throw
-			// engine.getExceptionUtil().createApplicationException("action [processddx] not supported");
+			// no (or no supported) action given: fail instead of silently doing nothing
+			else throw engine.getExceptionUtil().createApplicationException("attribute [action] is required for tag [cfpdf]",
+					"supported actions are [addAttachments, addHeader, addFooter, addStamp, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, optimize, protect, read, readSignatureFields, removeAttachments, removePassword, removeWatermark, sanitize, setInfo, thumbnail, transform, validateSignature, write]");
 
 		}
 		catch (Exception e) {
