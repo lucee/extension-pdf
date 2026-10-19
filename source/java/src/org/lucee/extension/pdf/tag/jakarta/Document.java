@@ -983,10 +983,12 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	private int getMultipleHF(PDFDocument doc) {
-		int count;
-		if (doc.getHeader() != null && (count = doc.getHeader().getHtmlTemplates().size()) > 1) return count;
-		if (doc.getFooter() != null && (count = doc.getFooter().getHtmlTemplates().size()) > 1) return count;
-		return 1;
+		// header and footer can have a different number of per page templates; render as many passes as
+		// the larger one needs (PDFPageMark clamps the index for the smaller one)
+		int count = 1;
+		if (doc.getHeader() != null) count = Math.max(count, doc.getHeader().getHtmlTemplates().size());
+		if (doc.getFooter() != null) count = Math.max(count, doc.getFooter().getHtmlTemplates().size());
+		return count;
 	}
 
 	private void renderUpdate(byte[] pdf, OutputStream os) throws Exception {

@@ -66,8 +66,13 @@ public class PDFPageMark {
 	}
 
 	public String getHtmlTemplate() {
-		if (htmlTemplates.size() == 0) return "";
-		if (htmlTemplates.size() == 1) return htmlTemplates.get(0);
+		int size = htmlTemplates.size();
+		if (size == 0) return "";
+		if (size == 1) return htmlTemplates.get(0);
+		// the index comes from the render loop over the largest template count of header and footer, so
+		// it can be past the end of this list; clamp instead of failing the whole document
+		if (hfIndex < 0) return htmlTemplates.get(0);
+		if (hfIndex >= size) return htmlTemplates.get(size - 1);
 		return htmlTemplates.get(hfIndex);
 	}
 
