@@ -41,6 +41,12 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			it( title="the broken font is logged as a warning, non font files are not", body=function( currentSpec ) {
 				// a "pdf" log configured outside this test writes somewhere else
 				if ( !variables.createdLog ) return;
+				// log appenders can write asynchronously, give it a few seconds
+				var waited = 0;
+				while ( waited < 10000 && ( !fileExists( logFile ) || !len( fileRead( logFile ) ) ) ) {
+					sleep( 250 );
+					waited += 250;
+				}
 				expect( fileExists( logFile ) ).toBeTrue( "pdf log file should have been written" );
 				var content = fileRead( logFile );
 				expect( content ).toInclude( "Broken.ttf" );
