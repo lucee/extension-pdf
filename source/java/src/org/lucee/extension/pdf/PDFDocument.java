@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,8 +57,11 @@ import lucee.commons.net.http.HTTPResponse;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
+import lucee.runtime.Component;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Struct;
+import lucee.runtime.type.UDF;
 import lucee.runtime.util.ResourceUtil;
 
 public abstract class PDFDocument {
@@ -117,7 +121,7 @@ public abstract class PDFDocument {
 	// fontembed
 	public static final int FONT_EMBED_NO = 0;
 	public static final int FONT_EMBED_YES = 1;
-	public static final int FONT_EMBED_SELECCTIVE = FONT_EMBED_YES;
+	public static final int FONT_EMBED_SELECTIVE = FONT_EMBED_YES;
 
 	// unit
 	public static final double UNIT_FACTOR_CM = Margin.UNIT_FACTOR_CM;// 85d / 3d;// =28.333333333333333333333333333333333333333333;
@@ -589,6 +593,65 @@ public abstract class PDFDocument {
 		this.onResourceFetch = onResourceFetch;
 	}
 
+	public final boolean hasResourceHandler() {
+		return onResourceFetch != null;
+	}
+
+	/**
+	 * Asks the resourceHandler (a UDF/closure, or a component with an onResourceFetch method) for the
+	 * content of the given URL.
+	 *
+	 * @return the content, or null when no handler is set or the handler returned null (the caller
+	 *         then fetches the resource as usual)
+	 */
+	public final byte[] fetchFromResourceHandler(PageContext pc, String url) throws PageException {
+		if (onResourceFetch == null) return null;
+		Struct args = engine.getCreationUtil().createStruct();
+		args.setEL("url", url);
+		args.setEL("parsedUrl", toParsedUrl(url));
+
+		Object result = null;
+		if (onResourceFetch instanceof Component) {
+			Component cfc = (Component) onResourceFetch;
+			if (cfc.get(engine.getCreationUtil().createKey(ON_RESOURCE_FETCH), null) instanceof UDF) {
+				result = cfc.callWithNamedValues(pc, ON_RESOURCE_FETCH, args);
+			}
+		}
+		else if (onResourceFetch instanceof UDF) {
+			result = ((UDF) onResourceFetch).callWithNamedValues(pc, args, true);
+		}
+		else {
+			throw engine.getExceptionUtil().createApplicationException(
+					"attribute [resourceHandler] must be a function or a component with a function [" + ON_RESOURCE_FETCH + "]");
+		}
+
+		if (result == null) return null;
+		if (result instanceof byte[]) return (byte[]) result;
+		return engine.getCastUtil().toString(result).getBytes(StandardCharsets.UTF_8);
+	}
+
+	private Struct toParsedUrl(String url) {
+		Struct parsed = engine.getCreationUtil().createStruct();
+		try {
+			URL u = new URL(url);
+			parsed.setEL("protocol", u.getProtocol());
+			parsed.setEL("host", u.getHost());
+			parsed.setEL("port", Integer.valueOf(u.getPort() == -1 ? u.getDefaultPort() : u.getPort()));
+			parsed.setEL("path", u.getPath());
+			parsed.setEL("query", u.getQuery() != null ? u.getQuery() : "");
+			parsed.setEL("fragment", u.getRef() != null ? u.getRef() : "");
+		}
+		catch (MalformedURLException e) {
+			parsed.setEL("protocol", "");
+			parsed.setEL("host", "");
+			parsed.setEL("port", Integer.valueOf(-1));
+			parsed.setEL("path", url);
+			parsed.setEL("query", "");
+			parsed.setEL("fragment", "");
+		}
+		return parsed;
+	}
+
 	public final void setScale(int scale) {
 		this.scale = scale;
 	}
@@ -927,7 +990,10 @@ public abstract class PDFDocument {
 			Element e = (Element) n;
 			String src = e.getAttribute("src");
 			try {
-				if (isRemoteUrl(engine, src)) {
+				if (hasResourceHandler() && isRemoteUrl(engine, src)) {
+					// leave it to the renderer's user agent, which asks the resourceHandler first
+				}
+				else if (isRemoteUrl(engine, src)) {
 					// fetched with a timeout; the http resource used below has none and can hang the request
 					e.setAttribute("src", toLocalSource(engine, engine.getHTTPUtil().toURL(src.trim())));
 				}

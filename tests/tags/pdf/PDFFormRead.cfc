@@ -5,21 +5,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 		if ( directoryExists( variables.path ) ) directoryDelete( variables.path, true );
 		if ( !directoryExists( variables.path ) ) directoryCreate( variables.path, true, true );
 
-		// Generate a PDF with real AcroFields from HTML form elements
-		document fileName="#path#form.pdf" overwrite=true {
-			writeOutput( '
-				<html><body>
-				<h1>Test Form</h1>
-				<form>
-					<p>First: <input type="text" name="firstName" value="John" /></p>
-					<p>Last: <input type="text" name="lastName" value="Doe" /></p>
-					<p>Email: <input type="text" name="email" value="john@example.com" /></p>
-					<!-- checkbox omitted: triggers PDFBOX-5963 NPE in PDFont.getName() during merge, fixed in 3.0.8 -->
-					<!-- <p><input type="checkbox" name="agreed" checked="" /></p> -->
-				</form>
-				</body></html>
-			' );
-		}
+		// AcroForm fixture built with PDFBox (firstName=John, lastName=Doe, email=john@example.com); Flying Saucer does not
+		// turn HTML <input> elements into form fields, so the form can't come from cfdocument
+		fileCopy( getDirectoryFromPath( getCurrentTemplatePath() ) & "fixtures/form-prefilled.pdf", "#path#form.pdf" );
 
 		// Also generate a no-form PDF for negative tests
 		document fileName="#path#noform.pdf" overwrite=true {
@@ -28,7 +16,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 	}
 
 	function run( testResults, testBox ) {
-		xdescribe( "cfpdfform action=read", function() {
+		describe( "cfpdfform action=read", function() {
 
 			it( title="read form fields to struct via result attribute", body=function( currentSpec ) {
 				pdfform action="read" source="#path#form.pdf" result="local.fields";

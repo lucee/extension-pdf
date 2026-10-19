@@ -401,10 +401,38 @@ public class PDF extends BodyTagImpl implements Constants {
 	 * @throws PageException
 	 **/
 	public void setFilter(String pattern) throws PageException {
-		/*
-		 * TODO if(pattern.trim().length()>0) { try { this.filter=new WildCardFilter(pattern); } catch
-		 * (MalformedPatternException e) { throw engine.getExceptionUtil().createPageRuntimeException(engine.getCastUtil().toPageException(e)); } }
-		 */
+		if (Util.isEmpty(pattern, true)) return;
+		final java.util.regex.Pattern re = toFilterPattern(pattern);
+		this.filter = res -> re.matcher(res.getName()).matches();
+	}
+
+	/**
+	 * converts a file name wildcard pattern ("*.pdf", "report-??.pdf", multiple patterns separated by
+	 * "|") into a case-insensitive regex; everything except * and ? is matched literally
+	 */
+	static java.util.regex.Pattern toFilterPattern(String pattern) {
+		StringBuilder regex = new StringBuilder();
+		for (String part: pattern.split("\\|")) {
+			part = part.trim();
+			if (part.isEmpty()) continue;
+			if (regex.length() > 0) regex.append('|');
+			regex.append("(?:");
+			StringBuilder literal = new StringBuilder();
+			for (int i = 0; i < part.length(); i++) {
+				char c = part.charAt(i);
+				if (c == '*' || c == '?') {
+					if (literal.length() > 0) {
+						regex.append(java.util.regex.Pattern.quote(literal.toString()));
+						literal.setLength(0);
+					}
+					regex.append(c == '*' ? ".*" : ".");
+				}
+				else literal.append(c);
+			}
+			if (literal.length() > 0) regex.append(java.util.regex.Pattern.quote(literal.toString()));
+			regex.append(')');
+		}
+		return java.util.regex.Pattern.compile(regex.toString(), java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE);
 	}
 
 	/**
@@ -773,9 +801,9 @@ public class PDF extends BodyTagImpl implements Constants {
 			else if (ACTION_OPTIMIZE == action) doActionOptimize();
 			else if (ACTION_SANITIZE == action) doActionSanitize();
 			else if (ACTION_ADD_STAMP == action) doActionAddStamp();
-
-			// else if(ACTION_PROCESSDDX==action) throw
-			// engine.getExceptionUtil().createApplicationException("action [processddx] not supported");
+			// no (or no supported) action given: fail instead of silently doing nothing
+			else throw engine.getExceptionUtil().createApplicationException("attribute [action] is required for tag [cfpdf]",
+					"supported actions are [addAttachments, addHeader, addFooter, addStamp, addWatermark, deletePages, extractAttachments, extractBookmarks, extractImage, extractText, getInfo, merge, open, optimize, protect, read, readSignatureFields, removeAttachments, removePassword, removeWatermark, sanitize, setInfo, thumbnail, transform, validateSignature, write]");
 
 		}
 		catch (Exception e) {
@@ -805,7 +833,8 @@ public class PDF extends BodyTagImpl implements Constants {
 		}
 
 		try {
-			PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, version);
+			if (flatten) writeFlattened(doc, os);
+			else PDFUtil.concat(new PDFStruct[] { doc }, os, true, true, true, version);
 		}
 		finally {
 			Util.closeEL(os);
@@ -814,8 +843,37 @@ public class PDF extends BodyTagImpl implements Constants {
 			}
 		}
 		this.overwrite = true;
+		// the flattened output keeps the document info already; setInfo re-reads [source] and would
+		// overwrite the flattened destination with the unflattened source again
+		if (flatten) return;
 		this.info = doc.getInfo();
 		doActionSetInfo();
+	}
+
+	/**
+	 * writes the document with all form fields flattened into the page content. Done with PDFBox
+	 * directly, because concat (PdfCopy) re-imports the widget annotations and the fields come back.
+	 */
+	private void writeFlattened(PDFStruct doc, OutputStream os) throws IOException {
+		try (PDDocument pdDoc = doc.toPDDocument()) {
+			PDDocumentCatalog catalog = pdDoc.getDocumentCatalog();
+			PDAcroForm acroForm = catalog.getAcroForm(null);
+			if (acroForm != null) {
+				acroForm.flatten(acroForm.getFields(), true);
+				// PDFBOX-5962 (3.0.4+): after flatten() the COS /Fields array can survive the save and
+				// the form is resurrected on reload; a flattened document has no form, so drop it
+				catalog.setAcroForm(null);
+			}
+			if (version != null && !version.isEmpty()) {
+				try {
+					pdDoc.setVersion(Float.parseFloat(version));
+				}
+				catch (NumberFormatException nfe) {
+					// keep the source version
+				}
+			}
+			pdDoc.save(os);
+		}
 	}
 
 	private void doActionAddHeaderFooter(boolean isHeader) throws PageException, IOException, DocumentException {

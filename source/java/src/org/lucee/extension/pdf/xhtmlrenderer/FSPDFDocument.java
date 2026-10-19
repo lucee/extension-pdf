@@ -67,9 +67,12 @@ public final class FSPDFDocument extends PDFDocument {
 
 	@Override
 	public byte[] _render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException, DocumentException {
-		// user agent with connect/read timeouts for stylesheets and images Flying Saucer loads itself
+		// user agent with connect/read timeouts for stylesheets and images Flying Saucer loads itself;
+		// with a resourceHandler it asks the handler first
 		ITextOutputDevice outputDevice = new ITextOutputDevice(ITextRenderer.DEFAULT_DOTS_PER_POINT);
-		TimeoutUserAgent fsUserAgent = new TimeoutUserAgent(outputDevice, ITextRenderer.DEFAULT_DOTS_PER_PIXEL, getRemoteTimeoutMillis());
+		TimeoutUserAgent fsUserAgent = hasResourceHandler()
+				? new ResourceHandlerUserAgent(outputDevice, ITextRenderer.DEFAULT_DOTS_PER_PIXEL, getRemoteTimeoutMillis(), this, pc)
+				: new TimeoutUserAgent(outputDevice, ITextRenderer.DEFAULT_DOTS_PER_PIXEL, getRemoteTimeoutMillis());
 		ITextRenderer renderer = new ITextRenderer(ITextRenderer.DEFAULT_DOTS_PER_POINT, ITextRenderer.DEFAULT_DOTS_PER_PIXEL, outputDevice, fsUserAgent);
 
 		// prepare(fontDirectory, "fs.properties");
@@ -99,6 +102,14 @@ public final class FSPDFDocument extends PDFDocument {
 		if (mb <= 0D) mb = getFooter() != null ? MARGIN_WITH_HF : MARGIN_INIT;
 
 		Margin margin = new Margin(this, unitFactor, margintop, marginbottom, marginleft, marginright);
+
+		// scale: render on a page enlarged by 100/scale, PDFDocument.render() then scales every page
+		// back down to the requested size, so the content (not the page) ends up smaller
+		if (scale > 0 && scale < 100) {
+			double factor = 100D / scale;
+			dimension = new Dimension((int) Math.round(dimension.getWidth() * factor), (int) Math.round(dimension.getHeight() * factor));
+			margin.setScaleFactor(factor);
+		}
 
 		if ((margin.getLeftAsPoint() + margin.getRightAsPoint()) > dimension.getWidth()) throw engine.getExceptionUtil().createApplicationException(
 				"current document width (" + engine.getCastUtil().toString(dimension.getWidth()) + " point) is smaller that specified horizontal margin  ("
@@ -171,6 +182,14 @@ public final class FSPDFDocument extends PDFDocument {
 		else if (src != null) {
 			if (charset == null) charset = pc.getResourceCharset();
 			URL url = engine.getHTTPUtil().toURL(src);
+
+			// resourceHandler can supply the document itself
+			byte[] fromHandler = fetchFromResourceHandler(pc, url.toExternalForm());
+			if (fromHandler != null) {
+				if (mimeType == MIMETYPE_OTHER) mimeType = MIMETYPE_TEXT_HTML;
+				render(pc, renderer, new ByteArrayInputStream(fromHandler), os, url, margin, dimension, pageOffset);
+				return;
+			}
 
 			// set Proxy
 			if (Util.isEmpty(proxyserver) && config.isProxyEnableFor(url.getHost())) {
@@ -308,6 +327,8 @@ public final class FSPDFDocument extends PDFDocument {
 		if (h != null) sb.append("@page { @top-center    { content: element(header) }}").append('\n');
 		if (f != null) sb.append("@page { @bottom-center { content: element(footer) }}").append('\n');
 
+		// repeat <thead>/<tfoot> on every page a table spans (Flying Saucer only does that with paginate)
+		sb.append("table { -fs-table-paginate: paginate; }").append('\n');
 		sb.append(".luceefspagenumber:before {content: counter(page);}").append('\n');
 		sb.append(".luceefspagecount:before {content: counter(pages);}").append('\n');
 		sb.append(".luceefssecpagenumber:before {content: counter(page);}").append('\n');
@@ -319,9 +340,11 @@ public final class FSPDFDocument extends PDFDocument {
 		sb.append("@page { size: " + asString(dimension.getWidth()) + " " + asString(dimension.getHeight()) + ";}").append('\n');
 		sb.append("body {font-size: 21px;}").append('\n');
 
+		// the defaults derived from the tag attributes go first, so CSS in the document (e.g. @page size
+		// or margin, body font-size) comes later in the cascade and wins
 		Element style = doc.createElement("style");
 		style.appendChild(doc.createTextNode(sb.toString()));
-		head.appendChild(style);
+		head.insertBefore(style, head.getFirstChild());
 
 		moveStyleScript(head, body);
 		injectBookmarks(head, body);

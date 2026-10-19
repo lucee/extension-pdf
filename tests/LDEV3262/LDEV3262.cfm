@@ -1,3 +1,0 @@
-<cfdocument>
-	test pdf
-</cfdocument>

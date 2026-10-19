@@ -113,11 +113,27 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 	// Returns an array of URI strings from all PDAnnotationLink annotations with URI actions.
 	private array function getLinkURIs( required string pdfPath ) {
-		return getPDFLinkURIs( arguments.pdfPath );
+		return pdfBoxHelper().getLinkURIs( javaCast( "string", arguments.pdfPath ) );
 	}
 
+	// Returns total count of Link-subtype annotations across all pages.
 	private numeric function countLinkAnnotations( required string pdfPath ) {
-		return countPDFLinkAnnotations( arguments.pdfPath );
+		return pdfBoxHelper().countLinkAnnotations( javaCast( "string", arguments.pdfPath ) );
+	}
+
+	// PDFBox introspection for assertions. The helper class lives in the extension bundle, which is not
+	// on the CFML classpath, so it is loaded through the extension's own maven coordinate.
+	private function pdfBoxHelper() {
+		if ( isNull( variables._pdfBoxHelper ) ) {
+			var version = "";
+			var q = extensionList();
+			loop query=q {
+				if ( q.name contains "PDF Extension" ) version = q.version;
+			}
+			if ( !len( version ) ) throw( message="PDF extension is not installed" );
+			variables._pdfBoxHelper = createObject( "java", "org.lucee.extension.pdf.util.PDFBoxHelper", { maven: [ "org.lucee:pdf:" & version ] } );
+		}
+		return variables._pdfBoxHelper;
 	}
 
 }

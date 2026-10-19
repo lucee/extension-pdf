@@ -34,6 +34,7 @@ import java.util.Map;
 import org.lucee.extension.pdf.ApplicationSettings;
 import org.lucee.extension.pdf.PDFDocument;
 import org.lucee.extension.pdf.PDFPageMark;
+import org.lucee.extension.pdf.util.ContentDisposition;
 import org.lucee.extension.pdf.util.ClassUtil;
 import org.lucee.extension.pdf.util.PDFUtil;
 
@@ -383,7 +384,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	 */
 	public void setFilename(String filename) throws PageException {
 		this.filename = engine.getResourceUtil().toResourceNotExisting(pageContext, filename);
-		// pageContext.getConfig().getSecurityManager().checkFileLocation(this.filename);
+		pageContext.getConfig().getSecurityManager().checkFileLocation(this.filename);
 	}
 
 	/**
@@ -647,7 +648,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		fontembed = fontembed.trim();
 		Boolean fe = engine.getCastUtil().toBoolean(fontembed, null);
 		if (fe == null) {
-			if ("selective".equalsIgnoreCase(fontembed)) this.attrFontembed = PDFDocument.FONT_EMBED_SELECCTIVE;
+			if ("selective".equalsIgnoreCase(fontembed)) this.attrFontembed = PDFDocument.FONT_EMBED_SELECTIVE;
 			else throw engine.getExceptionUtil().createAbortException("invalid value for fontembed [" + fontembed + "], valid values for fontembed are [yes,no,selective]");
 		}
 		else if (fe.booleanValue()) {
@@ -858,8 +859,8 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		rspClass.getMethod("setContentLength", int.class).invoke(rsp, pdf.length);
 
 		// setHeader(String, String)
-		if (!Util.isEmpty(saveAsName, true))
-			rspClass.getMethod("setHeader", String.class, String.class).invoke(rsp, "Content-Disposition", "inline; filename=\"" + saveAsName + "\"");
+		String disposition = ContentDisposition.inline(saveAsName);
+		if (disposition != null) rspClass.getMethod("setHeader", String.class, String.class).invoke(rsp, "Content-Disposition", disposition);
 	}
 
 	private boolean hasExplicitBookmarks(ArrayList<PDFDocument> docs) {
@@ -999,10 +1000,12 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	}
 
 	private int getMultipleHF(PDFDocument doc) {
-		int count;
-		if (doc.getHeader() != null && (count = doc.getHeader().getHtmlTemplates().size()) > 1) return count;
-		if (doc.getFooter() != null && (count = doc.getFooter().getHtmlTemplates().size()) > 1) return count;
-		return 1;
+		// header and footer can have a different number of per page templates; render as many passes as
+		// the larger one needs (PDFPageMark clamps the index for the smaller one)
+		int count = 1;
+		if (doc.getHeader() != null) count = Math.max(count, doc.getHeader().getHtmlTemplates().size());
+		if (doc.getFooter() != null) count = Math.max(count, doc.getFooter().getHtmlTemplates().size());
+		return count;
 	}
 
 	private void renderUpdate(byte[] pdf, OutputStream os) throws Exception {

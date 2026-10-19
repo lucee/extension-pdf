@@ -31,7 +31,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( isPDFFile( "#path#scale25.pdf" ) ).toBeTrue();
 			});
 
-			xit( title="scale affects rendered content size", body=function( currentSpec ) {
+			it( title="scale affects rendered content size", body=function( currentSpec ) {
 				// render large content at scale 100 and scale 50
 				// scale 50 should fit in fewer pages because content is half-size
 				var bigContent = "<div style='font-size:36px; line-height:1.5'>";
@@ -56,6 +56,25 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 
 				// scale 50 must have strictly fewer pages than scale 100
 				expect( pdf50.totalPages ).toBeLT( pdf100.totalPages );
+			});
+
+			it( title="scale keeps the page size, only the content gets smaller", body=function( currentSpec ) {
+				document format="pdf" pagetype="A4" scale="100" filename="#path#pagesize_100.pdf" overwrite=true {
+					writeOutput( "<p>page size test</p>" );
+				}
+				document format="pdf" pagetype="A4" scale="50" filename="#path#pagesize_50.pdf" overwrite=true {
+					writeOutput( "<p>page size test</p>" );
+				}
+				var info100 = {};
+				var info50 = {};
+				cfpdf( action="getinfo", source="#path#pagesize_100.pdf", name="info100" );
+				cfpdf( action="getinfo", source="#path#pagesize_50.pdf", name="info50" );
+
+				// A4 is 595 x 842 points, with and without scale
+				expect( round( info100.pagesize[ 1 ].width ) ).toBe( 595 );
+				expect( round( info100.pagesize[ 1 ].height ) ).toBe( 842 );
+				expect( round( info50.pagesize[ 1 ].width ) ).toBe( 595, "scale=50 must not shrink the page width" );
+				expect( round( info50.pagesize[ 1 ].height ) ).toBe( 842, "scale=50 must not shrink the page height" );
 			});
 
 			it( title="scale rejects negative values", body=function( currentSpec ) {

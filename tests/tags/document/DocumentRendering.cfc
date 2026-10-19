@@ -274,7 +274,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				expect( page2 ).toInclude( "ROW END MARKER", "row start and end should land on the same page" );
 			});
 
-			xit( title="@page CSS rule sets custom page size", body=function( currentSpec ) {
+			it( title="@page CSS rule sets custom page size", body=function( currentSpec ) {
 				// @page in user CSS should override tag-default page sizing.
 				// 200mm x 100mm → 567 x 283 points (approx, 1mm = 2.8346 pt).
 				document format="pdf" filename="#path#at_page.pdf" overwrite=true {
@@ -286,6 +286,27 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 				pdf action="getInfo" source="#path#at_page.pdf" name="local.info";
 				expect( round( info.pagesize[ 1 ].width ) ).toBe( 567, "@page size width 200mm should map to ~567pt" );
 				expect( round( info.pagesize[ 1 ].height ) ).toBe( 283, "@page size height 100mm should map to ~283pt" );
+			});
+
+			it( title="@page CSS size keyword with orientation overrides the tag default", body=function( currentSpec ) {
+				// A5 landscape = 210mm x 148mm = 595 x 420 points; the tag default is letter portrait (612 x 792)
+				document format="pdf" filename="#path#at_page_a5.pdf" overwrite=true {
+					writeOutput( '<html><head><style>@page { size: A5 landscape; }</style></head><body><p>A5 landscape</p></body></html>' );
+				}
+
+				pdf action="getInfo" source="#path#at_page_a5.pdf" name="local.info";
+				expect( round( info.pagesize[ 1 ].width ) ).toBe( 595 );
+				expect( round( info.pagesize[ 1 ].height ) ).toBe( 420 );
+			});
+
+			it( title="without @page CSS the tag pagetype still applies", body=function( currentSpec ) {
+				document format="pdf" pagetype="A4" filename="#path#no_at_page.pdf" overwrite=true {
+					writeOutput( '<html><head><style>p { color: red; }</style></head><body><p>A4</p></body></html>' );
+				}
+
+				pdf action="getInfo" source="#path#no_at_page.pdf" name="local.info";
+				expect( round( info.pagesize[ 1 ].width ) ).toBe( 595 );
+				expect( round( info.pagesize[ 1 ].height ) ).toBe( 842 );
 			});
 
 			it( title="long content flows naturally across pages without explicit breaks", body=function( currentSpec ) {
