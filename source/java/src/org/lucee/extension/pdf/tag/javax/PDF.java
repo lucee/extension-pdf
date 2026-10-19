@@ -401,10 +401,38 @@ public class PDF extends BodyTagImpl implements Constants {
 	 * @throws PageException
 	 **/
 	public void setFilter(String pattern) throws PageException {
-		/*
-		 * TODO if(pattern.trim().length()>0) { try { this.filter=new WildCardFilter(pattern); } catch
-		 * (MalformedPatternException e) { throw engine.getExceptionUtil().createPageRuntimeException(engine.getCastUtil().toPageException(e)); } }
-		 */
+		if (Util.isEmpty(pattern, true)) return;
+		final java.util.regex.Pattern re = toFilterPattern(pattern);
+		this.filter = res -> re.matcher(res.getName()).matches();
+	}
+
+	/**
+	 * converts a file name wildcard pattern ("*.pdf", "report-??.pdf", multiple patterns separated by
+	 * "|") into a case-insensitive regex; everything except * and ? is matched literally
+	 */
+	static java.util.regex.Pattern toFilterPattern(String pattern) {
+		StringBuilder regex = new StringBuilder();
+		for (String part: pattern.split("\\|")) {
+			part = part.trim();
+			if (part.isEmpty()) continue;
+			if (regex.length() > 0) regex.append('|');
+			regex.append("(?:");
+			StringBuilder literal = new StringBuilder();
+			for (int i = 0; i < part.length(); i++) {
+				char c = part.charAt(i);
+				if (c == '*' || c == '?') {
+					if (literal.length() > 0) {
+						regex.append(java.util.regex.Pattern.quote(literal.toString()));
+						literal.setLength(0);
+					}
+					regex.append(c == '*' ? ".*" : ".");
+				}
+				else literal.append(c);
+			}
+			if (literal.length() > 0) regex.append(java.util.regex.Pattern.quote(literal.toString()));
+			regex.append(')');
+		}
+		return java.util.regex.Pattern.compile(regex.toString(), java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE);
 	}
 
 	/**
