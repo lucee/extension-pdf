@@ -2,8 +2,8 @@ package org.lucee.extension.pdf;
 
 import java.io.File;
 
-import org.lucee.extension.pdf.util.FontsJarExtractor;
 
+import lucee.commons.io.log.Log;
 import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.PageContext;
@@ -17,7 +17,6 @@ public class ApplicationSettings {
 	private final File fontDirectory;
 	private final String unsupportedEngine;
 
-	private static boolean init = false;
 
 	public ApplicationSettings(int type, File fontDirectory, String unsupportedEngine) {
 		this.type = type;
@@ -40,11 +39,6 @@ public class ApplicationSettings {
 	}
 
 	public static ApplicationSettings getApplicationSettings(PageContext pc) {
-
-		if (!init && pc != null) {
-			initDefaultFontDirectory(pc.getConfig());
-			init = true;
-		}
 
 		int type = PDFDocument.TYPE_FS;
 		File fontDirectory = null;
@@ -78,7 +72,12 @@ public class ApplicationSettings {
 			}
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			// a broken this.pdf setting must not break cfdocument, but it should not vanish either
+			if (pc != null) {
+				Log log = pc.getConfig().getLog("pdf");
+				if (log == null) log = pc.getConfig().getLog("application");
+				if (log != null) log.log(Log.LEVEL_ERROR, "pdf", "failed to read the [this.pdf] settings of the application", e);
+			}
 		}
 		if (fontDirectory == null) {
 			fontDirectory = getDefaultFontDirectory(pc.getConfig());
@@ -92,17 +91,5 @@ public class ApplicationSettings {
 		fonts.mkdirs();
 		if (fonts.isDirectory() && fonts instanceof File) return (File) fonts;
 		return null;
-	}
-
-	public synchronized static void initDefaultFontDirectory(Config config) {
-		File dir = getDefaultFontDirectory(config);
-		if (dir == null || dir.list().length > 1) return;
-
-		try {
-			FontsJarExtractor.extract(dir);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 }
