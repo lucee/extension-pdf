@@ -43,6 +43,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xhtmlrenderer.pdf.ITextFontResolver;
+import org.xhtmlrenderer.pdf.ITextOutputDevice;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -66,7 +67,10 @@ public final class FSPDFDocument extends PDFDocument {
 
 	@Override
 	public byte[] _render(Dimension dimension, double unitFactor, PageContext pc, boolean generategenerateOutlines) throws PageException, IOException, DocumentException {
-		ITextRenderer renderer = new ITextRenderer();
+		// user agent with connect/read timeouts for stylesheets and images Flying Saucer loads itself
+		ITextOutputDevice outputDevice = new ITextOutputDevice(ITextRenderer.DEFAULT_DOTS_PER_POINT);
+		TimeoutUserAgent fsUserAgent = new TimeoutUserAgent(outputDevice, ITextRenderer.DEFAULT_DOTS_PER_PIXEL, getRemoteTimeoutMillis());
+		ITextRenderer renderer = new ITextRenderer(ITextRenderer.DEFAULT_DOTS_PER_POINT, ITextRenderer.DEFAULT_DOTS_PER_PIXEL, outputDevice, fsUserAgent);
 
 		// prepare(fontDirectory, "fs.properties");
 
@@ -176,7 +180,7 @@ public final class FSPDFDocument extends PDFDocument {
 				proxyuser = pd == null ? null : pd.getUsername();
 				proxypassword = pd == null ? null : pd.getPassword();
 			}
-			HTTPResponse method = engine.getHTTPUtil().get(url, authUser, authPassword, -1, null, userAgent, proxyserver, proxyport, proxyuser, proxypassword, null);
+			HTTPResponse method = engine.getHTTPUtil().get(url, authUser, authPassword, getRemoteTimeoutMillis(), null, userAgent, proxyserver, proxyport, proxyuser, proxypassword, null);
 
 			// mimetype
 			if (mimeType == MIMETYPE_OTHER) {
