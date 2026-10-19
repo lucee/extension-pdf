@@ -108,6 +108,16 @@ public abstract class PDFDocument {
 	public static final int ENC_40BIT = 1;
 	public static final int ENC_128BIT = 2;
 
+	// remote fetches
+	/**
+	 * default connect and read timeout for every remote (http/https) fetch while rendering a document:
+	 * the src document, images and stylesheets. Can be changed with the system property
+	 * lucee.pdf.remote.timeout or the environment variable LUCEE_PDF_REMOTE_TIMEOUT (milliseconds).
+	 */
+	public static final int DEFAULT_REMOTE_TIMEOUT_MILLIS = 30000;
+	public static final String REMOTE_TIMEOUT_PROPERTY = "lucee.pdf.remote.timeout";
+	public static final String REMOTE_TIMEOUT_ENV = "LUCEE_PDF_REMOTE_TIMEOUT";
+
 	// fontembed
 	public static final int FONT_EMBED_NO = 0;
 	public static final int FONT_EMBED_YES = 1;
@@ -956,13 +966,36 @@ public abstract class PDFDocument {
 		if (footer != null) footer.setIndex(i);
 	}
 
+	/**
+	 * @return the connect/read timeout in milliseconds for remote fetches, see
+	 *         {@link #DEFAULT_REMOTE_TIMEOUT_MILLIS}
+	 */
+	public static int getRemoteTimeoutMillis() {
+		String v = System.getProperty(REMOTE_TIMEOUT_PROPERTY);
+		if (Util.isEmpty(v, true)) v = System.getenv(REMOTE_TIMEOUT_ENV);
+		if (!Util.isEmpty(v, true)) {
+			try {
+				int t = Integer.parseInt(v.trim());
+				if (t > 0) return t;
+			}
+			catch (NumberFormatException nfe) {
+				// use the default
+			}
+		}
+		return DEFAULT_REMOTE_TIMEOUT_MILLIS;
+	}
+
 	protected void toLocalSource(CFMLEngine engine, PageContext pc, Node n, String hostPort) {
 		if (n.getNodeName().equalsIgnoreCase("img") && n instanceof Element) {
 			Element e = (Element) n;
 			String src = e.getAttribute("src");
 			try {
-				if (hasResourceHandler() && isRemote(src)) {
+				if (hasResourceHandler() && isRemoteUrl(engine, src)) {
 					// leave it to the renderer's user agent, which asks the resourceHandler first
+				}
+				else if (isRemoteUrl(engine, src)) {
+					// fetched with a timeout; the http resource used below has none and can hang the request
+					e.setAttribute("src", toLocalSource(engine, engine.getHTTPUtil().toURL(src.trim())));
 				}
 				else if (!engine.getStringUtil().startsWithIgnoreCase(src.trim(), "data:image")) {
 					Resource res = engine.getCastUtil().toResource(src, null);
@@ -981,9 +1014,10 @@ public abstract class PDFDocument {
 		}
 	}
 
-	private static boolean isRemote(String src) {
-		String s = src.trim().toLowerCase();
-		return s.startsWith("http://") || s.startsWith("https://");
+	private static boolean isRemoteUrl(CFMLEngine engine, String src) {
+		if (src == null) return false;
+		String s = src.trim();
+		return engine.getStringUtil().startsWithIgnoreCase(s, "http://") || engine.getStringUtil().startsWithIgnoreCase(s, "https://");
 	}
 
 	private static String cleanBase64Image(String src) {
@@ -999,7 +1033,7 @@ public abstract class PDFDocument {
 			else if (engine.getStringUtil().endsWithIgnoreCase(name, ".gif")) expType = "image/gif";
 
 			if (expType != null) {
-				HTTPResponse rsp = engine.getHTTPUtil().get(url, null, null, -1, null, null, null, -1, null, null, null);
+				HTTPResponse rsp = engine.getHTTPUtil().get(url, null, null, getRemoteTimeoutMillis(), null, null, null, -1, null, null, null);
 				if (expType.equals(rsp.getContentType().toString())) {
 					String b64 = engine.getCastUtil().toBase64(rsp.getContentAsByteArray());
 					return "data:" + expType + ";base64," + b64;

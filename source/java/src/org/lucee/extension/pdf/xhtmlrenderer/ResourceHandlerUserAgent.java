@@ -24,7 +24,6 @@ import java.io.InputStream;
 
 import org.lucee.extension.pdf.PDFDocument;
 import org.xhtmlrenderer.pdf.ITextOutputDevice;
-import org.xhtmlrenderer.pdf.ITextUserAgent;
 
 import lucee.commons.io.log.Log;
 import lucee.runtime.PageContext;
@@ -34,13 +33,13 @@ import lucee.runtime.PageContext;
  * images, ...) before fetching it the normal way. The handler returning null means "fetch as
  * usual".
  */
-public final class ResourceHandlerUserAgent extends ITextUserAgent {
+public final class ResourceHandlerUserAgent extends TimeoutUserAgent {
 
 	private final PDFDocument document;
 	private final PageContext pc;
 
-	public ResourceHandlerUserAgent(ITextOutputDevice outputDevice, int dotsPerPixel, PDFDocument document, PageContext pc) {
-		super(outputDevice, dotsPerPixel);
+	public ResourceHandlerUserAgent(ITextOutputDevice outputDevice, int dotsPerPixel, int timeoutMillis, PDFDocument document, PageContext pc) {
+		super(outputDevice, dotsPerPixel, timeoutMillis);
 		this.document = document;
 		this.pc = pc;
 	}
