@@ -197,6 +197,7 @@ Child tag of cfpdfform for specifying form field values.
 - `cfdocument saveAsName` is sanitised in the `Content-Disposition` header (CR/LF and quotes removed, RFC 5987 `filename*` for non-ASCII names) (LDEV-6646).
 - `cfdocument filename` is checked against the security manager's file access, like `srcfile` (LDEV-6647).
 - The header/footer template index is bounds checked for `evalAtPrint` headers/footers (LDEV-6653).
+- `cfpdf action="thumbnail"` decodes page images near the thumbnail resolution instead of at full size, so a page with a large image no longer needs hundreds of MB of heap for a small thumbnail (LDEV-6446).
 
 ### Removed
 

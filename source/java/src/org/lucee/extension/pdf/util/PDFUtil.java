@@ -539,6 +539,8 @@ public class PDFUtil {
 			int p;
 
 			PDFRenderer pdfRender = new PDFRenderer(pdDoc);
+			// LDEV-6446 decode page images near the thumbnail resolution instead of at full size
+			pdfRender.setSubsamplingAllowed(true);
 
 			while (it.hasNext()) {
 				p = it.next();
