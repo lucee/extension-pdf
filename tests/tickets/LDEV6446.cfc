@@ -18,17 +18,18 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 		imageWrite( img, variables.path & "large.jpg", 0.8, true );
 		img = "";
 
-		// first page holds the large image, scaled down to the page width
+		// a single page holding the large image, scaled down to the page width
 		document fileName="#variables.path#large-image.pdf" overwrite=true {
-			writeOutput( '<img src="file://#variables.path#large.jpg" style="width:100%">' );
+			writeOutput( '<img src="file:///#variables.path#large.jpg" style="width:100%">' );
 		}
 	}
 
 	function run( testResults, testBox ) {
 		describe( "LDEV-6446 cfpdf action=thumbnail with a large page image", function() {
 
-			it( title="creates the thumbnail without decoding the image at full resolution", body=function( currentSpec ) {
+			it( "creates the thumbnail without decoding the image at full resolution", function() {
 				var thumbDir = variables.path & "thumbs/";
+				// a full resolution raster is a large allocation that goes straight to the old generation (G1 humongous region)
 				var oldGen = getOldGenPools();
 				expect( arrayLen( oldGen ) ).toBeGT( 0, "no old generation heap memory pool found" );
 
@@ -73,9 +74,5 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			}
 		}
 		return pools;
-	}
-
-	function afterAll() {
-		// leave artifacts for inspection
 	}
 }
