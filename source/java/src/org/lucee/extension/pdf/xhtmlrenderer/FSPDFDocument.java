@@ -296,13 +296,13 @@ public final class FSPDFDocument extends PDFDocument {
 		if (base == null) base = getRequestURL(pc);
 		renderer.setDocument(doc, base == null ? null : base.toExternalForm());
 		renderer.layout();
-		renderer.createPDF(os);
+		renderer.createPDF(os, true, getInitialPageNumber());
 	}
 
 	private void createPDF(ITextRenderer renderer, String xhtml, OutputStream os) throws DocumentException {
 		renderer.setDocumentFromString(xhtml);
 		renderer.layout();
-		renderer.createPDF(os);
+		renderer.createPDF(os, true, getInitialPageNumber());
 	}
 
 	@Override
