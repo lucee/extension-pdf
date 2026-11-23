@@ -32,7 +32,7 @@ component extends = "org.lucee.cfml.test.LuceeTestCase" labels="pdf" {
 			});
 
 			it(title="CFPDF action=thumbnail with http resource", body=function( currentSpec ) {
-				pdf action="thumbnail" source="https://github.com/lucee/Lucee/raw/master/test/tickets/LDEV1774/test.pdf" overwrite="true" destination="#variables.thumbnaildir#";
+				pdf action="thumbnail" source="https://github.com/lucee/Lucee/raw/HEAD/test/tickets/LDEV1774/test.pdf" overwrite="true" destination="#variables.thumbnaildir#";
 				var imgFiles = directoryList( path="#variables.thumbnaildir#", listInfo="path");
 				expect(arrayLen(imgFiles)).toBe(8);
 				expect(arrayEvery(imgFiles, (e) => { return listLast(e,".") == "jpg"})).toBeTrue();
