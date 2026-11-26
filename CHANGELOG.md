@@ -188,6 +188,7 @@ Child tag of cfpdfform for specifying form field values.
 - **Table headers repeat**: `<thead>` and `<tfoot>` are repeated on every page a table spans (LDEV-6650).
 - **Remote fetch timeout**: the `src` document, images and stylesheets are fetched with a connect/read timeout of 30s. It can be changed with the system property `lucee.pdf.remote.timeout` or the env var `LUCEE_PDF_REMOTE_TIMEOUT` (milliseconds). Before, an unresponsive host could block the request forever (LDEV-6651).
 - **Font load diagnostics**: a font in `fontdirectory` that can't be loaded is logged as a WARN to the `pdf` log instead of being ignored silently (LDEV-6655).
+- **`startPageNumber`** on `cfdocument` and `cfdocumentsection`: the page numbering starts at that value (a positive whole number, default 1), so `{currentpagenumber}` and `cfdocument.currentpagenumber` in headers and footers reflect it. Pages of the following sections continue the numbering, a `cfdocumentsection` with its own `startPageNumber` restarts it there. `{totalpagecount}` then is the number of the last page (a three page document with `startPageNumber="5"` shows "Page 5 of 7" on its first page), without the attribute it is the number of pages as before. In the default CSS counter mode `{currentsectionpagenumber}` follows the same numbering as `{currentpagenumber}` (LDEV-2910).
 
 ### Bug Fixes
 

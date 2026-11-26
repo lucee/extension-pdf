@@ -194,6 +194,13 @@
 		</attribute>
 		<attribute>
 			<type>number</type>
+			<name>startpagenumber</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Number of the first page of the document, a positive whole number (default 1). The page numbers in headers and footers ({currentpagenumber}, cfdocument.currentpagenumber) start at this value. The total page count ({totalpagecount}, cfdocument.totalpagecount) then is the number of the last page, so a footer "Page X of Y" reads "Page 5 of 7" on the first page of a three page document that starts at 5. Without startPageNumber it is the number of pages as before. When this attribute or the one of cfdocumentsection is used, the page numbers run through the sections of the document. (since v3.0.0.9)</description>
+		</attribute>
+		<attribute>
+			<type>number</type>
 			<name>scale</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
@@ -445,6 +452,13 @@ Determines if the contents of the cfdocumentitem tag body has to be evaluated at
             centimeters. To specify the top margin in centimeters,
             include the unit="cm" attribute in the parent cfdocument
             tag.</description>
+		</attribute>
+		<attribute>
+			<type>number</type>
+			<name>startpagenumber</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<description>Number of the first page of this section, a positive whole number. The page numbers in headers and footers ({currentpagenumber}, cfdocument.currentpagenumber) start at this value in this section. Default is the page after the last page of the previous section, or the startPageNumber of cfdocument for the first section (1 if not set). The total page count ({totalpagecount}) is the number of the last page of the numbering, see the attribute startPageNumber of cfdocument. (since v3.0.0.9)</description>
 		</attribute>
 		<attribute>
 			<type>string</type>

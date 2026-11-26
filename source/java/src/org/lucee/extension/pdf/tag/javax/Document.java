@@ -73,6 +73,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 	private String ownerpassword = null;
 	private String userpassword = "";
 	private int scale = -1;
+	private int startPageNumber;
 
 	// TODO impl. tag Document backgroundvisible,fontembed,scale
 	private boolean backgroundvisible;
@@ -131,6 +132,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		userpassword = "";
 		permissions = 0;
 		scale = -1;
+		startPageNumber = 0;
 		documents.clear();
 		_document = null;
 		backgroundvisible = false;
@@ -596,6 +598,16 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		this.scale = (int) scale;
 	}
 
+	/**
+	 * @param startPageNumber number of the first page of the document
+	 * @throws PageException
+	 */
+	public void setStartpagenumber(double startPageNumber) throws PageException {
+		if (startPageNumber < 1 || startPageNumber != Math.floor(startPageNumber) || startPageNumber > Integer.MAX_VALUE / 2)
+			throw engine.getExceptionUtil().createApplicationException("startPageNumber must be a positive whole number");
+		this.startPageNumber = (int) startPageNumber;
+	}
+
 	public void setResourcehandler(Object resourceHandler) {
 		this.attrResourceHandler = resourceHandler;
 	}
@@ -894,12 +906,23 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 		int index = 0, pageOffset = 0, count = 0, pages;
 		Dimension dimension = null;
 
+		// page numbering: as soon as startPageNumber is used on the document or on a section, the page
+		// numbers run through the sections and a section can restart them with its own startPageNumber
+		boolean customNumbering = startPageNumber > 0;
+		for (PDFDocument d: documents) {
+			if (d.getStartPageNumber() > 0) customNumbering = true;
+		}
+		int nextPageNumber = startPageNumber > 0 ? startPageNumber : 1;
+
 		// generate pdf documents
 
 		while (it.hasNext()) {
 			count++;
 			pdfDocs[index] = it.next();
 			pdfDocs[index].setPageOffset(pageOffset);
+			int firstPageNumber = pdfDocs[index].getStartPageNumber() > 0 ? pdfDocs[index].getStartPageNumber() : nextPageNumber;
+			pdfDocs[index].setFirstPageNumber(firstPageNumber);
+			pdfDocs[index].setInitialPageNumber(customNumbering ? firstPageNumber : 0);
 
 			// Set the dimension based on the specified orientation of each PDF doc.
 			// This allows for mixed-orientation PDFs.
@@ -929,6 +952,7 @@ public final class Document extends BodyTagImpl implements AbsDoc {
 			pages = pdfReaders[index].getNumberOfPages();
 			pdfDocs[index].setPages(pages);
 			pageOffset += pages;
+			nextPageNumber = firstPageNumber + pages;
 			index++;
 		}
 

@@ -207,6 +207,15 @@ public final class DocumentSection extends BodyTagImpl implements AbsDoc {
 		pdfDocumentEL().setUserAgent(userAgent);
 	}
 
+	/**
+	 * @param startPageNumber number of the first page of this section
+	 */
+	public void setStartpagenumber(double startPageNumber) throws PageException {
+		if (startPageNumber < 1 || startPageNumber != Math.floor(startPageNumber) || startPageNumber > Integer.MAX_VALUE / 2)
+			throw engine.getExceptionUtil().createApplicationException("startPageNumber must be a positive whole number");
+		pdfDocumentEL().setStartPageNumber((int) startPageNumber);
+	}
+
 	@Override
 	public int doStartTag() throws PageException {
 		return EVAL_BODY_BUFFERED;

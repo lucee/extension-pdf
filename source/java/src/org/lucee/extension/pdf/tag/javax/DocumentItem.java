@@ -108,11 +108,14 @@ public final class DocumentItem extends BodyTagImpl {
 			PDFDocument currPD = getPDFDocument();
 			List<PDFDocument> list = getDocument().getPDFDocuments();
 			Iterator<PDFDocument> it = list.iterator();
+			// the number of the last page: the number of pages, or when startPageNumber is used the number
+			// of the last page in the numbering that starts there
 			int totalPageCount = 0;
 			while (it.hasNext()) {
-				totalPageCount += it.next().getPages();
+				PDFDocument last = it.next();
+				totalPageCount = last.getFirstPageNumber() + last.getPages() - 1;
 			}
-			cfdoc.setEL("currentpagenumber", Double.valueOf(currPD.getPageOffset() + count));
+			cfdoc.setEL("currentpagenumber", Double.valueOf(currPD.getFirstPageNumber() + count - 1));
 			cfdoc.setEL("currentsectionpagenumber", Double.valueOf(count));
 			cfdoc.setEL("totalpagecount", Double.valueOf(totalPageCount));
 			cfdoc.setEL("totalsectionpagecount", currPD.getPages());

@@ -182,6 +182,9 @@ public abstract class PDFDocument {
 	protected Resource debugHtml;
 	protected File fontDirectory;
 	private int pageOffset;
+	private int startPageNumber;
+	private int firstPageNumber = 1;
+	private int initialPageNumber;
 	private int pages;
 	private List<Resource> tempFiles = new ArrayList<>();
 	private final List<String[]> htmlBookmarks = new ArrayList<>();
@@ -944,6 +947,39 @@ public abstract class PDFDocument {
 	}
 
 	public abstract String handlePageNumbers(String html);
+
+	/**
+	 * the startPageNumber attribute of cfdocumentsection, 0 if not set
+	 */
+	public void setStartPageNumber(int startPageNumber) {
+		this.startPageNumber = startPageNumber;
+	}
+
+	public int getStartPageNumber() {
+		return startPageNumber;
+	}
+
+	/**
+	 * number of the first page of this document (section), set before rendering
+	 */
+	public void setFirstPageNumber(int firstPageNumber) {
+		this.firstPageNumber = firstPageNumber;
+	}
+
+	public int getFirstPageNumber() {
+		return firstPageNumber;
+	}
+
+	/**
+	 * first page number handed to the renderer, 0 keeps the default numbering
+	 */
+	public void setInitialPageNumber(int initialPageNumber) {
+		this.initialPageNumber = initialPageNumber;
+	}
+
+	public int getInitialPageNumber() {
+		return initialPageNumber;
+	}
 
 	public void setPageOffset(int pageOffset) {
 		this.pageOffset = pageOffset;
